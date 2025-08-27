@@ -333,7 +333,7 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     /**
      * @dev 应用加成
      */
-    function applyAddon(address user, string memory addonType) external notPaused returns (uint256) {
+    function applyAddon(address /* user */, string memory addonType) external notPaused returns (uint256) {
         uint256 bonusRate = 0;
         
         if (keccak256(bytes(addonType)) == keccak256(bytes("time"))) {

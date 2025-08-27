@@ -410,7 +410,7 @@ contract HCFReferral is Ownable, ReentrancyGuard {
         
         // 全局封顶检查（日产出%）
         if (address(stakingContract) != address(0)) {
-            (uint256 stakingAmount, uint256 dailyReward) = stakingContract.getUserStakingInfo(user);
+            (uint256 stakingAmount, uint256 /* dailyReward */) = stakingContract.getUserStakingInfo(user);
             if (burnAmount > dailyReward) {
                 burnAmount = dailyReward; // 封顶
             }

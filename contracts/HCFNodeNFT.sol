@@ -271,7 +271,7 @@ contract HCFNodeNFT is ERC721, Ownable, ReentrancyGuard {
         
         // 获取LP中的HCF数量
         if (address(lpPair) != address(0)) {
-            (uint112 reserve0, uint112 reserve1,) = lpPair.getReserves();
+            (uint112 reserve0, uint112 /* reserve1 */,) = lpPair.getReserves();
             // 假设token0是HCF
             node.lpHCFAmount = uint256(reserve0);
         }
