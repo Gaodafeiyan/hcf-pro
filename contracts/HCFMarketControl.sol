@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IMultiSigWallet {
@@ -333,7 +333,7 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     /**
      * @dev 应用加成
      */
-    function applyAddon(address /* user */, string memory addonType) external notPaused returns (uint256) {
+    function applyAddon(address user, string memory addonType) external notPaused returns (uint256) {
         uint256 bonusRate = 0;
         
         if (keccak256(bytes(addonType)) == keccak256(bytes("time"))) {

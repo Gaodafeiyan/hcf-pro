@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IUSDTOracle {
@@ -223,7 +223,7 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     /**
      * @dev 监控USDT转入，自动铸造BSDT
      */
-    function monitorUSDTTransfer(address wallet, uint256 /* detectedAmount */) external onlyKeeper notPaused {
+    function monitorUSDTTransfer(address wallet, uint256 detectedAmount) external onlyKeeper notPaused {
         uint256 currentUSDTBalance = usdtToken.balanceOf(wallet);
         
         // 如果检测到USDT增加
@@ -250,7 +250,7 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     /**
      * @dev 监控BSDT转入，自动销毁并释放USDT
      */
-    function monitorBSDTTransfer(address wallet, uint256 /* detectedAmount */) external onlyKeeper notPaused {
+    function monitorBSDTTransfer(address wallet, uint256 detectedAmount) external onlyKeeper notPaused {
         uint256 currentBSDTBalance = balanceOf(wallet);
         
         // 如果检测到BSDT增加

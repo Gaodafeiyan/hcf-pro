@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IMultiSigWallet {
@@ -470,7 +470,7 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
     /**
      * @dev 桥接到USDC
      */
-    function _bridgeToUSDC(uint256 amount) internal pure returns (uint256) {
+    function _bridgeToUSDC(uint256 amount) internal returns (uint256) {
         // 简化实现：1:1兑换
         // 实际需要通过跨链桥或DEX路由
         return amount;
@@ -520,7 +520,7 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
                 
                 // 简化逻辑：如果储备减少，触发补偿
                 if (reserve0 < 1000 * 10**18 || reserve1 < 1000 * 10**18) {
-                    try impermanentLossProtection.claimCompensation() returns (uint256 /* compensation */) {
+                    try impermanentLossProtection.claimCompensation() returns (uint256 compensation) {
                         // 补偿已处理
                     } catch {
                         // 忽略错误

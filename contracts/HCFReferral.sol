@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IMultiSigWallet {
@@ -410,7 +410,7 @@ contract HCFReferral is Ownable, ReentrancyGuard {
         
         // 全局封顶检查（日产出%）
         if (address(stakingContract) != address(0)) {
-            (uint256 stakingAmount, uint256 /* dailyReward */) = stakingContract.getUserStakingInfo(user);
+            (uint256 stakingAmount, uint256 dailyReward) = stakingContract.getUserStakingInfo(user);
             if (burnAmount > dailyReward) {
                 burnAmount = dailyReward; // 封顶
             }
