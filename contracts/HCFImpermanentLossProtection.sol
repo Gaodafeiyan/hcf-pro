@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IMultiSigWallet {
@@ -11,6 +11,7 @@ interface IMultiSigWallet {
 
 interface IHCFToken {
     function transfer(address to, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
 }
 
@@ -127,7 +128,7 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
     constructor(
         address _hcfToken,
         address _multiSigWallet
-    ) Ownable(msg.sender) {
+    ) Ownable() {
         hcfToken = IHCFToken(_hcfToken);
         multiSigWallet = _multiSigWallet;
     }

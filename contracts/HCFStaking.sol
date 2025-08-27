@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IMultiSigWallet {
@@ -163,7 +163,7 @@ contract HCFStaking is Ownable, ReentrancyGuard {
         address _multiSigWallet,
         address _collectionAddress,
         address _bridgeAddress
-    ) Ownable(msg.sender) {
+    ) Ownable() {
         hcfToken = IHCFToken(_hcfToken);
         bsdtToken = IBSDTToken(_bsdtToken);
         multiSigWallet = _multiSigWallet;
@@ -607,13 +607,13 @@ contract HCFStaking is Ownable, ReentrancyGuard {
         uint256 holding,
         uint256 referral,
         uint256 community,
-        uint256 compound
+        uint256 compoundBonus
     ) external onlyMultiSig {
         addonRates = AddonRates({
             holdingBonus: holding,
             referralBonus: referral,
             communityBonus: community,
-            compoundBonus: compound
+            compoundBonus: compoundBonus
         });
     }
     

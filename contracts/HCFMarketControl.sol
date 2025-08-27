@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IMultiSigWallet {
@@ -28,6 +28,7 @@ interface IHCFNodeNFT {
 interface IHCFToken {
     function burn(uint256 amount) external;
     function transfer(address to, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
 }
 
@@ -132,7 +133,7 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     }
     
     // ============ 构造函数 ============
-    constructor(address _multiSigWallet) Ownable(msg.sender) {
+    constructor(address _multiSigWallet) Ownable() {
         multiSigWallet = _multiSigWallet;
         
         // 初始化防暴跌配置

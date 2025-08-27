@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IMultiSigWallet {
@@ -132,7 +132,7 @@ contract HCFNodeNFT is ERC721, Ownable, ReentrancyGuard {
         address _priceOracle,
         address _multiSigWallet,
         address _lpCollectionAddress
-    ) ERC721("HCF Node NFT", "HCFNODE") Ownable(msg.sender) {
+    ) ERC721("HCF Node NFT", "HCFNODE") Ownable() {
         hcfToken = IHCFToken(_hcfToken);
         bsdtToken = IBSDTToken(_bsdtToken);
         priceOracle = IPriceOracle(_priceOracle);

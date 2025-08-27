@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 interface IMultiSigWallet {
     function submitTransaction(address destination, uint value, bytes memory data) external returns (uint transactionId);
@@ -85,7 +85,7 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         address _nodePool,
         address _lpPool,
         address _bridgeAddress
-    ) ERC20("HCF Token", "HCF") Ownable(msg.sender) {
+    ) ERC20("HCF Token", "HCF") Ownable() {
         marketingWallet = _marketingWallet;
         nodePool = _nodePool;
         lpPool = _lpPool;

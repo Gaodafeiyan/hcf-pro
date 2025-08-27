@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface IUSDTOracle {
@@ -95,7 +95,7 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
         address _usdtToken,
         address _usdtOracle,
         address _keeperAddress
-    ) ERC20("BSDT Stable Token", "BSDT") Ownable(msg.sender) {
+    ) ERC20("BSDT Stable Token", "BSDT") Ownable() {
         usdtToken = IERC20(_usdtToken);
         usdtOracle = IUSDTOracle(_usdtOracle);
         keeperAddress = _keeperAddress;
@@ -210,7 +210,7 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
             authorizedExchanges[spender] || 
             spender == multiSigWallet || 
             spender == address(this) ||
-            spender == owner(),
+            spender == owner,
             "BSDT: Approval not authorized"
         );
         
