@@ -133,7 +133,7 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     }
     
     // ============ 构造函数 ============
-    constructor(address _multiSigWallet) Ownable(msg.sender) {
+    constructor(address _multiSigWallet) Ownable() {
         multiSigWallet = _multiSigWallet;
         
         // 初始化防暴跌配置

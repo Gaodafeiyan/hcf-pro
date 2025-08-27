@@ -76,7 +76,7 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
     }
     
     // ============ 构造函数 ============
-    constructor(address[] memory _signers) Ownable(msg.sender) {
+    constructor(address[] memory _signers) Ownable() {
         require(_signers.length == 5, "Must have exactly 5 signers");
         
         for (uint256 i = 0; i < _signers.length; i++) {

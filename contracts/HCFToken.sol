@@ -85,7 +85,7 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         address _nodePool,
         address _lpPool,
         address _bridgeAddress
-    ) ERC20("HCF Token", "HCF") Ownable(msg.sender) {
+    ) ERC20("HCF Token", "HCF") Ownable() {
         marketingWallet = _marketingWallet;
         nodePool = _nodePool;
         lpPool = _lpPool;
