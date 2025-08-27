@@ -21,8 +21,9 @@ module.exports = {
       url: process.env.BSC_TESTNET_RPC || "https://data-seed-prebsc-1-s1.binance.org:8545/",
       chainId: 97,
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
-      gasPrice: 10000000000, // 10 gwei
-      timeout: 60000
+      gasPrice: 5000000000, // 5 gwei (降低gas价格)
+      gas: 8000000, // 设置gas限制
+      timeout: 120000 // 增加超时时间
     }
   },
   etherscan: {
