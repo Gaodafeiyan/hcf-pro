@@ -163,7 +163,7 @@ contract HCFStaking is Ownable, ReentrancyGuard {
         address _multiSigWallet,
         address _collectionAddress,
         address _bridgeAddress
-    ) Ownable() {
+    ) Ownable(msg.sender) {
         hcfToken = IHCFToken(_hcfToken);
         bsdtToken = IBSDTToken(_bsdtToken);
         multiSigWallet = _multiSigWallet;

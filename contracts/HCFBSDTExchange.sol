@@ -170,7 +170,7 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
         address _multiSigWallet,
         address _pancakeRouter,
         address _bridgeAddress
-    ) Ownable() {
+    ) Ownable(msg.sender) {
         hcfToken = IHCFToken(_hcfToken);
         bsdtToken = IBSDTToken(_bsdtToken);
         usdtToken = IUSDT(_usdtToken);

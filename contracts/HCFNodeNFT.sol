@@ -132,7 +132,7 @@ contract HCFNodeNFT is ERC721, Ownable, ReentrancyGuard {
         address _priceOracle,
         address _multiSigWallet,
         address _lpCollectionAddress
-    ) ERC721("HCF Node NFT", "HCFNODE") Ownable() {
+    ) ERC721("HCF Node NFT", "HCFNODE") Ownable(msg.sender) {
         hcfToken = IHCFToken(_hcfToken);
         bsdtToken = IBSDTToken(_bsdtToken);
         priceOracle = IPriceOracle(_priceOracle);

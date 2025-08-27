@@ -95,7 +95,7 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
         address _usdtToken,
         address _usdtOracle,
         address _keeperAddress
-    ) ERC20("BSDT Stable Token", "BSDT") Ownable() {
+    ) ERC20("BSDT Stable Token", "BSDT") Ownable(msg.sender) {
         usdtToken = IERC20(_usdtToken);
         usdtOracle = IUSDTOracle(_usdtOracle);
         keeperAddress = _keeperAddress;

@@ -129,7 +129,7 @@ contract HCFReferral is Ownable, ReentrancyGuard {
     constructor(
         address _hcfToken,
         address _multiSigWallet
-    ) Ownable() {
+    ) Ownable(msg.sender) {
         hcfToken = IHCFToken(_hcfToken);
         multiSigWallet = _multiSigWallet;
         

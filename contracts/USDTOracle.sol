@@ -82,7 +82,7 @@ contract USDTOracle is Ownable {
     }
     
     // ============ 构造函数 ============
-    constructor(uint256 _initialSupply) Ownable() {
+    constructor(uint256 _initialSupply) Ownable(msg.sender) {
         totalSupply = _initialSupply;
         lastUpdateTime = block.timestamp;
         
