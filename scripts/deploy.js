@@ -102,6 +102,8 @@ async function main() {
   const hcfBsdtExchange = await HCFBSDTExchange.deploy(
     hcfToken.address,
     bsdtToken.address,
+    "0x0000000000000000000000000000000000000000", // USDT地址（测试网占位）
+    multiSigWallet.address, // 多签钱包
     "0x0000000000000000000000000000000000000000", // Pancake Router（测试网）
     deployer.address // 桥地址
   );
