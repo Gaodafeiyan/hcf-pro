@@ -514,8 +514,8 @@ contract HCFStaking is Ownable, ReentrancyGuard {
         if (user.amount == 0 || user.lastUpdate >= block.timestamp) return 0;
         
         uint256 timeElapsed = block.timestamp - user.lastUpdate;
-        uint256 days = timeElapsed / 1 days;
-        if (days == 0) return 0;
+        uint256 daysElapsed = timeElapsed / 1 days;
+        if (daysElapsed == 0) return 0;
         
         uint256 totalRewards = 0;
         
@@ -530,7 +530,7 @@ contract HCFStaking is Ownable, ReentrancyGuard {
                 }
             }
             
-            totalRewards += dailyYield * days;
+            totalRewards += dailyYield * daysElapsed;
         }
         
         return totalRewards;
