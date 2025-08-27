@@ -86,7 +86,8 @@ async function main() {
   const hcfNodeNFT = await HCFNodeNFT.deploy(
     hcfToken.address,
     bsdtToken.address,
-    deployer.address, // 多签钱包
+    usdtOracle.address, // 价格Oracle
+    multiSigWallet.address, // 多签钱包
     deployer.address  // LP集合地址
   );
   await hcfNodeNFT.deployed();
