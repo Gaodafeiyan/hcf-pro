@@ -63,6 +63,7 @@ async function main() {
   const hcfStaking = await HCFStaking.deploy(
     hcfToken.address,
     bsdtToken.address,
+    multiSigWallet.address, // 多签钱包
     deployer.address, // 集合地址
     deployer.address  // 桥地址
   );
