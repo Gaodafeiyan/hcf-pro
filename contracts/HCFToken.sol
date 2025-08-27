@@ -110,13 +110,31 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
     // ============ 核心转账功能 ============
     
     /**
+     * @dev 重写公共transfer函数，调用我们的税费逻辑
+     */
+    function transfer(address to, uint256 amount) public virtual override returns (bool) {
+        _transferWithTax(msg.sender, to, amount);
+        return true;
+    }
+    
+    /**
+     * @dev 重写transferFrom函数，调用我们的税费逻辑
+     */
+    function transferFrom(address from, address to, uint256 amount) public virtual override returns (bool) {
+        address spender = msg.sender;
+        _spendAllowance(from, spender, amount);
+        _transferWithTax(from, to, amount);
+        return true;
+    }
+    
+    /**
      * @dev 重写转账函数，加入税费机制和最小余额检查
      */
-    function _transfer(
+    function _transferWithTax(
         address from,
         address to,
         uint256 amount
-    ) internal virtual tradingActive {
+    ) internal tradingActive {
         require(from != address(0), "Transfer from zero address");
         require(to != address(0), "Transfer to zero address");
         require(amount > 0, "Transfer amount must be greater than zero");
