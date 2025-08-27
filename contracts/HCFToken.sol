@@ -116,7 +116,7 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         address from,
         address to,
         uint256 amount
-    ) internal virtual override tradingActive {
+    ) internal virtual tradingActive {
         require(from != address(0), "Transfer from zero address");
         require(to != address(0), "Transfer to zero address");
         require(amount > 0, "Transfer amount must be greater than zero");
