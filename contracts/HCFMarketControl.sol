@@ -21,8 +21,13 @@ interface IHCFStaking {
 }
 
 interface IHCFNodeNFT {
-    function isNode(address user) external view returns (bool);
+    function hasNode(address user) external view returns (bool);
     function distributeRewards(uint256 amount) external;
+}
+
+interface IBSDTToken {
+    function transfer(address to, uint256 amount) external returns (bool);
+    function transferFrom(address from, address to, uint256 amount) external returns (bool);
 }
 
 interface IHCFToken {
@@ -58,6 +63,7 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
         uint256 reduction5;     // 5%减产
         uint256 reduction15;    // 15%减产
         uint256 reduction30;    // 30%减产
+        uint256 recoveryTime;   // 恢复时间
     }
     
     struct AddonRates {
@@ -85,8 +91,10 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     uint256 public decayRate = 10; // 0.1% = 10 basis points
     
     // 底池管理（900万）
-    uint256 public availablePool = 9_000_000 * 10**18;
+    uint256 public constant CONTROL_POOL = 9_000_000 * 10**18;
+    uint256 public availablePool;
     uint256 public usedPool;
+    bool public isInitialized;
     
     // LP监控
     mapping(address => uint256) public lastLPAmount;
@@ -98,6 +106,8 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     IHCFStaking public stakingContract;
     IHCFNodeNFT public nodeContract;
     IHCFToken public hcfToken;
+    IBSDTToken public bsdtToken;
+    address public keeperAddress;
     
     // 紧急暂停
     bool public emergencyPaused = false;
@@ -117,6 +127,11 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     // ============ 修饰符 ============
     modifier onlyMultiSig() {
         require(msg.sender == multiSigWallet, "Only multisig wallet");
+        _;
+    }
+    
+    modifier onlyKeeper() {
+        require(msg.sender == keeperAddress || msg.sender == multiSigWallet, "Only keeper or multisig");
         _;
     }
     
@@ -150,7 +165,8 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
         reductionConfig = ReductionConfig({
             reduction5: 500,    // 5%
             reduction15: 1500,  // 15%
-            reduction30: 3000   // 30%
+            reduction30: 3000,  // 30%
+            recoveryTime: 7 days // 7天后恢复
         });
         
         // 初始化加成配置
@@ -165,9 +181,9 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     // ============ 防暴跌机制 ============
     
     /**
-     * @dev 检查价格下跌并触发防护
+     * @dev 检查价格下跌并触发防护（Keeper调用）
      */
-    function checkPriceDrop() external notPaused updatePrice returns (uint256) {
+    function checkPriceDrop() external notPaused onlyKeeper updatePrice returns (uint256) {
         uint256 dropPercent = _calculateDropPercent();
         currentDropPercent = dropPercent;
         
@@ -180,9 +196,9 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 应用防暴跌措施（增加滑点）
+     * @dev 应用防暴跌措施（增加滑点、销毁、节点分红）
      */
-    function applyAntiDump(uint256 dropPercent) public notPaused onlyMultiSig {
+    function applyAntiDump(uint256 dropPercent) public notPaused {
         uint256 slippageToApply = 0;
         
         if (dropPercent >= antiDumpConfig.threshold50) {
@@ -198,22 +214,24 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
             uint256 slippageAmount = (availablePool * slippageToApply) / BASIS_POINTS;
             
             if (slippageAmount > 0 && slippageAmount <= availablePool) {
-                // 50%销毁
-                uint256 burnAmount = slippageAmount / 2;
+                // 30%销毁
+                uint256 burnAmount = (slippageAmount * 30) / 100;
                 if (burnAmount > 0) {
                     hcfToken.burn(burnAmount);
                     availablePool -= burnAmount;
                     usedPool += burnAmount;
                 }
                 
-                // 50%分给节点
-                uint256 nodeAmount = slippageAmount - burnAmount;
+                // 20%分给节点分红
+                uint256 nodeAmount = (slippageAmount * 20) / 100;
                 if (nodeAmount > 0 && address(nodeContract) != address(0)) {
                     hcfToken.transfer(address(nodeContract), nodeAmount);
                     nodeContract.distributeRewards(nodeAmount);
                     availablePool -= nodeAmount;
                     usedPool += nodeAmount;
                 }
+                
+                // 剩余50%留在池中作为储备
             }
             
             emit AntiDumpTriggered(dropPercent, slippageToApply);
@@ -223,9 +241,9 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     // ============ 减产机制 ============
     
     /**
-     * @dev 应用减产措施（降低日化率）
+     * @dev 应用减产措施（降低日化率，带恢复条件）
      */
-    function applyReduction(uint256 dropPercent) public notPaused onlyMultiSig {
+    function applyReduction(uint256 dropPercent) public notPaused {
         uint256 reductionPercent = 0;
         
         if (dropPercent >= antiDumpConfig.threshold50) {
@@ -276,14 +294,18 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
                 compensationAmount = MIN_COMPENSATION;
             }
             
+            // 节点用户额外20%补偿
+            bool isNode = address(nodeContract) != address(0) && 
+                         nodeContract.hasNode(msg.sender);
+            
+            if (isNode) {
+                compensationAmount = (compensationAmount * 120) / 100; // +20%
+            }
+            
             require(compensationAmount <= availablePool, "Insufficient pool funds");
             
             // 支付补偿
             _applyCompensation(msg.sender, compensationAmount);
-            
-            // 恢复算力（优先节点）
-            bool isNode = address(nodeContract) != address(0) && 
-                         nodeContract.isNode(msg.sender);
             
             if (address(stakingContract) != address(0)) {
                 stakingContract.restorePower(msg.sender, isNode);
@@ -401,11 +423,13 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     function setReductionConfig(
         uint256 reduction5,
         uint256 reduction15,
-        uint256 reduction30
+        uint256 reduction30,
+        uint256 recoveryTime
     ) external onlyMultiSig {
         reductionConfig.reduction5 = reduction5;
         reductionConfig.reduction15 = reduction15;
         reductionConfig.reduction30 = reduction30;
+        reductionConfig.recoveryTime = recoveryTime;
     }
     
     /**
@@ -437,9 +461,31 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     }
     
     /**
+     * @dev 初始化底池（100万HCF + 10万BSDT）
+     */
+    function initializePool() external onlyMultiSig {
+        require(!isInitialized, "Already initialized");
+        require(address(hcfToken) != address(0), "HCF token not set");
+        require(address(bsdtToken) != address(0), "BSDT token not set");
+        
+        // 初始化100万HCF + 10万BSDT
+        uint256 initialHCF = 1_000_000 * 10**18;
+        uint256 initialBSDT = 100_000 * 10**18;
+        
+        require(hcfToken.transferFrom(msg.sender, address(this), initialHCF), "HCF transfer failed");
+        require(bsdtToken.transferFrom(msg.sender, address(this), initialBSDT), "BSDT transfer failed");
+        
+        availablePool = CONTROL_POOL; // 900万控盘池
+        isInitialized = true;
+        
+        emit PoolFundsAdded(initialHCF);
+    }
+    
+    /**
      * @dev 添加底池资金（仅多签）
      */
     function addFunds(uint256 amount) external onlyMultiSig {
+        require(isInitialized, "Pool not initialized");
         require(hcfToken.transferFrom(msg.sender, address(this), amount), "Transfer failed");
         availablePool += amount;
         emit PoolFundsAdded(amount);
@@ -470,12 +516,14 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
         address _priceOracle,
         address _staking,
         address _node,
-        address _hcfToken
+        address _hcfToken,
+        address _bsdtToken
     ) external onlyOwner {
         if (_priceOracle != address(0)) priceOracle = IPriceOracle(_priceOracle);
         if (_staking != address(0)) stakingContract = IHCFStaking(_staking);
         if (_node != address(0)) nodeContract = IHCFNodeNFT(_node);
         if (_hcfToken != address(0)) hcfToken = IHCFToken(_hcfToken);
+        if (_bsdtToken != address(0)) bsdtToken = IBSDTToken(_bsdtToken);
         
         emit ContractsSet(_priceOracle, _staking, _node);
     }
@@ -486,6 +534,14 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     function setMultiSigWallet(address _multiSigWallet) external onlyOwner {
         require(_multiSigWallet != address(0), "Invalid address");
         multiSigWallet = _multiSigWallet;
+    }
+    
+    /**
+     * @dev 设置Keeper地址（仅多签）
+     */
+    function setKeeperAddress(address _keeper) external onlyMultiSig {
+        require(_keeper != address(0), "Invalid address");
+        keeperAddress = _keeper;
     }
     
     /**

@@ -166,12 +166,13 @@ async function main() {
   // 排名合约：设置质押合约、推荐合约和销毁机制 (需要3个参数)
   await hcfRanking.setContracts(hcfStaking.address, hcfReferral.address, hcfBurnMechanism.address);
   
-  // 市场控制：设置价格预言机、质押合约、节点合约、HCF代币 (需要4个参数)
+  // 市场控制：设置价格预言机、质押合约、节点合约、HCF代币、BSDT代币 (需要5个参数)
   await hcfMarketControl.setContracts(
     usdtOracle.address,  // 价格预言机
     hcfStaking.address,  // 质押合约
     hcfNodeNFT.address,  // 节点合约
-    hcfToken.address     // HCF代币
+    hcfToken.address,    // HCF代币
+    bsdtToken.address    // BSDT代币
   );
   
   // 销毁机制：设置质押合约、推荐合约、keeper地址 (需要3个参数)
