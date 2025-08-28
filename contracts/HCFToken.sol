@@ -30,16 +30,16 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
     uint256 public claimTaxRate = 500;    // 领取收益税5%
     
     // 买入税分配（占税的比例）
-    uint256 public buyBurnRate = 2500;      // 25%销毁
-    uint256 public buyMarketingRate = 2500; // 25%营销
-    uint256 public buyLPRate = 2500;        // 25%LP
-    uint256 public buyNodeRate = 2500;      // 25%节点
+    uint256 public buyBurnRate = 5000;      // 50%销毁 (2% * 50% = 1%)
+    uint256 public buyMarketingRate = 2500; // 25%营销 (2% * 25% = 0.5%)
+    uint256 public buyLPRate = 1250;        // 12.5%LP (2% * 12.5% = 0.25%)
+    uint256 public buyNodeRate = 1250;      // 12.5%节点 (2% * 12.5% = 0.25%)
     
     // 卖出税分配（占税的比例）
-    uint256 public sellBurnRate = 4000;      // 40%销毁
-    uint256 public sellMarketingRate = 2000; // 20%营销
-    uint256 public sellLPRate = 2000;        // 20%LP
-    uint256 public sellNodeRate = 2000;      // 20%节点
+    uint256 public sellBurnRate = 4000;      // 40%销毁 (5% * 40% = 2%)
+    uint256 public sellMarketingRate = 2000; // 20%营销 (5% * 20% = 1%)
+    uint256 public sellLPRate = 2000;        // 20%LP (5% * 20% = 1%)
+    uint256 public sellNodeRate = 2000;      // 20%节点 (5% * 20% = 1%)
     
     // 转账税分配
     uint256 public transferBurnRate = 10000; // 100%销毁
@@ -56,7 +56,6 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
     uint256 public totalBurned;
     mapping(address => bool) public isExcludedFromTax;
     mapping(address => bool) public isDEXPair;
-    bool public tradingEnabled = false;
     
     // ============ 事件 ============
     event TaxUpdated(uint256 buyTax, uint256 sellTax, uint256 transferTax);
@@ -66,7 +65,6 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
     event BridgeTaxCollected(address indexed from, uint256 amount);
     event MultiSigWalletSet(address indexed oldWallet, address indexed newWallet);
     event ReserveFundTransferred(address indexed to, uint256 amount);
-    event TradingEnabled();
     
     // ============ 修饰符 ============
     modifier onlyMultiSig() {
@@ -74,10 +72,6 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         _;
     }
     
-    modifier tradingActive() {
-        require(tradingEnabled || msg.sender == multiSigWallet, "Trading not enabled");
-        _;
-    }
     
     // ============ 构造函数 ============
     constructor(
@@ -95,8 +89,8 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         // 铸造首发1000万给owner
         _mint(msg.sender, INITIAL_RELEASE);
         
-        // 铸造900万储备金到合约（后续转到多签）
-        _mint(address(this), RESERVE_FUND);
+        // 铸造900万储备金直接到owner（后续需设置多签）
+        _mint(msg.sender, RESERVE_FUND);
         
         // 设置免税地址
         isExcludedFromTax[msg.sender] = true;
@@ -134,14 +128,14 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         address from,
         address to,
         uint256 amount
-    ) internal tradingActive {
+    ) internal {
         require(from != address(0), "Transfer from zero address");
         require(to != address(0), "Transfer to zero address");
         require(amount > 0, "Transfer amount must be greater than zero");
         
         // 检查最小余额要求（发送方必须保留0.0001）
-        if (from != address(this) && from != multiSigWallet) {
-            require(balanceOf(from) - amount >= MIN_BALANCE, "Must keep minimum balance");
+        if (from != address(this) && from != multiSigWallet && !isExcludedFromTax[from]) {
+            require(balanceOf(from) >= amount + MIN_BALANCE, "Must keep minimum balance");
         }
         
         uint256 taxAmount = 0;
@@ -221,30 +215,34 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
      * @dev 销毁代币（检查99万限制）
      */
     function _burnTokens(uint256 amount) private {
+        // 只有当总供应量大于99万时才销毁
         if (totalSupply() > BURN_STOP_SUPPLY && amount > 0) {
             uint256 burnAmount = amount;
-            // 如果销毁后低于99万，调整销毁量
+            // 如果销毁后会低于99万，调整销毁量
             if (totalSupply() - amount < BURN_STOP_SUPPLY) {
                 burnAmount = totalSupply() - BURN_STOP_SUPPLY;
             }
             
-            if (burnAmount > 0) {
+            if (burnAmount > 0 && balanceOf(address(this)) >= burnAmount) {
                 _burn(address(this), burnAmount);
                 totalBurned += burnAmount;
             }
         }
+        // 如果总供应量已经小于等于99万，不执行销毁
     }
     
     // ============ 领取收益功能 ============
     
     /**
      * @dev 领取收益时扣5% BNB到bridge
+     * 用户发送BNB，其中5%作为税费发送到bridge地址
      */
-    function claimRewards() external payable nonReentrant {
+    function claimRewards(uint256 amount) external payable nonReentrant {
         require(msg.value > 0, "Must send BNB for bridge tax");
+        require(amount > 0, "Amount must be greater than zero");
         
+        // 计算5%税费
         uint256 bridgeTax = (msg.value * claimTaxRate) / 10000;
-        uint256 returnAmount = msg.value - bridgeTax;
         
         // 发送税费到bridge地址
         if (bridgeTax > 0) {
@@ -253,7 +251,8 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
             emit BridgeTaxCollected(msg.sender, bridgeTax);
         }
         
-        // 退还剩余BNB
+        // 退还剩余BNB给用户
+        uint256 returnAmount = msg.value - bridgeTax;
         if (returnAmount > 0) {
             (bool success, ) = msg.sender.call{value: returnAmount}("");
             require(success, "BNB return failed");
@@ -270,9 +269,9 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         address oldWallet = multiSigWallet;
         multiSigWallet = _multiSigWallet;
         
-        // 转移储备金到多签钱包
-        if (balanceOf(address(this)) >= RESERVE_FUND) {
-            super._transfer(address(this), multiSigWallet, RESERVE_FUND);
+        // 转移储备金到多签钱包（如果owner持有储备金）
+        if (balanceOf(msg.sender) >= RESERVE_FUND) {
+            super._transfer(msg.sender, multiSigWallet, RESERVE_FUND);
             reserveWallet = multiSigWallet;
             emit ReserveFundTransferred(multiSigWallet, RESERVE_FUND);
         }
@@ -391,13 +390,6 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         isExcludedFromTax[account] = excluded;
     }
     
-    /**
-     * @dev 启用交易
-     */
-    function enableTrading() external onlyOwner {
-        tradingEnabled = true;
-        emit TradingEnabled();
-    }
     
     /**
      * @dev 紧急提取（仅多签）
