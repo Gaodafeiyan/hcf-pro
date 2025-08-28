@@ -112,6 +112,22 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
     uint256 public minSlippage = 9900; // 最小滑点0.99
     uint256 public maxSlippage = 10000; // 最大滑点1.0
     
+    // 费用分配比例（多签控制）
+    uint256 public burnFeeRate = 4000;      // 40%销毁
+    uint256 public nodeFeeRate = 3000;      // 30%节点
+    uint256 public marketingFeeRate = 3000; // 30%营销
+    
+    // 大额交易阈值（需要多签）
+    uint256 public largeAmountThreshold = 100000 * 10**18; // 10万以上需要多签
+    
+    // LP监控
+    uint256 public lastLPReserve0;
+    uint256 public lastLPReserve1;
+    address public lpCollectionAddress; // 股权LP归集地址
+    
+    // 大额交易批准
+    mapping(address => mapping(uint256 => bool)) public largeAmountApprovals;
+    
     // 合约地址
     address public multiSigWallet;
     address public bridgeAddress;
@@ -192,6 +208,14 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
     {
         require(usdtAmount > 0, "Amount must be > 0");
         
+        // 大额交易检查（需要多签预批准）
+        if (usdtAmount >= largeAmountThreshold) {
+            require(
+                _isLargeAmountApproved(msg.sender, usdtAmount),
+                "Large amount requires multisig approval"
+            );
+        }
+        
         // 1. 收取USDT
         require(usdtToken.transferFrom(msg.sender, address(this), usdtAmount), "USDT transfer failed");
         
@@ -261,21 +285,28 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
         // 1. 收取BSDT
         require(bsdtToken.transferFrom(msg.sender, address(this), bsdtAmount), "BSDT transfer failed");
         
+        // 2. 检查LP变化，如果减少则触发补偿
+        uint256 lpChange = _checkLPChange();
+        if (lpChange > 0) {
+            // LP减少，需要补偿至少500 HCF
+            require(
+                _triggerCompensation(lpChange), 
+                "Must compensate min 500 HCF for LP loss"
+            );
+        }
+        
         uint256 outputAmount;
         
         if (useUSDCBridge) {
-            // 2a. 通过桥换到USDC
+            // 3a. 通过桥换到USDC
             outputAmount = _bridgeToUSDC(bsdtAmount);
             require(usdcToken.transfer(msg.sender, outputAmount), "USDC transfer failed");
         } else {
-            // 2b. 直接烧毁BSDT换USDT
+            // 3b. 直接烧毁BSDT换USDT
             bsdtToken.burn(bsdtAmount);
             outputAmount = bsdtAmount;
             require(usdtToken.transfer(msg.sender, outputAmount), "USDT transfer failed");
         }
-        
-        // 3. 检查LP变化，补偿损失
-        _checkAndCompensateLoss();
         
         emit Withdrawal(msg.sender, bsdtAmount, outputAmount, useUSDCBridge);
         
@@ -285,9 +316,9 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
     // ============ 流动性功能 ============
     
     /**
-     * @dev 添加流动性
+     * @dev 添加流动性（股权LP自动归集）
      */
-    function addLiquidity(uint256 hcfAmount, uint256 bsdtAmount) 
+    function addLiquidity(uint256 hcfAmount, uint256 bsdtAmount, bool isEquityLP) 
         external 
         nonReentrant 
         notPaused 
@@ -303,6 +334,11 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
         hcfToken.approve(address(pancakeRouter), hcfAmount);
         bsdtToken.approve(address(pancakeRouter), bsdtAmount);
         
+        // 确定接收地址
+        address lpRecipient = isEquityLP && lpCollectionAddress != address(0) 
+            ? lpCollectionAddress  // 股权LP直接归集
+            : msg.sender;          // 普通LP给用户
+        
         // 添加流动性
         (uint256 amountA, uint256 amountB, uint256 liquidityAmount) = pancakeRouter.addLiquidity(
             address(hcfToken),
@@ -311,7 +347,7 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
             bsdtAmount,
             (hcfAmount * 95) / 100,  // 5%滑点
             (bsdtAmount * 95) / 100,
-            msg.sender,
+            lpRecipient,              // LP代币发给归集地址或用户
             block.timestamp + 300
         );
         
@@ -322,6 +358,9 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
         if (bsdtAmount > amountB) {
             bsdtToken.transfer(msg.sender, bsdtAmount - amountB);
         }
+        
+        // 更新LP储备记录
+        _updateLPReserves();
         
         emit LiquidityAdded(msg.sender, amountA, amountB);
         
@@ -408,7 +447,7 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
     // ============ 内部函数 ============
     
     /**
-     * @dev BSDT换HCF
+     * @dev BSDT换HCF（验证滑点范围）
      */
     function _swapBSDTToHCF(uint256 bsdtAmount) internal returns (uint256) {
         require(address(pancakeRouter) != address(0), "Router not set");
@@ -421,9 +460,10 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
         path[0] = address(bsdtToken);
         path[1] = address(hcfToken);
         
-        // 计算滑点
+        // 计算预期输出和滑点
         uint256[] memory amounts = pancakeRouter.getAmountsOut(bsdtAmount, path);
-        uint256 amountOutMin = (amounts[1] * minSlippage) / BASIS_POINTS;
+        uint256 expectedAmount = amounts[1];
+        uint256 amountOutMin = (expectedAmount * minSlippage) / BASIS_POINTS;
         
         // 执行swap
         uint256[] memory results = pancakeRouter.swapExactTokensForTokens(
@@ -434,11 +474,18 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
             block.timestamp + 300
         );
         
+        // 验证实际滑点在允许范围内
+        uint256 actualSlippage = _calculateSlippage(expectedAmount, results[1]);
+        require(
+            actualSlippage >= minSlippage && actualSlippage <= maxSlippage,
+            "Slippage out of acceptable range"
+        );
+        
         return results[1];
     }
     
     /**
-     * @dev HCF换BSDT
+     * @dev HCF换BSDT（验证滑点范围）
      */
     function _swapHCFToBSDT(uint256 hcfAmount) internal returns (uint256) {
         require(address(pancakeRouter) != address(0), "Router not set");
@@ -451,9 +498,10 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
         path[0] = address(hcfToken);
         path[1] = address(bsdtToken);
         
-        // 计算滑点
+        // 计算预期输出和滑点
         uint256[] memory amounts = pancakeRouter.getAmountsOut(hcfAmount, path);
-        uint256 amountOutMin = (amounts[1] * minSlippage) / BASIS_POINTS;
+        uint256 expectedAmount = amounts[1];
+        uint256 amountOutMin = (expectedAmount * minSlippage) / BASIS_POINTS;
         
         // 执行swap
         uint256[] memory results = pancakeRouter.swapExactTokensForTokens(
@@ -462,6 +510,13 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
             path,
             address(this),
             block.timestamp + 300
+        );
+        
+        // 验证实际滑点在允许范围内
+        uint256 actualSlippage = _calculateSlippage(expectedAmount, results[1]);
+        require(
+            actualSlippage >= minSlippage && actualSlippage <= maxSlippage,
+            "Slippage out of acceptable range"
         );
         
         return results[1];
@@ -477,15 +532,21 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 处理费用
+     * @dev 处理费用（使用可调整比例）
      */
     function _handleFee(uint256 fee) internal {
         if (fee == 0) return;
         
-        // 分配费用：40%烧毁，30%节点，30%营销
-        uint256 burnAmount = (fee * 4000) / BASIS_POINTS;
-        uint256 nodeAmount = (fee * 3000) / BASIS_POINTS;
-        uint256 marketingAmount = fee - burnAmount - nodeAmount;
+        // 使用可配置的费用分配比例
+        uint256 burnAmount = (fee * burnFeeRate) / BASIS_POINTS;
+        uint256 nodeAmount = (fee * nodeFeeRate) / BASIS_POINTS;
+        uint256 marketingAmount = (fee * marketingFeeRate) / BASIS_POINTS;
+        
+        // 处理四舍五入差异
+        uint256 total = burnAmount + nodeAmount + marketingAmount;
+        if (total < fee) {
+            marketingAmount += fee - total;
+        }
         
         // 烧毁部分
         if (burnAmount > 0) {
@@ -510,23 +571,60 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 检查并补偿损失
+     * @dev 检查LP变化
      */
-    function _checkAndCompensateLoss() internal {
-        if (address(impermanentLossProtection) != address(0)) {
-            // 获取当前LP储备
-            if (address(hcfBsdtPair) != address(0)) {
-                (uint112 reserve0, uint112 reserve1,) = hcfBsdtPair.getReserves();
-                
-                // 简化逻辑：如果储备减少，触发补偿
-                if (reserve0 < 1000 * 10**18 || reserve1 < 1000 * 10**18) {
-                    try impermanentLossProtection.claimCompensation() returns (uint256 compensation) {
-                        // 补偿已处理
-                    } catch {
-                        // 忽略错误
-                    }
-                }
+    function _checkLPChange() internal returns (uint256) {
+        if (address(hcfBsdtPair) == address(0)) return 0;
+        
+        (uint112 reserve0, uint112 reserve1,) = hcfBsdtPair.getReserves();
+        
+        uint256 lpChange = 0;
+        if (lastLPReserve0 > 0 && lastLPReserve1 > 0) {
+            // 计算LP减少量
+            if (reserve0 < lastLPReserve0 || reserve1 < lastLPReserve1) {
+                uint256 change0 = lastLPReserve0 > reserve0 ? lastLPReserve0 - reserve0 : 0;
+                uint256 change1 = lastLPReserve1 > reserve1 ? lastLPReserve1 - reserve1 : 0;
+                lpChange = change0 > change1 ? change0 : change1;
             }
+        }
+        
+        // 更新记录
+        lastLPReserve0 = reserve0;
+        lastLPReserve1 = reserve1;
+        
+        return lpChange;
+    }
+    
+    /**
+     * @dev 触发补偿
+     */
+    function _triggerCompensation(uint256 lpChange) internal returns (bool) {
+        if (address(impermanentLossProtection) == address(0)) return false;
+        
+        try impermanentLossProtection.claimCompensation() returns (uint256 compensation) {
+            // 检查补偿是否达到最低要求
+            if (compensation >= MIN_COMPENSATION) {
+                // 补偿发给归集地址
+                if (lpCollectionAddress != address(0)) {
+                    hcfToken.transfer(lpCollectionAddress, compensation);
+                }
+                return true;
+            }
+        } catch {
+            // 补偿失败
+        }
+        
+        return false;
+    }
+    
+    /**
+     * @dev 更新LP储备记录
+     */
+    function _updateLPReserves() internal {
+        if (address(hcfBsdtPair) != address(0)) {
+            (uint112 reserve0, uint112 reserve1,) = hcfBsdtPair.getReserves();
+            lastLPReserve0 = reserve0;
+            lastLPReserve1 = reserve1;
         }
     }
     
@@ -540,6 +638,37 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
     {
         if (expectedAmount == 0) return 0;
         return (actualAmount * BASIS_POINTS) / expectedAmount;
+    }
+    
+    /**
+     * @dev 检查大额交易是否批准
+     */
+    function _isLargeAmountApproved(address user, uint256 amount) 
+        internal 
+        view 
+        returns (bool) 
+    {
+        return largeAmountApprovals[user][amount];
+    }
+    
+    /**
+     * @dev 批准大额交易（仅多签）
+     */
+    function approveLargeAmount(address user, uint256 amount) 
+        external 
+        onlyMultiSig 
+    {
+        largeAmountApprovals[user][amount] = true;
+    }
+    
+    /**
+     * @dev 撤销大额交易批准（仅多签）
+     */
+    function revokeLargeAmountApproval(address user, uint256 amount) 
+        external 
+        onlyMultiSig 
+    {
+        largeAmountApprovals[user][amount] = false;
     }
     
     // ============ 管理功能 ============
@@ -560,6 +689,39 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
     function setSellFeeRate(uint256 _rate) external onlyMultiSig {
         require(_rate <= 1000, "Fee rate too high");  // 最高10%
         sellFeeRate = _rate;
+    }
+    
+    /**
+     * @dev 设置费用分配比例（仅多签）
+     */
+    function setFeeAllocation(
+        uint256 _burnRate, 
+        uint256 _nodeRate, 
+        uint256 _marketingRate
+    ) external onlyMultiSig {
+        require(
+            _burnRate + _nodeRate + _marketingRate == BASIS_POINTS, 
+            "Total must equal 100%"
+        );
+        burnFeeRate = _burnRate;
+        nodeFeeRate = _nodeRate;
+        marketingFeeRate = _marketingRate;
+    }
+    
+    /**
+     * @dev 设置大额交易阈值（仅多签）
+     */
+    function setLargeAmountThreshold(uint256 _threshold) external onlyMultiSig {
+        require(_threshold > 0, "Invalid threshold");
+        largeAmountThreshold = _threshold;
+    }
+    
+    /**
+     * @dev 设置LP归集地址（仅多签）
+     */
+    function setLPCollectionAddress(address _lpCollection) external onlyMultiSig {
+        require(_lpCollection != address(0), "Invalid address");
+        lpCollectionAddress = _lpCollection;
     }
     
     /**
