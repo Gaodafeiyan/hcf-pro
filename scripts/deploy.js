@@ -163,8 +163,8 @@ async function main() {
   // 推荐合约：设置质押合约和销毁机制 (需要2个参数)
   await hcfReferral.setContracts(hcfStaking.address, hcfBurnMechanism.address);
   
-  // 排名合约：设置质押合约和推荐合约 (需要2个参数)
-  await hcfRanking.setContracts(hcfStaking.address, hcfReferral.address);
+  // 排名合约：设置质押合约、推荐合约和销毁机制 (需要3个参数)
+  await hcfRanking.setContracts(hcfStaking.address, hcfReferral.address, hcfBurnMechanism.address);
   
   // 市场控制：设置价格预言机、质押合约、节点合约、HCF代币 (需要4个参数)
   await hcfMarketControl.setContracts(

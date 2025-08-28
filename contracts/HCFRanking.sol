@@ -11,11 +11,31 @@ interface IMultiSigWallet {
 
 interface IHCFToken {
     function transfer(address to, uint256 amount) external returns (bool);
+    function balanceOf(address account) external view returns (uint256);
 }
 
 interface IHCFStaking {
     function getUserStakingInfo(address user) external view returns (uint256 amount, uint256 dailyReward);
     function getStaticOutput(address user) external view returns (uint256);
+    function userInfo(address user) external view returns (
+        uint256 amount,
+        uint256 level,
+        uint256 pending,
+        uint256 totalClaimed,
+        bool isLP,
+        uint256 compoundCount,
+        bool isEquityLP,
+        uint256 lpHCFAmount,
+        uint256 lpBSDTAmount,
+        uint256 lastUpdate,
+        uint256[7] memory buyHistory,
+        uint256 sharingTotal,
+        uint256 stakingTime
+    );
+}
+
+interface IHCFBurnMechanism {
+    function applyBurn(address user, uint256 amount) external returns (uint256);
 }
 
 interface IHCFReferral {
@@ -97,6 +117,7 @@ contract HCFRanking is Ownable, ReentrancyGuard {
     IHCFToken public hcfToken;
     IHCFStaking public stakingContract;
     IHCFReferral public referralContract;
+    IHCFBurnMechanism public burnContract;
     
     // 授权合约
     mapping(address => bool) public authorizedContracts;
@@ -145,10 +166,10 @@ contract HCFRanking is Ownable, ReentrancyGuard {
         hcfToken = IHCFToken(_hcfToken);
         multiSigWallet = _multiSigWallet;
         
-        // 初始化配置
+        // 初始化配置（只设置1-100和101-299的奖励）
         rankingConfig = RankingConfig({
-            top100Bonus: 2000,         // 20%
-            top299Bonus: 1000,         // 10%
+            top100Bonus: 2000,         // 20%（1-100名）
+            top299Bonus: 1000,         // 10%（101-299名）
             updateInterval: 1 days,    // 默认每日
             currentCycle: Cycle.DAY,   // 默认日周期
             enabled: true
@@ -223,14 +244,17 @@ contract HCFRanking is Ownable, ReentrancyGuard {
     {
         UserRankData storage data = userRankData[user];
         
+        // 获取完整的静态产出（包括持币、质押、业绩）
+        uint256 fullStaticOutput = _getFullStaticOutput(user);
+        
         // 更新排名
         data.stakingRank = stakingRank;
-        data.staticOutput = staticOutput;
+        data.staticOutput = fullStaticOutput;
         
         // 检查是否有有效小区（业绩>0且非单条线）
-        bool hasValidCommunity = _checkValidCommunity(user);
+        bool hasValidCommunity = _checkValidCommunity(user) && communityOutput > 0;
         
-        if (hasValidCommunity && communityOutput > 0) {
+        if (hasValidCommunity) {
             data.communityRank = communityRank;
             data.communityOutput = communityOutput;
             data.hasValidCommunity = true;
@@ -240,10 +264,10 @@ contract HCFRanking is Ownable, ReentrancyGuard {
             data.hasValidCommunity = false;
         }
         
-        // 计算奖励
-        data.stakingBonus = _calculateBonus(stakingRank, staticOutput);
+        // 计算奖励（基于静态产出的百分比加成）
+        data.stakingBonus = _calculateBonus(stakingRank, fullStaticOutput);
         data.communityBonus = hasValidCommunity ? 
-            _calculateBonus(communityRank, communityOutput) : 0;
+            _calculateBonus(communityRank, fullStaticOutput) : 0;
         
         data.lastUpdateTime = block.timestamp;
     }
@@ -270,12 +294,15 @@ contract HCFRanking is Ownable, ReentrancyGuard {
         for (uint256 i = 0; i < users.length; i++) {
             UserRankData storage data = userRankData[users[i]];
             
+            // 获取完整的静态产出
+            uint256 fullStaticOutput = _getFullStaticOutput(users[i]);
+            
             data.stakingRank = stakingRanks[i];
-            data.staticOutput = staticOutputs[i];
+            data.staticOutput = fullStaticOutput;
             
-            bool hasValidCommunity = _checkValidCommunity(users[i]);
+            bool hasValidCommunity = _checkValidCommunity(users[i]) && communityOutputs[i] > 0;
             
-            if (hasValidCommunity && communityOutputs[i] > 0) {
+            if (hasValidCommunity) {
                 data.communityRank = communityRanks[i];
                 data.communityOutput = communityOutputs[i];
                 data.hasValidCommunity = true;
@@ -285,9 +312,9 @@ contract HCFRanking is Ownable, ReentrancyGuard {
                 data.hasValidCommunity = false;
             }
             
-            data.stakingBonus = _calculateBonus(stakingRanks[i], staticOutputs[i]);
+            data.stakingBonus = _calculateBonus(stakingRanks[i], fullStaticOutput);
             data.communityBonus = hasValidCommunity ? 
-                _calculateBonus(communityRanks[i], communityOutputs[i]) : 0;
+                _calculateBonus(communityRanks[i], fullStaticOutput) : 0;
             
             data.lastUpdateTime = block.timestamp;
         }
@@ -296,7 +323,7 @@ contract HCFRanking is Ownable, ReentrancyGuard {
     // ============ 奖励分发功能 ============
     
     /**
-     * @dev 分发奖励
+     * @dev 分发奖励（应用销毁机制）
      */
     function distributeBonus(address user) 
         external 
@@ -323,12 +350,17 @@ contract HCFRanking is Ownable, ReentrancyGuard {
         }
         
         if (totalBonus > 0) {
+            // 应用销毁机制
+            if (address(burnContract) != address(0)) {
+                totalBonus = burnContract.applyBurn(user, totalBonus);
+            }
+            
             require(hcfToken.transfer(user, totalBonus), "Transfer failed");
         }
     }
     
     /**
-     * @dev 批量分发奖励
+     * @dev 批量分发奖励（应用销毁机制）
      */
     function batchDistributeBonus(address[] memory users) 
         external 
@@ -343,6 +375,11 @@ contract HCFRanking is Ownable, ReentrancyGuard {
             uint256 totalBonus = data.stakingBonus + data.communityBonus;
             
             if (totalBonus > 0) {
+                // 应用销毁机制
+                if (address(burnContract) != address(0)) {
+                    totalBonus = burnContract.applyBurn(users[i], totalBonus);
+                }
+                
                 require(hcfToken.transfer(users[i], totalBonus), "Transfer failed");
                 
                 if (data.stakingBonus > 0) {
@@ -396,21 +433,19 @@ contract HCFRanking is Ownable, ReentrancyGuard {
     // ============ 内部函数 ============
     
     /**
-     * @dev 计算奖励
+     * @dev 计算奖励（只有1-100名20%，101-299名10%）
      */
     function _calculateBonus(uint256 rank, uint256 baseAmount) internal view returns (uint256) {
-        if (!rankingConfig.enabled || rank == 0 || rank > MAX_TOP_RANKS) {
-            return 0;
+        if (!rankingConfig.enabled || rank == 0 || rank > TOP_299) {
+            return 0; // 只有前299名有奖励
         }
         
         uint256 bonusRate = 0;
         
         if (rank <= TOP_100) {
-            bonusRate = rankingConfig.top100Bonus; // 20%
+            bonusRate = rankingConfig.top100Bonus; // 20%（1-100名）
         } else if (rank <= TOP_299) {
-            bonusRate = rankingConfig.top299Bonus; // 10%
-        } else {
-            return 0; // 300名以外无奖励
+            bonusRate = rankingConfig.top299Bonus; // 10%（101-299名）
         }
         
         // 额外代币 = 静态产出 * 加成%
@@ -437,6 +472,45 @@ contract HCFRanking is Ownable, ReentrancyGuard {
         
         // 有效小区：业绩>0且非单条线（至少2个直推）
         return teamVolume > 0 && directCount >= 2;
+    }
+    
+    /**
+     * @dev 获取完整的静态产出（持币+质押+业绩）
+     */
+    function _getFullStaticOutput(address user) internal view returns (uint256) {
+        if (address(stakingContract) == address(0)) return 0;
+        
+        // 获取质押信息
+        (
+            uint256 stakingAmount,
+            ,
+            uint256 pending,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+            ,
+        ) = stakingContract.userInfo(user);
+        
+        // 获取持币量
+        uint256 hcfBalance = hcfToken.balanceOf(user);
+        
+        // 获取团队业绩
+        uint256 teamVolume = 0;
+        if (address(referralContract) != address(0)) {
+            (,,,, teamVolume,,,,,) = referralContract.getUserData(user);
+        }
+        
+        // 计算总静态产出 = 质押产出 + 持币量 * 0.01% + 团队业绩 * 0.05%
+        uint256 staticOutput = pending; // 质押产出
+        staticOutput += (hcfBalance * 10) / BASIS_POINTS; // 持币产出 0.1%
+        staticOutput += (teamVolume * 50) / BASIS_POINTS; // 业绩产出 0.5%
+        
+        return staticOutput;
     }
     
     // ============ 管理功能 ============
@@ -490,10 +564,12 @@ contract HCFRanking is Ownable, ReentrancyGuard {
      */
     function setContracts(
         address _staking,
-        address _referral
+        address _referral,
+        address _burn
     ) external onlyOwner {
         if (_staking != address(0)) stakingContract = IHCFStaking(_staking);
         if (_referral != address(0)) referralContract = IHCFReferral(_referral);
+        if (_burn != address(0)) burnContract = IHCFBurnMechanism(_burn);
     }
     
     /**
