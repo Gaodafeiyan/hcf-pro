@@ -69,13 +69,14 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
         uint256 lastClaimTime;      // 上次领取时间
         uint256 totalCompensated;   // 总补偿金额
         uint256 initialLPAmount;    // 初始LP数量
+        uint256 equityLPAmount;     // 股权LP数量
+        bool isEquityLP;            // 是否是股权LP
     }
     
     // ============ 状态变量 ============
     
     // 补偿配置
-    uint256 public lossThreshold = 500 * 10**18;  // 最小补偿500 HCF
-    uint256 public maxCompensation = 10000 * 10**18;  // 最大补偿10000 HCF（可选）
+    uint256 public constant MIN_COMPENSATION = 500 * 10**18;  // 最小补偿500 HCF
     uint256 public compensationPool;  // 补偿池余额
     
     // 用户数据
@@ -97,10 +98,9 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
     
     // ============ 事件 ============
     event CompensationClaimed(address indexed user, uint256 amount, bool isPriority);
+    event LPChangeDetected(address indexed user, uint256 oldAmount, uint256 newAmount);
     event PoolAdded(uint256 amount);
-    event ThresholdUpdated(uint256 newThreshold);
-    event MaxCompensationUpdated(uint256 newMax);
-    event MultiSigWalletSet(address indexed oldWallet, address indexed newWallet);
+        event MultiSigWalletSet(address indexed oldWallet, address indexed newWallet);
     event EmergencyPauseSet(bool status);
     event InitialLPRecorded(address indexed user, uint256 amount);
     
@@ -136,36 +136,34 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
     // ============ 核心功能 ============
     
     /**
-     * @dev 申请无常损失补偿
+     * @dev LP变化时触发补偿（由质押合约调用）
      */
-    function claimCompensation() 
+    function onLPChange(address user, uint256 oldAmount, uint256 newAmount) 
         external 
         nonReentrant 
         notPaused 
-        cooldownCheck 
         returns (uint256) 
     {
+        require(msg.sender == address(stakingContract), "Only staking contract");
+        
+        emit LPChangeDetected(user, oldAmount, newAmount);
+        
         // 获取用户LP信息
-        uint256 currentLPAmount = _getCurrentLPAmount(msg.sender);
-        uint256 initialLPAmount = _getInitialLPAmount(msg.sender);
+        uint256 initialLPAmount = _getInitialLPAmount(user);
         
         // 检查是否有损失
-        require(initialLPAmount > 0, "No LP position");
-        require(currentLPAmount < initialLPAmount, "No impermanent loss");
-        
-        // 计算损失
-        uint256 loss = initialLPAmount - currentLPAmount;
-        
-        // 计算补偿金额（至少补偿最小阈值）
-        uint256 compensation = loss > lossThreshold ? loss : lossThreshold;
-        
-        // 应用最大补偿限制
-        if (maxCompensation > 0 && compensation > maxCompensation) {
-            compensation = maxCompensation;
+        if (initialLPAmount == 0 || newAmount >= initialLPAmount) {
+            return 0;
         }
         
-        // 检查是否是节点用户（优先补偿）
-        bool isNodeUser = _isNodeUser(msg.sender);
+        // 计算损失
+        uint256 loss = initialLPAmount - newAmount;
+        
+        // 补偿至少500 HCF
+        uint256 compensation = loss < MIN_COMPENSATION ? MIN_COMPENSATION : loss;
+        
+        // 检查是否是节点用户（额外20%奖励）
+        bool isNodeUser = _isNodeUser(user);
         if (isNodeUser) {
             // 节点用户额外20%奖励
             uint256 bonus = (compensation * NODE_BONUS_RATE) / BASIS_POINTS;
@@ -175,8 +173,8 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
         // 检查补偿池余额
         require(compensationPool >= compensation, "Insufficient pool balance");
         
-        // 执行补偿
-        _applyCompensation(msg.sender, compensation, isNodeUser);
+        // 执行补偿到池子
+        _applyCompensation(user, compensation, isNodeUser);
         
         return compensation;
     }
@@ -184,7 +182,7 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
     /**
      * @dev 记录初始LP数量（用户首次提供流动性时调用）
      */
-    function recordInitialLP(address user) external {
+    function recordInitialLP(address user, bool isEquity) external {
         require(msg.sender == address(stakingContract) || msg.sender == user, "Unauthorized");
         
         UserData storage data = userData[user];
@@ -192,6 +190,10 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
             uint256 lpAmount = _getCurrentLPAmount(user);
             if (lpAmount > 0) {
                 data.initialLPAmount = lpAmount;
+                data.isEquityLP = isEquity;
+                if (isEquity) {
+                    data.equityLPAmount = lpAmount;
+                }
                 emit InitialLPRecorded(user, lpAmount);
             }
         }
@@ -249,8 +251,8 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
         totalCompensated += amount;
         totalClaims++;
         
-        // 转账补偿
-        require(hcfToken.transfer(user, amount), "Compensation transfer failed");
+        // 补偿到底池（保留在补偿池中）
+        // 补偿金额已经在池中，不需要转移
         
         // 恢复用户的产出率到100%（通过质押合约处理）
         _restoreUserRate(user);
@@ -338,22 +340,6 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
     
     // ============ 管理功能 ============
     
-    /**
-     * @dev 设置损失阈值（仅多签）
-     */
-    function setThreshold(uint256 _threshold) external onlyMultiSig {
-        require(_threshold > 0, "Threshold must be > 0");
-        lossThreshold = _threshold;
-        emit ThresholdUpdated(_threshold);
-    }
-    
-    /**
-     * @dev 设置最大补偿（仅多签）
-     */
-    function setMaxCompensation(uint256 _max) external onlyMultiSig {
-        maxCompensation = _max;
-        emit MaxCompensationUpdated(_max);
-    }
     
     /**
      * @dev 设置多签钱包
@@ -414,7 +400,9 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
         uint256 initialLP,
         uint256 currentLP,
         bool canClaim,
-        uint256 estimatedCompensation
+        uint256 estimatedCompensation,
+        bool isEquityLP,
+        uint256 equityLPAmount
     ) {
         UserData memory data = userData[user];
         uint256 currentLPAmount = _getCurrentLPAmount(user);
@@ -428,11 +416,7 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
         uint256 compensation = 0;
         if (eligible) {
             uint256 loss = initialLPAmount - currentLPAmount;
-            compensation = loss > lossThreshold ? loss : lossThreshold;
-            
-            if (maxCompensation > 0 && compensation > maxCompensation) {
-                compensation = maxCompensation;
-            }
+            compensation = loss < MIN_COMPENSATION ? MIN_COMPENSATION : loss;
             
             if (_isNodeUser(user)) {
                 compensation += (compensation * NODE_BONUS_RATE) / BASIS_POINTS;
@@ -445,7 +429,9 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
             initialLPAmount,
             currentLPAmount,
             eligible && compensationPool >= compensation,
-            compensation
+            compensation,
+            data.isEquityLP,
+            data.equityLPAmount
         );
     }
     
@@ -470,8 +456,8 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
             compensationPool,
             totalCompensated,
             totalClaims,
-            lossThreshold,
-            maxCompensation
+            MIN_COMPENSATION,
+            0
         );
     }
     
@@ -496,11 +482,7 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
         
         // 计算补偿金额
         uint256 loss = initialLP - currentLP;
-        uint256 compensation = loss > lossThreshold ? loss : lossThreshold;
-        
-        if (maxCompensation > 0 && compensation > maxCompensation) {
-            compensation = maxCompensation;
-        }
+        uint256 compensation = loss < MIN_COMPENSATION ? MIN_COMPENSATION : loss;
         
         if (_isNodeUser(user)) {
             compensation += (compensation * NODE_BONUS_RATE) / BASIS_POINTS;
