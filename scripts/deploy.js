@@ -196,11 +196,12 @@ async function main() {
     hcfNodeNFT.address
   );
   
-  // 质押合约：设置推荐合约、无常损失保护、销毁机制
+  // 质押合约：设置推荐合约、无常损失保护、销毁机制、节点合约
   await hcfStaking.setContracts(
     hcfReferral.address,
     hcfImpermanentLossProtection.address,
-    hcfBurnMechanism.address
+    hcfBurnMechanism.address,
+    hcfNodeNFT.address
   );
   
   console.log("✅ 合约地址已设置");

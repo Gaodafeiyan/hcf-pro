@@ -37,8 +37,13 @@ interface IHCFReferral {
 }
 
 interface IHCFImpermanentLossProtection {
-    function recordInitialLP(address user) external;
+    function recordInitialLP(address user, bool isEquity) external;
     function claimCompensation() external returns (uint256);
+    function onLPChange(address user, uint256 oldAmount, uint256 newAmount) external returns (uint256);
+}
+
+interface IHCFNodeNFT {
+    function hasNode(address user) external view returns (bool);
 }
 
 interface IHCFBurnMechanism {
@@ -123,6 +128,7 @@ contract HCFStaking is Ownable, ReentrancyGuard {
     IHCFReferral public referralContract;
     IHCFImpermanentLossProtection public impermanentLossProtection;
     IHCFBurnMechanism public burnMechanism;
+    IHCFNodeNFT public nodeContract;
     
     // 配置
     bool public emergencyPaused = false;
@@ -239,9 +245,11 @@ contract HCFStaking is Ownable, ReentrancyGuard {
             uint256 bsdtAmount = amount;
             
             if (isEquity) {
+                // 股权LP - HCF+BSDT等额支付到归集地址
                 require(hcfToken.transferFrom(msg.sender, collectionAddress, amount), "HCF transfer failed");
                 require(bsdtToken.transferFrom(msg.sender, collectionAddress, bsdtAmount), "BSDT transfer failed");
                 user.isEquityLP = true;
+                user.sharingTotal += amount; // 记录股权金额
             } else {
                 require(hcfToken.transferFrom(msg.sender, address(this), amount), "HCF transfer failed");
                 require(bsdtToken.transferFrom(msg.sender, address(this), bsdtAmount), "BSDT transfer failed");
@@ -252,22 +260,40 @@ contract HCFStaking is Ownable, ReentrancyGuard {
             user.isLP = true;
             
             if (address(impermanentLossProtection) != address(0)) {
-                impermanentLossProtection.recordInitialLP(msg.sender);
+                impermanentLossProtection.recordInitialLP(msg.sender, isEquity);
             }
         } else {
             require(hcfToken.transferFrom(msg.sender, address(this), amount), "HCF transfer failed");
         }
         
-        // 双循环处理
+        // 双循环处理 - 1000+必须是100的倍数
         if (amount >= 1000 * 10**18) {
+            require(amount % (100 * 10**18) == 0, "Amount must be multiple of 100 for dual cycle");
+            
             uint256 units = amount / levels[level - 1].compoundUnit;
             for (uint256 i = 0; i < units; i++) {
                 uint256 positionAmount = levels[level - 1].compoundUnit;
                 uint256 rate = isLP ? levels[level - 1].lpRate : levels[level - 1].baseRate;
                 
-                // LP 1:5增益
-                if (isLP && i > 0 && i % 5 == 0) {
-                    rate = rate * 2;
+                // 复投倍数增益 (10-2万倍数)
+                uint256 multiplier = 1;
+                if (user.compoundCount > 0) {
+                    if (positionAmount >= 10000 * 10**18) {
+                        multiplier = 20000; // 2万倍
+                    } else if (positionAmount >= 1000 * 10**18) {
+                        multiplier = 2000;  // 2000倍
+                    } else if (positionAmount >= 100 * 10**18) {
+                        multiplier = 200;   // 200倍
+                    } else if (positionAmount >= 10 * 10**18) {
+                        multiplier = 10;    // 10倍
+                    }
+                    rate = (rate * multiplier) / 10;
+                }
+                
+                // LP 1:5增益 - 每增加2个LP对应增加10枚HCF
+                if (isLP && i > 0 && i % 2 == 0) {
+                    rate = (rate * 150) / 100; // 增加50%收益
+                    positionAmount += 10 * 10**18; // 增加10枚HCF
                 }
                 
                 userPositions[msg.sender].push(StakePosition({
@@ -468,7 +494,7 @@ contract HCFStaking is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 申请无常损失补偿
+     * @dev 申请无常损失补偿（节点优先+20%）
      */
     function claimCompensation() external nonReentrant notPaused returns (uint256) {
         UserInfo storage user = userInfo[msg.sender];
@@ -479,6 +505,12 @@ contract HCFStaking is Ownable, ReentrancyGuard {
         if (address(impermanentLossProtection) != address(0)) {
             compensation = impermanentLossProtection.claimCompensation();
             
+            // 节点用户额外20%补偿
+            if (address(nodeContract) != address(0) && nodeContract.hasNode(msg.sender)) {
+                compensation = (compensation * 120) / 100;
+            }
+            
+            // 恢复产出率到100%
             for (uint256 i = 0; i < userPositions[msg.sender].length; i++) {
                 if (user.isLP) {
                     userPositions[msg.sender][i].rate = levels[user.level - 1].lpRate;
@@ -600,6 +632,7 @@ contract HCFStaking is Ownable, ReentrancyGuard {
     }
     
     function setDecayThreshold(uint256 _threshold) external onlyMultiSig {
+        require(_threshold >= 10_000_000 * 10**18, "Threshold too low");
         decayThreshold = _threshold;
     }
     
@@ -635,11 +668,13 @@ contract HCFStaking is Ownable, ReentrancyGuard {
     function setContracts(
         address _referral,
         address _impermanentLoss,
-        address _burnMechanism
+        address _burnMechanism,
+        address _nodeContract
     ) external onlyOwner {
         if (_referral != address(0)) referralContract = IHCFReferral(_referral);
         if (_impermanentLoss != address(0)) impermanentLossProtection = IHCFImpermanentLossProtection(_impermanentLoss);
         if (_burnMechanism != address(0)) burnMechanism = IHCFBurnMechanism(_burnMechanism);
+        if (_nodeContract != address(0)) nodeContract = IHCFNodeNFT(_nodeContract);
     }
     
     function setEmergencyPause(bool _pause) external onlyMultiSig {
