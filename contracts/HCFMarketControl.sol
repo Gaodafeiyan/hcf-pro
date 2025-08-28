@@ -31,7 +31,6 @@ interface IBSDTToken {
 }
 
 interface IHCFToken {
-    function burn(uint256 amount) external;
     function transfer(address to, uint256 amount) external returns (bool);
     function transferFrom(address from, address to, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
@@ -196,6 +195,20 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     }
     
     /**
+     * @dev 实时检查价格下跌百分比（供Keeper查询）
+     */
+    function checkDropPercent() external view returns (uint256) {
+        if (address(priceOracle) == address(0)) return 0;
+        
+        uint256 latestPrice = priceOracle.getPrice();
+        if (previousPrice == 0 || latestPrice >= previousPrice) {
+            return 0;
+        }
+        
+        return ((previousPrice - latestPrice) * BASIS_POINTS) / previousPrice;
+    }
+    
+    /**
      * @dev 应用防暴跌措施（增加滑点、销毁、节点分红）
      */
     function applyAntiDump(uint256 dropPercent) public notPaused {
@@ -214,10 +227,10 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
             uint256 slippageAmount = (availablePool * slippageToApply) / BASIS_POINTS;
             
             if (slippageAmount > 0 && slippageAmount <= availablePool) {
-                // 30%销毁
+                // 30%销毁 - 转给黑洞地址
                 uint256 burnAmount = (slippageAmount * 30) / 100;
                 if (burnAmount > 0) {
-                    hcfToken.burn(burnAmount);
+                    hcfToken.transfer(address(0xdead), burnAmount);
                     availablePool -= burnAmount;
                     usedPool += burnAmount;
                 }
@@ -518,7 +531,7 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
         address _node,
         address _hcfToken,
         address _bsdtToken
-    ) external onlyOwner {
+    ) external onlyMultiSig {
         if (_priceOracle != address(0)) priceOracle = IPriceOracle(_priceOracle);
         if (_staking != address(0)) stakingContract = IHCFStaking(_staking);
         if (_node != address(0)) nodeContract = IHCFNodeNFT(_node);
@@ -531,7 +544,7 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     /**
      * @dev 设置多签钱包
      */
-    function setMultiSigWallet(address _multiSigWallet) external onlyOwner {
+    function setMultiSigWallet(address _multiSigWallet) external onlyMultiSig {
         require(_multiSigWallet != address(0), "Invalid address");
         multiSigWallet = _multiSigWallet;
     }
@@ -545,9 +558,9 @@ contract HCFMarketControl is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 记录用户LP金额
+     * @dev 记录用户LP金额（仅多签或授权合约）
      */
-    function recordLPAmount(address user, uint256 amount) external {
+    function recordLPAmount(address user, uint256 amount) external onlyMultiSig {
         lastLPAmount[user] = amount;
         hasClaimedCompensation[user] = false;
     }
