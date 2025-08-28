@@ -57,8 +57,6 @@ contract HCFBurnMechanism is Ownable, ReentrancyGuard {
         uint256 lastCapUpdate;          // 上次封顶更新
         uint256 totalBurned;            // 总销毁量
         uint256 lastBurnTime;           // 上次销毁时间
-        uint256 dailyBurnAmount;        // 今日销毁量
-        uint256 lastDailyReset;         // 上次日重置
     }
     
     // ============ 状态变量 ============
@@ -156,8 +154,8 @@ contract HCFBurnMechanism is Ownable, ReentrancyGuard {
         uint256 burnAmount = (rewardAmount * burnConfig.referralBurnRate) / BASIS_POINTS;
         
         if (burnAmount > 0) {
-            // 检查并应用日封顶
-            burnAmount = _applyDailyCap(user, burnAmount);
+            // 检查是否超过质押日化产出封顶
+            burnAmount = _applyStakingCap(user, burnAmount);
             
             if (burnAmount > 0) {
                 _burn(user, burnAmount, BURN_TYPE_REFERRAL);
@@ -180,8 +178,8 @@ contract HCFBurnMechanism is Ownable, ReentrancyGuard {
         uint256 burnAmount = (rewardAmount * burnConfig.teamBurnRate) / BASIS_POINTS;
         
         if (burnAmount > 0) {
-            // 检查并应用日封顶
-            burnAmount = _applyDailyCap(user, burnAmount);
+            // 检查是否超过质押日化产出封顶
+            burnAmount = _applyStakingCap(user, burnAmount);
             
             if (burnAmount > 0) {
                 _burn(user, burnAmount, BURN_TYPE_TEAM);
@@ -222,7 +220,7 @@ contract HCFBurnMechanism is Ownable, ReentrancyGuard {
     
     /**
      * @dev 应用特定条件烧伤
-     * @param burnType 0=波动, 1=交易, 2=定时, 3=投票
+     * @param burnType 0=波动, 1=交易, 2=定时, 3=投票（需要多签）
      */
     function applySpecificBurn(
         uint256 burnType, 
@@ -234,6 +232,11 @@ contract HCFBurnMechanism is Ownable, ReentrancyGuard {
         nonReentrant 
         returns (uint256) 
     {
+        // 投票烧伤需要多签权限
+        if (burnType == BURN_TYPE_VOTE) {
+            require(msg.sender == multiSigWallet, "Vote burn requires multisig");
+        }
+        
         uint256 burnAmount = 0;
         uint256 burnRate = 0;
         
@@ -299,40 +302,30 @@ contract HCFBurnMechanism is Ownable, ReentrancyGuard {
     // ============ 内部函数 ============
     
     /**
-     * @dev 应用日封顶限制
+     * @dev 应用质押封顶限制（烧毁不超过日化产出）
      */
-    function _applyDailyCap(address user, uint256 burnAmount) internal returns (uint256) {
+    function _applyStakingCap(address user, uint256 burnAmount) internal returns (uint256) {
         UserBurnRecord storage record = userBurnRecords[user];
         
-        // 重置日计数器
-        if (block.timestamp > record.lastDailyReset + 24 hours) {
-            record.dailyBurnAmount = 0;
-            record.lastDailyReset = block.timestamp;
-        }
-        
-        // 获取用户质押信息计算日封顶
-        uint256 dailyCap = 0;
+        // 获取用户质押信息
         if (address(stakingContract) != address(0)) {
             (uint256 stakingAmount, uint256 dailyReward) = stakingContract.getUserStakingInfo(user);
             
-            // 封顶 = 日产出 * 倍数 / 10000
-            dailyCap = (dailyReward * burnConfig.stakingCapMultiplier) / BASIS_POINTS;
+            // 质押封顶 = 日产出 * 倍数 / 10000
+            uint256 stakingCap = (dailyReward * burnConfig.stakingCapMultiplier) / BASIS_POINTS;
             record.stakingAmount = stakingAmount;
-        }
-        
-        // 如果有封顶限制
-        if (dailyCap > 0) {
-            uint256 remainingCap = dailyCap > record.dailyBurnAmount ? 
-                                   dailyCap - record.dailyBurnAmount : 0;
             
-            if (burnAmount > remainingCap) {
-                emit DailyCap(user, burnAmount, remainingCap);
-                burnAmount = remainingCap;
+            // 如果烧毁量超过日化产出封顶，扣除超出部分
+            if (burnAmount > stakingCap && stakingCap > 0) {
+                uint256 excess = burnAmount - stakingCap;
+                burnAmount = stakingCap;  // 限制在封顶内
+                
+                // 记录被扣除的部分
+                emit DailyCap(user, excess, stakingCap);
             }
+            
+            record.lastCapUpdate = block.timestamp;
         }
-        
-        record.dailyBurnAmount += burnAmount;
-        record.lastCapUpdate = block.timestamp;
         
         return burnAmount;
     }
@@ -413,15 +406,25 @@ contract HCFBurnMechanism is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 设置合约地址
+     * @dev 设置合约地址（并自动授权）
      */
     function setContracts(
         address _staking,
         address _referral,
         address _keeper
     ) external onlyOwner {
-        if (_staking != address(0)) stakingContract = IHCFStaking(_staking);
-        if (_referral != address(0)) referralContract = IHCFReferral(_referral);
+        if (_staking != address(0)) {
+            stakingContract = IHCFStaking(_staking);
+            // 授权质押合约可以调用烧毁
+            authorizedContracts[_staking] = true;
+            emit AuthorizedContractSet(_staking, true);
+        }
+        if (_referral != address(0)) {
+            referralContract = IHCFReferral(_referral);
+            // 授权推荐合约可以调用烧毁
+            authorizedContracts[_referral] = true;
+            emit AuthorizedContractSet(_referral, true);
+        }
         if (_keeper != address(0)) keeperAddress = _keeper;
     }
     
@@ -471,23 +474,17 @@ contract HCFBurnMechanism is Ownable, ReentrancyGuard {
      */
     function getUserBurnInfo(address user) external view returns (
         uint256 totalBurned,
-        uint256 dailyBurned,
         uint256 lastBurnTime,
-        uint256 stakingAmount
+        uint256 stakingAmount,
+        uint256 lastCapUpdate
     ) {
         UserBurnRecord memory record = userBurnRecords[user];
         
-        // 如果超过24小时，日销毁量应显示为0
-        uint256 dailyAmount = record.dailyBurnAmount;
-        if (block.timestamp > record.lastDailyReset + 24 hours) {
-            dailyAmount = 0;
-        }
-        
         return (
             record.totalBurned,
-            dailyAmount,
             record.lastBurnTime,
-            record.stakingAmount
+            record.stakingAmount,
+            record.lastCapUpdate
         );
     }
     
