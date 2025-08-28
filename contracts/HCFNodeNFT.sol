@@ -28,6 +28,10 @@ interface IPancakePair {
     function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
 }
 
+interface IHCFStaking {
+    function addExtraYield(address user, uint256 amount) external;
+}
+
 /**
  * @title HCFNodeNFT
  * @dev 节点NFT合约 - 99个限量节点，动态算力，多级分红
@@ -95,6 +99,7 @@ contract HCFNodeNFT is ERC721, Ownable, ReentrancyGuard {
     IBSDTToken public bsdtToken;
     IPriceOracle public priceOracle;
     IPancakePair public lpPair;
+    IHCFStaking public stakingContract;
     
     // 紧急暂停
     bool public emergencyPaused = false;
@@ -247,7 +252,7 @@ contract HCFNodeNFT is ERC721, Ownable, ReentrancyGuard {
         // 激活节点
         node.isActive = true;
         node.activationTime = block.timestamp;
-        node.onlineRate = BASIS_POINTS;  // 初始100%在线率
+        node.onlineRate = BASIS_POINTS;  // 初始100%在线率（10000基点）
         
         // 更新算力
         _updateNodePower(nodeId);
@@ -278,6 +283,9 @@ contract HCFNodeNFT is ERC721, Ownable, ReentrancyGuard {
         
         node.lastUpdateTime = block.timestamp;
         
+        // 处理超额LP的质押增产
+        _handleExcessLP(nodeId);
+        
         emit PowerUpdated(nodeId, _calculatePower(nodeId));
     }
     
@@ -287,6 +295,11 @@ contract HCFNodeNFT is ERC721, Ownable, ReentrancyGuard {
     function _calculatePower(uint256 nodeId) internal view returns (uint256) {
         NodeData memory node = nodes[nodeId];
         if (!node.isActive || node.onlineRate < minOnlineRate) {
+            return 0;
+        }
+        
+        // 低于maxLPHCF不增产
+        if (node.lpHCFAmount < maxLPHCF) {
             return 0;
         }
         
@@ -303,11 +316,22 @@ contract HCFNodeNFT is ERC721, Ownable, ReentrancyGuard {
     }
     
     /**
+     * @dev 处理超额LP的质押增产
+     */
+    function _handleExcessLP(uint256 nodeId) internal {
+        NodeData memory node = nodes[nodeId];
+        if (node.lpHCFAmount > maxLPHCF && address(stakingContract) != address(0)) {
+            uint256 overAmount = node.lpHCFAmount - maxLPHCF;
+            stakingContract.addExtraYield(node.owner, overAmount);
+        }
+    }
+    
+    /**
      * @dev 分配分红
      * @param divType 分红类型 (0:滑点 1:提现 2:入金 3:防暴)
      * @param amount 分红金额
      */
-    function distributeDividends(uint256 divType, uint256 amount) external nonReentrant {
+    function distributeDividends(uint256 divType, uint256 amount) public nonReentrant {
         require(divType < 4, "Invalid dividend type");
         
         DividendPool storage pool = dividendPools[divType];
@@ -425,7 +449,7 @@ contract HCFNodeNFT is ERC721, Ownable, ReentrancyGuard {
      * @dev 设置最小在线率（仅多签）
      */
     function setMinOnlineRate(uint256 _minOnlineRate) external onlyMultiSig {
-        require(_minOnlineRate <= BASIS_POINTS, "Invalid rate");
+        require(_minOnlineRate <= BASIS_POINTS && _minOnlineRate >= 5000, "Invalid rate"); // 最小50%，最大100%
         minOnlineRate = _minOnlineRate;
     }
     
@@ -458,6 +482,24 @@ contract HCFNodeNFT is ERC721, Ownable, ReentrancyGuard {
      */
     function setLPPair(address _lpPair) external onlyOwner {
         lpPair = IPancakePair(_lpPair);
+    }
+    
+    /**
+     * @dev 覆盖转移前钩子，防止节点NFT转移
+     */
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId,
+        uint256 batchSize
+    ) internal virtual override {
+        super._beforeTokenTransfer(from, to, tokenId, batchSize);
+        
+        // 只允许铸造和销毁，不允许转移
+        require(
+            from == address(0) || to == address(0),
+            "Node NFT cannot be transferred"
+        );
     }
     
     /**
@@ -565,5 +607,50 @@ contract HCFNodeNFT is ERC721, Ownable, ReentrancyGuard {
      */
     function getUserNodeId(address user) external view returns (uint256) {
         return ownerToNodeId[user];
+    }
+    
+    /**
+     * @dev 获取网络总算力（监控API）
+     */
+    function getNetworkComputingPower() external view returns (
+        uint256 totalPower,
+        uint256 activePower,
+        uint256 averageOnlineRate
+    ) {
+        totalPower = 0;
+        activePower = 0;
+        uint256 totalOnlineRate = 0;
+        uint256 activeCount = 0;
+        
+        for (uint256 i = 1; i <= currentId; i++) {
+            if (nodes[i].isActive) {
+                uint256 nodePower = _calculatePower(i);
+                totalPower += nodePower;
+                
+                if (nodes[i].onlineRate >= minOnlineRate) {
+                    activePower += nodePower;
+                    totalOnlineRate += nodes[i].onlineRate;
+                    activeCount++;
+                }
+            }
+        }
+        
+        averageOnlineRate = activeCount > 0 ? totalOnlineRate / activeCount : 0;
+        
+        return (totalPower, activePower, averageOnlineRate);
+    }
+    
+    /**
+     * @dev 设置质押合约地址
+     */
+    function setStakingContract(address _staking) external onlyOwner {
+        stakingContract = IHCFStaking(_staking);
+    }
+    
+    /**
+     * @dev 分配奖励（供外部调用）
+     */
+    function distributeRewards(uint256 amount) external {
+        distributeDividends(0, amount); // 默认使用滑点池
     }
 }
