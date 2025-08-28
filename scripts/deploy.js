@@ -37,7 +37,8 @@ async function main() {
   const bsdtToken = await BSDTToken.deploy(
     "0x0000000000000000000000000000000000000000", // USDT地址（测试网）
     usdtOracle.address,
-    deployer.address // Keeper地址
+    deployer.address, // Keeper地址
+    deployer.address  // LP池地址（临时使用部署者地址）
   );
   await bsdtToken.deployed();
   console.log("✅ BSDT稳定币已部署:", bsdtToken.address);

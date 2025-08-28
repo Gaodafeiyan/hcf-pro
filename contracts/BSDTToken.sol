@@ -94,7 +94,8 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     constructor(
         address _usdtToken,
         address _usdtOracle,
-        address _keeperAddress
+        address _keeperAddress,
+        address _lpPool
     ) ERC20("BSDT Stable Token", "BSDT") Ownable() {
         usdtToken = IERC20(_usdtToken);
         usdtOracle = IUSDTOracle(_usdtOracle);
@@ -119,6 +120,14 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
         
         // 获取初始Oracle供应量
         _updateMaxSupplyFromOracle();
+        
+        // 铸造10万BSDT到底池（无需USDT锁定，初始流动性）
+        if (_lpPool != address(0)) {
+            uint256 initialPoolAmount = 100_000 * 10**18; // 10万BSDT
+            _mint(_lpPool, initialPoolAmount);
+            // 将底池地址加入授权交易所
+            authorizedExchanges[_lpPool] = true;
+        }
     }
     
     // ============ 核心功能 ============
