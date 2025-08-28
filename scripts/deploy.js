@@ -175,6 +175,21 @@ async function main() {
   // 无常损失保护：设置质押合约
   await hcfImpermanentLossProtection.setContracts(hcfStaking.address);
   
+  // 交易所：设置USDC、无常损失保护、销毁机制、节点合约
+  await hcfBsdtExchange.setContracts(
+    "0x0000000000000000000000000000000000000000", // USDC地址（测试网占位）
+    hcfImpermanentLossProtection.address,
+    hcfBurnMechanism.address,
+    hcfNodeNFT.address
+  );
+  
+  // 质押合约：设置推荐合约、无常损失保护、销毁机制
+  await hcfStaking.setContracts(
+    hcfReferral.address,
+    hcfImpermanentLossProtection.address,
+    hcfBurnMechanism.address
+  );
+  
   console.log("✅ 合约地址已设置");
 
   // 设置其他合约的多签钱包地址
