@@ -30,10 +30,10 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
     uint256 public claimTaxRate = 500;    // 领取收益税5%
     
     // 买入税分配（占税的比例）
-    uint256 public buyBurnRate = 5000;      // 50%销毁 (2% * 50% = 1%)
+    uint256 public buyBurnRate = 2500;      // 25%销毁 (2% * 25% = 0.5%)
     uint256 public buyMarketingRate = 2500; // 25%营销 (2% * 25% = 0.5%)
-    uint256 public buyLPRate = 1250;        // 12.5%LP (2% * 12.5% = 0.25%)
-    uint256 public buyNodeRate = 1250;      // 12.5%节点 (2% * 12.5% = 0.25%)
+    uint256 public buyLPRate = 2500;        // 25%LP (2% * 25% = 0.5%)
+    uint256 public buyNodeRate = 2500;      // 25%节点 (2% * 25% = 0.5%)
     
     // 卖出税分配（占税的比例）
     uint256 public sellBurnRate = 4000;      // 40%销毁 (5% * 40% = 2%)
