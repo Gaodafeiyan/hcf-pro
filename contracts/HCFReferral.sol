@@ -23,6 +23,10 @@ interface IHCFStaking {
 interface IHCFBurnMechanism {
     function applyReferralBurn(address user, uint256 amount) external returns (uint256);
     function applyTeamBurn(address user, uint256 amount) external returns (uint256);
+    function applyVolatileBurn(address user, uint256 amount) external returns (uint256);
+    function applyTradeBurn(address user, uint256 amount) external returns (uint256);
+    function applyTimedBurn(address user, uint256 amount) external returns (uint256);
+    function applyVoteBurn(address user, uint256 amount) external returns (uint256);
 }
 
 /**
@@ -260,7 +264,7 @@ contract HCFReferral is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 获取静态奖励率
+     * @dev 获取静态奖励率（根据直推数和团队等级解锁代数）
      */
     function _getStaticRewardRate(uint256 level, address user) internal view returns (uint256) {
         UserData storage data = userData[user];
@@ -270,18 +274,18 @@ contract HCFReferral is Ownable, ReentrancyGuard {
         } else if (level == 2) {
             return config.staticGen2Rate; // 10%
         } else if (level >= 3 && level <= 8) {
-            // V3解锁（需要直推数）
-            if (data.teamLevel >= 3 || data.directCount >= 3) {
+            // 3-8代需要3个直推或V3解锁
+            if (data.directCount >= 3 || data.teamLevel >= 3) {
                 return config.staticGen3To8Rate; // 5%
             }
         } else if (level >= 9 && level <= 15) {
-            // V3+解锁
-            if (data.teamLevel >= 3) {
+            // 9-15代需要5个直推或V3解锁
+            if (data.directCount >= 5 || data.teamLevel >= 3) {
                 return config.staticGen9To15Rate; // 3%
             }
         } else if (level >= 16 && level <= 20) {
-            // V4+解锁
-            if (data.teamLevel >= 4) {
+            // 16-20代需要10个直推或V4解锁
+            if (data.directCount >= 10 || data.teamLevel >= 4) {
                 return config.staticGen16To20Rate; // 2%
             }
         }
@@ -324,32 +328,32 @@ contract HCFReferral is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 检查团队等级要求
+     * @dev 检查团队等级要求（包含业绩和下级V等级要求）
      */
     function _checkTeamLevelRequirements(address user) internal view returns (bool) {
         UserData storage data = userData[user];
         
-        // V1: 小区2000
+        // V1: 小区业绩2000
         if (data.teamLevel == 1) {
             return data.teamVolume >= V1_VOLUME;
         }
-        // V2: 小区2万 + 2个V1
+        // V2: 小区业绩2万 + 2个V1下级
         else if (data.teamLevel == 2) {
             return data.teamVolume >= V2_VOLUME && data.levelVCounts[1] >= 2;
         }
-        // V3: 小区10万 + 2个V2
+        // V3: 小区业绩10万 + 2个V2下级
         else if (data.teamLevel == 3) {
             return data.teamVolume >= V3_VOLUME && data.levelVCounts[2] >= 2;
         }
-        // V4: 小区50万 + 2个V3
+        // V4: 小区业绩50万 + 2个V3下级
         else if (data.teamLevel == 4) {
             return data.teamVolume >= V4_VOLUME && data.levelVCounts[3] >= 2;
         }
-        // V5: 小区300万 + 1个V4
+        // V5: 小区业绩300万 + 1个V4下级
         else if (data.teamLevel == 5) {
             return data.teamVolume >= V5_VOLUME && data.levelVCounts[4] >= 1;
         }
-        // V6: 小区2000万 + 2个V4
+        // V6: 小区业绩2000万 + 2个V4下级
         else if (data.teamLevel == 6) {
             return data.teamVolume >= V6_VOLUME && data.levelVCounts[4] >= 2;
         }
@@ -393,7 +397,7 @@ contract HCFReferral is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 内部应用烧伤
+     * @dev 内部应用烧伤（支持多种烧伤类型）
      */
     function _applyBurn(address user, uint256 amount, string memory burnType) 
         internal 
@@ -401,10 +405,28 @@ contract HCFReferral is Ownable, ReentrancyGuard {
     {
         uint256 burnAmount = 0;
         
-        if (keccak256(bytes(burnType)) == keccak256(bytes("referral"))) {
-            burnAmount = (amount * config.referralBurnRate) / BASIS_POINTS;
-        } else if (keccak256(bytes(burnType)) == keccak256(bytes("team"))) {
-            burnAmount = (amount * config.teamBurnRate) / BASIS_POINTS;
+        // 根据不同烧伤类型调用对应的销毁机制
+        if (address(burnMechanism) != address(0)) {
+            if (keccak256(bytes(burnType)) == keccak256(bytes("referral"))) {
+                burnAmount = burnMechanism.applyReferralBurn(user, amount);
+            } else if (keccak256(bytes(burnType)) == keccak256(bytes("team"))) {
+                burnAmount = burnMechanism.applyTeamBurn(user, amount);
+            } else if (keccak256(bytes(burnType)) == keccak256(bytes("volatile"))) {
+                burnAmount = burnMechanism.applyVolatileBurn(user, amount);
+            } else if (keccak256(bytes(burnType)) == keccak256(bytes("trade"))) {
+                burnAmount = burnMechanism.applyTradeBurn(user, amount);
+            } else if (keccak256(bytes(burnType)) == keccak256(bytes("timed"))) {
+                burnAmount = burnMechanism.applyTimedBurn(user, amount);
+            } else if (keccak256(bytes(burnType)) == keccak256(bytes("vote"))) {
+                burnAmount = burnMechanism.applyVoteBurn(user, amount);
+            }
+        } else {
+            // 默认烧伤率
+            if (keccak256(bytes(burnType)) == keccak256(bytes("referral"))) {
+                burnAmount = (amount * config.referralBurnRate) / BASIS_POINTS;
+            } else if (keccak256(bytes(burnType)) == keccak256(bytes("team"))) {
+                burnAmount = (amount * config.teamBurnRate) / BASIS_POINTS;
+            }
         }
         
         // 全局封顶检查（日产出%）
@@ -416,7 +438,6 @@ contract HCFReferral is Ownable, ReentrancyGuard {
         }
         
         if (burnAmount > 0) {
-            hcfToken.burn(burnAmount);
             emit BurnApplied(user, burnAmount, burnType);
         }
         
@@ -630,5 +651,62 @@ contract HCFReferral is Ownable, ReentrancyGuard {
      */
     function getConfig() external view returns (ReferralConfig memory) {
         return config;
+    }
+    
+    /**
+     * @dev 获取动态显示信息（供前端展示）
+     */
+    function getDynamicDisplay(address user, uint256 baseAmount) external view returns (
+        uint256 baseOutput,        // 基础产出
+        uint256 dynamicRatio,      // 动态比例（50%-100%）
+        uint256 actualOutput,      // 实际产出
+        string memory displayText  // 显示文本
+    ) {
+        baseOutput = baseAmount;
+        
+        // 获取动态比例
+        if (address(stakingContract) != address(0)) {
+            dynamicRatio = stakingContract.calculateStaticRatio(user);
+        } else {
+            dynamicRatio = 5000; // 默认50%
+        }
+        
+        // 计算实际产出
+        actualOutput = (baseAmount * dynamicRatio) / BASIS_POINTS;
+        
+        // 生成显示文本
+        uint256 percentage = dynamicRatio / 100;
+        if (percentage == 100) {
+            displayText = "Dynamic 100%";
+        } else {
+            displayText = string(abi.encodePacked("Dynamic ", uint2str(percentage), "%"));
+        }
+        
+        return (baseOutput, dynamicRatio, actualOutput, displayText);
+    }
+    
+    /**
+     * @dev 辅助函数：uint转string
+     */
+    function uint2str(uint256 _i) internal pure returns (string memory) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint256 j = _i;
+        uint256 length;
+        while (j != 0) {
+            length++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(length);
+        uint256 k = length;
+        while (_i != 0) {
+            k = k - 1;
+            uint8 temp = (48 + uint8(_i - (_i / 10) * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+        return string(bstr);
     }
 }
