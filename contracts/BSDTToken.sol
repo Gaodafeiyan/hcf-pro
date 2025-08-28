@@ -130,11 +130,18 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
         require(amount > 0, "Amount must be positive");
         require(to != address(0), "Mint to zero address");
         
-        // 检查Oracle供应量限制
+        // 更新Oracle供应量
+        _updateMaxSupplyFromOracle();
+        
+        // 严格检查Oracle供应量限制
         require(totalSupply() + amount <= maxSupplyFromOracle, "Exceeds max supply from Oracle");
         
-        // 转入等值USDT（1:1锁定）
+        // 转入等值USDT（1:1锁定）- 必须先锁定USDT
+        uint256 balanceBefore = usdtToken.balanceOf(address(this));
         require(usdtToken.transferFrom(msg.sender, address(this), amount), "USDT transfer failed");
+        uint256 balanceAfter = usdtToken.balanceOf(address(this));
+        require(balanceAfter - balanceBefore == amount, "USDT amount mismatch");
+        
         totalUSDTLocked += amount;
         
         // 铸造BSDT
@@ -150,12 +157,23 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
         require(amount > 0, "Amount must be positive");
         require(balanceOf(msg.sender) >= amount, "Insufficient balance");
         
+        // 确保合约有足够的USDT
+        require(usdtToken.balanceOf(address(this)) >= amount, "Insufficient USDT in contract");
+        require(totalUSDTLocked >= amount, "Insufficient locked USDT");
+        
+        // 先记录余额
+        uint256 balanceBefore = usdtToken.balanceOf(msg.sender);
+        
         // 销毁BSDT
         _burn(msg.sender, amount);
         totalUSDTLocked -= amount;
         
-        // 释放等值USDT
+        // 释放等值USDT（1:1）
         require(usdtToken.transfer(msg.sender, amount), "USDT transfer failed");
+        
+        // 验证USDT转账成功
+        uint256 balanceAfter = usdtToken.balanceOf(msg.sender);
+        require(balanceAfter - balanceBefore == amount, "USDT release mismatch");
         
         emit BSDTBurned(msg.sender, amount, amount);
     }
@@ -205,12 +223,11 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
             revert("BSDT: Cannot approve to DEX");
         }
         
-        // 只允许授权地址
+        // 只允许授权地址（移除owner == spender的条件）
         require(
             authorizedExchanges[spender] || 
             spender == multiSigWallet || 
-            spender == address(this) ||
-            spender == owner,
+            spender == address(this),
             "BSDT: Approval not authorized"
         );
         
@@ -286,11 +303,9 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
             return false;
         }
         
-        // 允许授权交易所或owner
+        // 只允许授权交易所和多签钱包（移除owner权限）
         return authorizedExchanges[from] || 
                authorizedExchanges[to] || 
-               from == owner() || 
-               to == owner() ||
                from == multiSigWallet ||
                to == multiSigWallet ||
                from == address(this) ||
@@ -408,9 +423,10 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 设置Keeper地址
+     * @dev 设置Keeper地址（仅多签）
      */
-    function setKeeperAddress(address _keeper) external onlyOwner {
+    function setKeeperAddress(address _keeper) external onlyMultiSig {
+        require(_keeper != address(0), "Invalid keeper address");
         keeperAddress = _keeper;
     }
     
