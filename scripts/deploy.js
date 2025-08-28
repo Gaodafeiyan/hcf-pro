@@ -157,23 +157,25 @@ async function main() {
   await hcfToken.setMultiSigWallet(multiSigWallet.address);
   console.log("✅ HCF代币多签钱包已设置");
 
-  // 设置其他合约的质押合约地址
-  console.log("🔧 配置其他合约的质押合约地址...");
-  await hcfReferral.setStakingContract(hcfStaking.address);
-  await hcfRanking.setStakingContract(hcfStaking.address);
-  await hcfMarketControl.setStakingContract(hcfStaking.address);
-  await hcfBurnMechanism.setStakingContract(hcfStaking.address);
-  await hcfImpermanentLossProtection.setStakingContract(hcfStaking.address);
-  console.log("✅ 质押合约地址已设置");
-
-  // 设置其他合约的HCF代币地址
-  console.log("🔧 配置其他合约的HCF代币地址...");
-  await hcfReferral.setHCFToken(hcfToken.address);
-  await hcfRanking.setHCFToken(hcfToken.address);
-  await hcfMarketControl.setHCFToken(hcfToken.address);
-  await hcfBurnMechanism.setHCFToken(hcfToken.address);
-  await hcfImpermanentLossProtection.setHCFToken(hcfToken.address);
-  console.log("✅ HCF代币地址已设置");
+  // 设置其他合约的合约地址
+  console.log("🔧 配置其他合约的合约地址...");
+  
+  // 推荐合约：设置质押合约和销毁机制
+  await hcfReferral.setContracts(hcfStaking.address, hcfBurnMechanism.address);
+  
+  // 排名合约：设置质押合约和推荐合约
+  await hcfRanking.setContracts(hcfStaking.address, hcfReferral.address);
+  
+  // 市场控制：设置质押合约
+  await hcfMarketControl.setContracts(hcfStaking.address);
+  
+  // 销毁机制：设置质押合约
+  await hcfBurnMechanism.setContracts(hcfStaking.address);
+  
+  // 无常损失保护：设置质押合约
+  await hcfImpermanentLossProtection.setContracts(hcfStaking.address);
+  
+  console.log("✅ 合约地址已设置");
 
   // 设置其他合约的多签钱包地址
   console.log("🔧 配置其他合约的多签钱包地址...");
