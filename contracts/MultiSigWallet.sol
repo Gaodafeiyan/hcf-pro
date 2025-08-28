@@ -30,17 +30,12 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
     uint256 public requiredConfirmations = 3;
     uint256 public transactionCount;
     uint256 public constant TIMELOCK_DURATION = 48 hours; // 48小时延迟
-    uint256 public constant EXECUTION_GRACE_PERIOD = 7 days; // 执行宽限期7天
-    
-    // 重要操作标识（需要时间锁）
-    mapping(bytes4 => bool) public importantFunctions;
     
     // ============ 事件 ============
     event TransactionSubmitted(uint256 indexed transactionId, address indexed sender, address indexed to, uint256 value, bytes data);
     event TransactionConfirmed(uint256 indexed transactionId, address indexed sender);
     event ConfirmationRevoked(uint256 indexed transactionId, address indexed sender);
     event TransactionExecuted(uint256 indexed transactionId);
-    event TransactionCancelled(uint256 indexed transactionId);
     event SignerAdded(address indexed signer);
     event SignerRemoved(address indexed signer);
     event RequiredConfirmationsChanged(uint256 required);
@@ -88,13 +83,6 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
             isSigner[_signers[i]] = true;
             signers.push(_signers[i]);
         }
-        
-        // 标记重要函数（需要时间锁）
-        importantFunctions[bytes4(keccak256("setTaxRates(uint256,uint256,uint256)"))] = true;
-        importantFunctions[bytes4(keccak256("withdrawFunds(address,uint256)"))] = true;
-        importantFunctions[bytes4(keccak256("emergencyWithdraw(address,uint256)"))] = true;
-        importantFunctions[bytes4(keccak256("setMultiSigWallet(address)"))] = true;
-        importantFunctions[bytes4(keccak256("updateMaxSupply()"))] = true;
     }
     
     // ============ 交易管理功能 ============
@@ -111,14 +99,8 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
         
         uint256 transactionId = transactionCount;
         
-        // 检查是否为重要函数，设置时间锁
-        uint256 timeLock = block.timestamp;
-        if (data.length >= 4) {
-            bytes4 functionSelector = bytes4(data);
-            if (importantFunctions[functionSelector]) {
-                timeLock = block.timestamp + TIMELOCK_DURATION;
-            }
-        }
+        // 所有交易都设置48小时时间锁
+        uint256 timeLock = block.timestamp + TIMELOCK_DURATION;
         
         transactions[transactionId] = Transaction({
             to: to,
@@ -188,7 +170,6 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
         
         require(txn.confirmations >= requiredConfirmations, "Insufficient confirmations");
         require(block.timestamp >= txn.timeLock, "Time lock not expired");
-        require(block.timestamp <= txn.timeLock + EXECUTION_GRACE_PERIOD, "Execution window expired");
         
         txn.executed = true;
         
@@ -364,31 +345,7 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
         Transaction storage txn = transactions[transactionId];
         return !txn.executed && 
                txn.confirmations >= requiredConfirmations && 
-               block.timestamp >= txn.timeLock &&
-               block.timestamp <= txn.timeLock + EXECUTION_GRACE_PERIOD;
-    }
-    
-    /**
-     * @dev 取消过期交易（仅多签）
-     */
-    function cancelExpiredTransaction(uint256 transactionId) 
-        public 
-        onlySigner
-        txExists(transactionId)
-        notExecuted(transactionId)
-    {
-        Transaction storage txn = transactions[transactionId];
-        require(block.timestamp > txn.timeLock + EXECUTION_GRACE_PERIOD, "Transaction not expired");
-        
-        txn.executed = true; // 标记为已执行，防止重复操作
-        emit TransactionCancelled(transactionId);
-    }
-    
-    /**
-     * @dev 设置重要函数标记
-     */
-    function setImportantFunction(bytes4 functionSelector, bool isImportant) public onlyMultiSig {
-        importantFunctions[functionSelector] = isImportant;
+               block.timestamp >= txn.timeLock;
     }
     
     // ============ 接收函数 ============
