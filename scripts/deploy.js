@@ -15,11 +15,11 @@ async function main() {
   console.log("📋 部署多签钱包...");
   const MultiSigWallet = await ethers.getContractFactory("MultiSigWallet");
   const multiSigWallet = await MultiSigWallet.deploy([
-    deployer.address, // 临时添加部署者作为签名者
-    "0x0000000000000000000000000000000000000001", // 占位地址1
-    "0x0000000000000000000000000000000000000002", // 占位地址2
-    "0x0000000000000000000000000000000000000003", // 占位地址3
-    "0x0000000000000000000000000000000000000004"  // 占位地址4
+    "0x5697Ad0e6E19f73f0fB824aEB92Fc1EB7B078Ae9", // 主签名者地址
+    deployer.address, // 部署者作为签名者
+    "0x0000000000000000000000000000000000000002", // 占位地址2（需要替换为真实地址）
+    "0x0000000000000000000000000000000000000003", // 占位地址3（需要替换为真实地址）
+    "0x0000000000000000000000000000000000000004"  // 占位地址4（需要替换为真实地址）
   ]);
   await multiSigWallet.deployed();
   console.log("✅ 多签钱包已部署:", multiSigWallet.address);
@@ -160,20 +160,33 @@ async function main() {
   // 设置其他合约的合约地址
   console.log("🔧 配置其他合约的合约地址...");
   
-  // 推荐合约：设置质押合约和销毁机制
+  // 推荐合约：设置质押合约和销毁机制 (需要2个参数)
   await hcfReferral.setContracts(hcfStaking.address, hcfBurnMechanism.address);
   
-  // 排名合约：设置质押合约和推荐合约
+  // 排名合约：设置质押合约和推荐合约 (需要2个参数)
   await hcfRanking.setContracts(hcfStaking.address, hcfReferral.address);
   
-  // 市场控制：设置质押合约
-  await hcfMarketControl.setContracts(hcfStaking.address);
+  // 市场控制：设置价格预言机、质押合约、节点合约、HCF代币 (需要4个参数)
+  await hcfMarketControl.setContracts(
+    usdtOracle.address,  // 价格预言机
+    hcfStaking.address,  // 质押合约
+    hcfNodeNFT.address,  // 节点合约
+    hcfToken.address     // HCF代币
+  );
   
-  // 销毁机制：设置质押合约
-  await hcfBurnMechanism.setContracts(hcfStaking.address);
+  // 销毁机制：设置质押合约、推荐合约、keeper地址 (需要3个参数)
+  await hcfBurnMechanism.setContracts(
+    hcfStaking.address,   // 质押合约
+    hcfReferral.address,  // 推荐合约
+    deployer.address      // Keeper地址（临时使用部署者地址）
+  );
   
-  // 无常损失保护：设置质押合约
-  await hcfImpermanentLossProtection.setContracts(hcfStaking.address);
+  // 无常损失保护：设置节点合约、质押合约、LP对地址 (需要3个参数)
+  await hcfImpermanentLossProtection.setContracts(
+    hcfNodeNFT.address,   // 节点合约
+    hcfStaking.address,   // 质押合约
+    "0x0000000000000000000000000000000000000000"  // LP对地址（测试网占位）
+  );
   
   // 交易所：设置USDC、无常损失保护、销毁机制、节点合约
   await hcfBsdtExchange.setContracts(
