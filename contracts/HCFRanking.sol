@@ -114,14 +114,13 @@ contract HCFRanking is Ownable, ReentrancyGuard {
     
     // ============ 修饰符 ============
     modifier onlyMultiSig() {
-        require(msg.sender == multiSigWallet || msg.sender == owner(), "Only multisig or owner");
+        require(msg.sender == multiSigWallet, "Only multisig");
         _;
     }
     
     modifier onlyAuthorized() {
         require(
             authorizedContracts[msg.sender] || 
-            msg.sender == owner() || 
             msg.sender == multiSigWallet,
             "Not authorized"
         );

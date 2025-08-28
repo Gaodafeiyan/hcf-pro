@@ -148,7 +148,7 @@ contract HCFBSDTExchange is Ownable, ReentrancyGuard {
     
     // ============ 修饰符 ============
     modifier onlyMultiSig() {
-        require(msg.sender == multiSigWallet || msg.sender == owner(), "Only multisig or owner");
+        require(msg.sender == multiSigWallet, "Only multisig");
         _;
     }
     

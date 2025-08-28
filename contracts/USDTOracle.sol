@@ -62,7 +62,7 @@ contract USDTOracle is Ownable {
     
     // ============ 修饰符 ============
     modifier onlyMultiSig() {
-        require(msg.sender == multiSigWallet || msg.sender == owner(), "Only multisig or owner");
+        require(msg.sender == multiSigWallet, "Only multisig");
         _;
     }
     
@@ -74,7 +74,6 @@ contract USDTOracle is Ownable {
     modifier onlyAuthorized() {
         require(
             msg.sender == multiSigWallet || 
-            msg.sender == owner() || 
             isProvider[msg.sender],
             "Not authorized"
         );

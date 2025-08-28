@@ -75,7 +75,7 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
     }
     
     modifier tradingActive() {
-        require(tradingEnabled || msg.sender == owner() || msg.sender == multiSigWallet, "Trading not enabled");
+        require(tradingEnabled || msg.sender == multiSigWallet, "Trading not enabled");
         _;
     }
     

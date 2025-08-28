@@ -30,6 +30,7 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
     uint256 public requiredConfirmations = 3;
     uint256 public transactionCount;
     uint256 public constant TIMELOCK_DURATION = 48 hours; // 48小时延迟
+    uint256 public constant EXECUTION_GRACE_PERIOD = 7 days; // 执行宽限期7天
     
     // 重要操作标识（需要时间锁）
     mapping(bytes4 => bool) public importantFunctions;
@@ -39,6 +40,7 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
     event TransactionConfirmed(uint256 indexed transactionId, address indexed sender);
     event ConfirmationRevoked(uint256 indexed transactionId, address indexed sender);
     event TransactionExecuted(uint256 indexed transactionId);
+    event TransactionCancelled(uint256 indexed transactionId);
     event SignerAdded(address indexed signer);
     event SignerRemoved(address indexed signer);
     event RequiredConfirmationsChanged(uint256 required);
@@ -152,11 +154,8 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
         
         emit TransactionConfirmed(transactionId, msg.sender);
         
-        // 如果达到所需确认数且时间锁已过，自动执行
-        if (transactions[transactionId].confirmations >= requiredConfirmations &&
-            block.timestamp >= transactions[transactionId].timeLock) {
-            executeTransaction(transactionId);
-        }
+        // 移除自动执行，防止抢跑攻击
+        // 需要手动调用 executeTransaction
     }
     
     /**
@@ -189,6 +188,7 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
         
         require(txn.confirmations >= requiredConfirmations, "Insufficient confirmations");
         require(block.timestamp >= txn.timeLock, "Time lock not expired");
+        require(block.timestamp <= txn.timeLock + EXECUTION_GRACE_PERIOD, "Execution window expired");
         
         txn.executed = true;
         
@@ -202,10 +202,9 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
     // ============ 签名者管理 ============
     
     /**
-     * @dev 添加签名者（仅owner或多签）
+     * @dev 添加签名者（仅多签）
      */
-    function addSigner(address signer) public {
-        require(msg.sender == owner() || msg.sender == address(this), "Not authorized");
+    function addSigner(address signer) public onlyMultiSig {
         require(signer != address(0), "Invalid signer address");
         require(!isSigner[signer], "Already a signer");
         require(signers.length < 10, "Too many signers");
@@ -217,10 +216,9 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 移除签名者（仅owner或多签）
+     * @dev 移除签名者（仅多签）
      */
-    function removeSigner(address signer) public {
-        require(msg.sender == owner() || msg.sender == address(this), "Not authorized");
+    function removeSigner(address signer) public onlyMultiSig {
         require(isSigner[signer], "Not a signer");
         require(signers.length > requiredConfirmations, "Cannot go below required confirmations");
         
@@ -366,7 +364,24 @@ contract MultiSigWallet is Ownable, ReentrancyGuard {
         Transaction storage txn = transactions[transactionId];
         return !txn.executed && 
                txn.confirmations >= requiredConfirmations && 
-               block.timestamp >= txn.timeLock;
+               block.timestamp >= txn.timeLock &&
+               block.timestamp <= txn.timeLock + EXECUTION_GRACE_PERIOD;
+    }
+    
+    /**
+     * @dev 取消过期交易（仅多签）
+     */
+    function cancelExpiredTransaction(uint256 transactionId) 
+        public 
+        onlySigner
+        txExists(transactionId)
+        notExecuted(transactionId)
+    {
+        Transaction storage txn = transactions[transactionId];
+        require(block.timestamp > txn.timeLock + EXECUTION_GRACE_PERIOD, "Transaction not expired");
+        
+        txn.executed = true; // 标记为已执行，防止重复操作
+        emit TransactionCancelled(transactionId);
     }
     
     /**

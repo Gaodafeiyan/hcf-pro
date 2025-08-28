@@ -76,7 +76,7 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     }
     
     modifier onlyAuthorizedExchange() {
-        require(authorizedExchanges[msg.sender] || msg.sender == owner(), "Not authorized exchange");
+        require(authorizedExchanges[msg.sender], "Not authorized exchange");
         _;
     }
     
@@ -86,7 +86,7 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     }
     
     modifier onlyKeeper() {
-        require(msg.sender == keeperAddress || msg.sender == owner(), "Not keeper");
+        require(msg.sender == keeperAddress, "Not keeper");
         _;
     }
     

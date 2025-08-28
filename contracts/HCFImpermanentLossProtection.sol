@@ -106,7 +106,7 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
     
     // ============ 修饰符 ============
     modifier onlyMultiSig() {
-        require(msg.sender == multiSigWallet || msg.sender == owner(), "Only multisig or owner");
+        require(msg.sender == multiSigWallet, "Only multisig");
         _;
     }
     
@@ -218,7 +218,7 @@ contract HCFImpermanentLossProtection is Ownable, ReentrancyGuard {
      * @dev 从财库添加资金（内部调用）
      */
     function addFromTreasury(uint256 amount) external {
-        require(msg.sender == multiSigWallet || msg.sender == owner(), "Unauthorized");
+        require(msg.sender == multiSigWallet, "Unauthorized");
         require(amount > 0, "Amount must be > 0");
         
         compensationPool += amount;
