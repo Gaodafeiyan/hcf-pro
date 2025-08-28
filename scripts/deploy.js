@@ -157,35 +157,32 @@ async function main() {
   await hcfToken.setMultiSigWallet(multiSigWallet.address);
   console.log("✅ HCF代币多签钱包已设置");
 
-  // 设置HCF代币的质押合约
-  console.log("🔧 配置HCF代币质押合约...");
-  await hcfToken.setStakingContract(hcfStaking.address);
-  console.log("✅ HCF代币质押合约已设置");
+  // 设置其他合约的质押合约地址
+  console.log("🔧 配置其他合约的质押合约地址...");
+  await hcfReferral.setStakingContract(hcfStaking.address);
+  await hcfRanking.setStakingContract(hcfStaking.address);
+  await hcfMarketControl.setStakingContract(hcfStaking.address);
+  await hcfBurnMechanism.setStakingContract(hcfStaking.address);
+  await hcfImpermanentLossProtection.setStakingContract(hcfStaking.address);
+  console.log("✅ 质押合约地址已设置");
 
-  // 设置HCF代币的推荐合约
-  console.log("🔧 配置HCF代币推荐合约...");
-  await hcfToken.setReferralContract(hcfReferral.address);
-  console.log("✅ HCF代币推荐合约已设置");
+  // 设置其他合约的HCF代币地址
+  console.log("🔧 配置其他合约的HCF代币地址...");
+  await hcfReferral.setHCFToken(hcfToken.address);
+  await hcfRanking.setHCFToken(hcfToken.address);
+  await hcfMarketControl.setHCFToken(hcfToken.address);
+  await hcfBurnMechanism.setHCFToken(hcfToken.address);
+  await hcfImpermanentLossProtection.setHCFToken(hcfToken.address);
+  console.log("✅ HCF代币地址已设置");
 
-  // 设置HCF代币的节点合约
-  console.log("🔧 配置HCF代币节点合约...");
-  await hcfToken.setNodeContract(hcfNodeNFT.address);
-  console.log("✅ HCF代币节点合约已设置");
-
-  // 设置HCF代币的销毁机制
-  console.log("🔧 配置HCF代币销毁机制...");
-  await hcfToken.setBurnMechanism(hcfBurnMechanism.address);
-  console.log("✅ HCF代币销毁机制已设置");
-
-  // 设置HCF代币的市场控制
-  console.log("🔧 配置HCF代币市场控制...");
-  await hcfToken.setMarketControl(hcfMarketControl.address);
-  console.log("✅ HCF代币市场控制已设置");
-
-  // 设置HCF代币的排名奖励
-  console.log("🔧 配置HCF代币排名奖励...");
-  await hcfToken.setRankingContract(hcfRanking.address);
-  console.log("✅ HCF代币排名奖励已设置");
+  // 设置其他合约的多签钱包地址
+  console.log("🔧 配置其他合约的多签钱包地址...");
+  await hcfReferral.setMultiSigWallet(multiSigWallet.address);
+  await hcfRanking.setMultiSigWallet(multiSigWallet.address);
+  await hcfMarketControl.setMultiSigWallet(multiSigWallet.address);
+  await hcfBurnMechanism.setMultiSigWallet(multiSigWallet.address);
+  await hcfImpermanentLossProtection.setMultiSigWallet(multiSigWallet.address);
+  console.log("✅ 多签钱包地址已设置");
 
   // ============ 部署完成 ============
   console.log("\n🎉 部署完成！");
