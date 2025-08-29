@@ -25,7 +25,7 @@ async function main() {
   
   // 质押代币
   console.log("\n2. 质押1000 HCF...");
-  tx = await HCFStaking.stake(stakeAmount, false); // false = 不是LP
+  tx = await HCFStaking.stake(stakeAmount, false, false); // false = 不是LP, false = 不是股权LP
   await tx.wait();
   console.log("✅ 质押成功");
   
