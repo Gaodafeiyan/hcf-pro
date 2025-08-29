@@ -123,14 +123,16 @@ async function main() {
   console.log("=" .repeat(50));
   
   const HCFNodeNFT = await ethers.getContractAt("HCFNodeNFT", process.env.HCF_NODE_NFT_ADDRESS);
-  const maxNodes = await HCFNodeNFT.MAX_NODES();
-  const nodePrice = await HCFNodeNFT.NODE_PRICE();
-  const totalNodes = await HCFNodeNFT.totalNodes();
+  const baseFee = await HCFNodeNFT.baseFee();
+  const activationFeeHCF = await HCFNodeNFT.activationFeeHCF();
+  const activationFeeBSDT = await HCFNodeNFT.activationFeeBSDT();
+  const currentId = await HCFNodeNFT.currentId();
   
   console.log("节点NFT:");
-  console.log("  最大节点数:", maxNodes.toString(), maxNodes.eq(99) ? "✅" : "❌");
-  console.log("  节点价格:", ethers.utils.formatEther(nodePrice), "HCF", nodePrice.eq(ethers.utils.parseEther("20000")) ? "✅" : "❌");
-  console.log("  当前节点数:", totalNodes.toString());
+  console.log("  基础费用:", ethers.utils.formatEther(baseFee), "BSDT", baseFee.eq(ethers.utils.parseEther("5000")) ? "✅" : "❌");
+  console.log("  激活费HCF:", ethers.utils.formatEther(activationFeeHCF), "HCF", activationFeeHCF.eq(ethers.utils.parseEther("1000")) ? "✅" : "❌");
+  console.log("  激活费BSDT:", ethers.utils.formatEther(activationFeeBSDT), "BSDT", activationFeeBSDT.eq(ethers.utils.parseEther("1000")) ? "✅" : "❌");
+  console.log("  当前节点数:", currentId.toString());
 
   // ============ 7. 测试无常损失保护 ============
   console.log("\n📊 7. 测试无常损失保护");
