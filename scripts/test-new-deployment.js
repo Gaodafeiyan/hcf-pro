@@ -1,7 +1,7 @@
 const { ethers } = require("hardhat");
 
-// 使用新部署的合约地址
-const NEW_BSDT_ADDRESS = "0x4E1aE59bd40EB96Dc16b2b36F7f86eb83DceC0D5";
+// 使用新部署的合约地址（从部署输出中获取）
+const NEW_BSDT_ADDRESS = "0x4e1ae59bd40eb96dc16b2b36f7f86eb83dcec0d5";  // 小写格式
 const NEW_EXCHANGE_ADDRESS = "0xB63B69A9599f74b39C2Dc9244a80F69B64750a6b";
 
 async function main() {
