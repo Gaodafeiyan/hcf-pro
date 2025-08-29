@@ -68,11 +68,11 @@ async function main() {
   
   const MultiSigWallet = await ethers.getContractAt("MultiSigWallet", process.env.MULTISIG_ADDRESS);
   const requiredConfirmations = await MultiSigWallet.requiredConfirmations();
-  const executionDelay = await MultiSigWallet.executionDelay();
+  const TIMELOCK_DURATION = await MultiSigWallet.TIMELOCK_DURATION();
   
   console.log("多签配置:");
   console.log("  需要确认数:", requiredConfirmations.toString(), "/5", requiredConfirmations.eq(3) ? "✅" : "❌");
-  console.log("  执行延迟:", executionDelay.toString(), "秒 =", (executionDelay / 3600).toFixed(0), "小时", executionDelay.eq(172800) ? "✅" : "❌");
+  console.log("  执行延迟:", TIMELOCK_DURATION.toString(), "秒 =", (TIMELOCK_DURATION / 3600).toFixed(0), "小时", TIMELOCK_DURATION.eq(172800) ? "✅" : "❌");
   
   // 检查签名者
   let signerCount = 0;
