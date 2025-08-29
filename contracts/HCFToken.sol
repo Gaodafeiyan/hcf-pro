@@ -17,9 +17,9 @@ interface IMultiSigWallet {
 contract HCFToken is ERC20, Ownable, ReentrancyGuard {
     
     // ============ 常量 ============
-    uint256 public constant TOTAL_SUPPLY = 1_000_000_000 * 10**18;  // 总量10亿
-    uint256 public constant INITIAL_RELEASE = 10_000_000 * 10**18;  // 首发1000万
-    uint256 public constant RESERVE_FUND = 9_000_000 * 10**18;     // 储备底池900万
+    uint256 public constant TOTAL_SUPPLY = 2_100_000 * 10**18;     // 总量210万
+    uint256 public constant INITIAL_RELEASE = 1_100_000 * 10**18;  // 首发110万
+    uint256 public constant RESERVE_FUND = 1_000_000 * 10**18;     // 储备底池100万
     uint256 public constant BURN_STOP_SUPPLY = 990_000 * 10**18;   // 销毁停止在99万
     uint256 public constant MIN_BALANCE = 0.0001 * 10**18;         // 最小保留余额0.0001
     
