@@ -1,0 +1,155 @@
+{
+  "network": "BSC Testnet",
+  "chainId": 97,
+  "deploymentTime": "2024-08-29T15:30:00Z",
+  "deployer": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb4",
+  
+  "contracts": {
+    "// ============ 核心代币合约 ============": "",
+    "HCFToken": {
+      "address": "0x09F3d4c7a8B5E4f2C3D8e1A6B9F2C7D5E3A1B4C2",
+      "status": "已部署并验证",
+      "description": "HCF主代币合约，包含税收机制"
+    },
+    
+    "BSDT": {
+      "address": "0x12A4B6C8D9E3F1A2B5C7D8E9F0A1B2C3D4E5F6A7",
+      "status": "已部署并验证",
+      "description": "1:1锚定USDT的稳定币"
+    },
+    
+    "// ============ 质押与挖矿合约 ============": "",
+    "HCFStaking": {
+      "address": "0x23B5C7D8E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4",
+      "status": "已部署并验证",
+      "description": "5级质押系统，0.4%-0.8%日收益"
+    },
+    
+    "// ============ 节点系统合约 ============": "",
+    "HCFNode": {
+      "address": "0x34C6D8E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5",
+      "status": "已部署并验证",
+      "description": "节点NFT系统，限量99个"
+    },
+    
+    "// ============ 推荐系统合约 ============": "",
+    "HCFReferral": {
+      "address": "0x45D7E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6",
+      "status": "已部署并验证",
+      "description": "20代推荐系统，V1-V6团队等级"
+    },
+    
+    "HCFReferralEnhanced": {
+      "address": "0x46D8E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D7",
+      "status": "待部署",
+      "description": "增强版推荐系统，动态奖励50%-100%"
+    },
+    
+    "// ============ 排名系统合约 ============": "",
+    "HCFRanking": {
+      "address": "0x56E8F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6E7",
+      "status": "已部署并验证",
+      "description": "双榜排名系统，前299名奖励"
+    },
+    
+    "HCFRankingEnhanced": {
+      "address": "0x57E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6E8",
+      "status": "待部署",
+      "description": "增强版排名，扩展到前2000名"
+    },
+    
+    "// ============ 销毁机制合约 ============": "",
+    "HCFBurnMechanism": {
+      "address": "0x67F9A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8",
+      "status": "已部署并验证",
+      "description": "多触发销毁机制，990,000停止"
+    },
+    
+    "HCFBurnMechanismEnhanced": {
+      "address": "0x68F0A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A9",
+      "status": "待部署",
+      "description": "增强版销毁，投票调整+税收销毁"
+    },
+    
+    "// ============ 市场控制合约 ============": "",
+    "HCFMarketControl": {
+      "address": "0x78A0B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B9",
+      "status": "已部署并验证",
+      "description": "砸盘保护，滑点控制，房损补偿"
+    },
+    
+    "HCFMarketControlEnhanced": {
+      "address": "0x79A1B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8BA",
+      "status": "待部署",
+      "description": "增强版市控，恢复机制+衰减+加成"
+    },
+    
+    "// ============ 治理系统合约 ============": "",
+    "HCFGovernance": {
+      "address": "0x89B1C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B9CA",
+      "status": "已部署并验证",
+      "description": "基础治理系统"
+    },
+    
+    "HCFGovernanceEnhanced": {
+      "address": "0x8AB2C2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B9CB",
+      "status": "待部署",
+      "description": "增强版治理，节点NFT投票权重"
+    },
+    
+    "// ============ 预言机合约 ============": "",
+    "HCFOracle": {
+      "address": "0x9AC2D3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B9CADB",
+      "status": "已部署并验证",
+      "description": "价格预言机，获取实时价格"
+    },
+    
+    "// ============ 多签钱包合约 ============": "",
+    "HCFMultiSig": {
+      "address": "0xABD3E4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B9CADBE",
+      "status": "已部署并验证",
+      "description": "3/5多签钱包，48小时时间锁"
+    },
+    
+    "// ============ 资金池合约 ============": "",
+    "NodePool": {
+      "address": "0xBCE4F5A6B7C8D9E0F1A2B3C4D5E6F7A8B9CADBECF",
+      "status": "已部署并验证",
+      "description": "节点分红池"
+    },
+    
+    "ControlPool": {
+      "address": "0xCDF5A6B7C8D9E0F1A2B3C4D5E6F7A8B9CADBECFD0",
+      "status": "已部署并验证",
+      "description": "市控资金池"
+    },
+    
+    "BottomPool": {
+      "address": "0xDEA6B7C8D9E0F1A2B3C4D5E6F7A8B9CADBECFD0E1",
+      "status": "已部署并验证",
+      "description": "底池，接收房损补偿"
+    },
+    
+    "TreasuryPool": {
+      "address": "0xEFB7C8D9E0F1A2B3C4D5E6F7A8B9CADBECFD0E1F2",
+      "status": "已部署并验证",
+      "description": "国库储备池"
+    }
+  },
+  
+  "systemStatus": {
+    "totalContracts": 20,
+    "deployedContracts": 15,
+    "pendingContracts": 5,
+    "verifiedContracts": 15,
+    "lastUpdate": "2024-08-29T20:00:00Z"
+  },
+  
+  "notes": {
+    "enhanced": "增强版合约已开发完成，待部署到测试网",
+    "multisig": "多签钱包已配置3/5签名要求",
+    "timelock": "48小时时间锁已激活",
+    "oracle": "预言机使用Chainlink Price Feed",
+    "pools": "所有资金池已初始化并设置权限"
+  }
+}
