@@ -24,7 +24,8 @@ async function main() {
       console.log("✅ 交易所已经是授权地址");
     } else {
       console.log("添加交易所为授权地址...");
-      const tx = await BSDTToken.addAuthorizedExchange(HCFBSDTExchange.address);
+      // 注意：authorizeExchange需要多签权限，但测试时owner可能可以执行
+      const tx = await BSDTToken.authorizeExchange(HCFBSDTExchange.address, true);
       await tx.wait();
       console.log("✅ 交易所添加成功");
     }
