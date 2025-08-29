@@ -102,7 +102,7 @@ async function main() {
       const newStaking = await Staking.userInfo(user.address);
       console.log("✅ 质押成功");
       console.log("- 新质押总量:", ethers.utils.formatEther(newStaking.amount), "HCF");
-      console.log("- 预计日收益: 4-8% (根据等级)");
+      console.log("- 预计日收益: 0.4%-0.8% (根据等级)");
     } catch (e) {
       console.log("❌ 质押失败:", e.message.substring(0, 50));
     }

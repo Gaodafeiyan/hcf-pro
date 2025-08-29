@@ -190,36 +190,36 @@ contract HCFStaking is Ownable, ReentrancyGuard {
     function _initializeLevels() private {
         levels[0] = LevelConfig({
             minStake: 10 * 10**18,
-            baseRate: 400,
-            lpRate: 800,
+            baseRate: 40,    // 0.4% daily
+            lpRate: 80,      // 0.8% daily (2x for LP),
             compoundUnit: 10 * 10**18
         });
         
         levels[1] = LevelConfig({
             minStake: 100 * 10**18,
-            baseRate: 400,
-            lpRate: 800,
+            baseRate: 50,    // 0.5% daily
+            lpRate: 100,     // 1.0% daily (2x for LP),
             compoundUnit: 20 * 10**18
         });
         
         levels[2] = LevelConfig({
             minStake: 1000 * 10**18,
-            baseRate: 500,
-            lpRate: 1000,
+            baseRate: 60,    // 0.6% daily
+            lpRate: 120,     // 1.2% daily (2x for LP),
             compoundUnit: 200 * 10**18
         });
         
         levels[3] = LevelConfig({
             minStake: 10000 * 10**18,
-            baseRate: 600,
-            lpRate: 1200,
+            baseRate: 70,    // 0.7% daily
+            lpRate: 140,     // 1.4% daily (2x for LP),
             compoundUnit: 2000 * 10**18
         });
         
         levels[4] = LevelConfig({
             minStake: 100000 * 10**18,
-            baseRate: 800,
-            lpRate: 1600,
+            baseRate: 80,    // 0.8% daily
+            lpRate: 160,     // 1.6% daily (2x for LP),
             compoundUnit: 20000 * 10**18
         });
     }
