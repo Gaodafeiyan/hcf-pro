@@ -96,12 +96,12 @@ async function main() {
   // 测试质押合约的关联
   const HCFStaking = await ethers.getContractAt("HCFStaking", process.env.HCF_STAKING_ADDRESS);
   const referralContract = await HCFStaking.referralContract();
-  const burnContract = await HCFStaking.burnContract();
+  const burnMechanism = await HCFStaking.burnMechanism();
   const nodeContract = await HCFStaking.nodeContract();
   
   console.log("质押合约关联:");
   console.log("  推荐合约:", referralContract === process.env.HCF_REFERRAL_ADDRESS ? "✅" : "❌");
-  console.log("  销毁合约:", burnContract === process.env.HCF_BURN_MECHANISM_ADDRESS ? "✅" : "❌");
+  console.log("  销毁合约:", burnMechanism === process.env.HCF_BURN_MECHANISM_ADDRESS ? "✅" : "❌");
   console.log("  节点合约:", nodeContract === process.env.HCF_NODE_NFT_ADDRESS ? "✅" : "❌");
 
   // ============ 5. 测试Oracle ============
