@@ -6,7 +6,6 @@ const { Title, Text, Paragraph } = Typography;
 
 const NodeNFT = () => {
   const [isBuyModalVisible, setIsBuyModalVisible] = useState(false);
-  const [selectedNode, setSelectedNode] = useState<any>(null);
 
   const nodeInfo = {
     totalNodes: 45,

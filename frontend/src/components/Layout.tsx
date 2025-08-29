@@ -1,4 +1,4 @@
-import { Layout, Menu, Space, Button, Typography, Badge } from 'antd';
+import { Layout, Menu, Space, Typography, Badge } from 'antd';
 import { Link, useLocation } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import {
@@ -33,12 +33,10 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const { data: hcfBalance } = useBalance({
     address,
     token: CONTRACT_ADDRESSES.HCFToken as `0x${string}`,
-    watch: true,
   });
   const { data: bsdtBalance } = useBalance({
     address,
     token: CONTRACT_ADDRESSES.BSDT as `0x${string}`,
-    watch: true,
   });
 
   return (

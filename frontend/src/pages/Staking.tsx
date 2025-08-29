@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Row, Col, Card, Button, InputNumber, Typography, Space, Progress, Tag, Table, Modal, message, Tabs } from 'antd';
+import { Row, Col, Card, Button, InputNumber, Typography, Space, Tag, Table, Modal, message } from 'antd';
 import {
   BankOutlined,
   GiftOutlined,
@@ -11,11 +11,9 @@ import {
 import { STAKING_LEVELS } from '../config/contracts';
 
 const { Title, Text, Paragraph } = Typography;
-const { TabPane } = Tabs;
 
 const Staking = () => {
   const [stakeAmount, setStakeAmount] = useState<number>(100);
-  const [unstakeAmount, setUnstakeAmount] = useState<number>(0);
   const [selectedLevel, setSelectedLevel] = useState(0);
   const [isStakeModalVisible, setIsStakeModalVisible] = useState(false);
 
