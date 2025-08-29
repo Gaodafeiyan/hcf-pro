@@ -110,11 +110,12 @@ async function main() {
   
   const USDTOracle = await ethers.getContractAt("USDTOracle", process.env.USDT_ORACLE_ADDRESS);
   const currentSupply = await USDTOracle.totalSupply();
-  const maxSupply = await USDTOracle.MAX_SUPPLY();
+  const lastUpdateTime = await USDTOracle.lastUpdateTime();
+  const minUpdateInterval = await USDTOracle.minUpdateInterval();
   
   console.log("USDT Oracle:");
   console.log("  当前供应量:", ethers.utils.formatEther(currentSupply));
-  console.log("  最大供应量:", ethers.utils.formatEther(maxSupply));
+  console.log("  最小更新间隔:", minUpdateInterval.toString(), "秒 =", (minUpdateInterval / 3600).toFixed(0), "小时");
   console.log("  初始供应量正确:", currentSupply.eq(ethers.utils.parseEther("1000000")) ? "✅" : "❌");
 
   // ============ 6. 测试节点NFT配置 ============
