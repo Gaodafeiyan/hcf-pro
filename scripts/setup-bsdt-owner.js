@@ -34,14 +34,8 @@ async function main() {
       // 检查是否有其他函数可以设置
       console.log("\n尝试通过owner权限设置...");
       
-      // 方法1：尝试直接设置
-      try {
-        // 有些合约允许owner在初始化阶段设置
-        const tx = await BSDTToken.authorizedExchanges[HCFBSDTExchange.address] = true;
-        console.log("✅ 直接设置成功");
-      } catch (e) {
-        console.log("❌ 无法直接设置mapping");
-      }
+      // 方法1：无法直接设置mapping
+      console.log("❌ Solidity mapping无法从外部直接修改");
       
       // 方法2：检查是否有初始化函数
       console.log("\n检查其他可用函数...");
