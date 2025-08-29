@@ -4,19 +4,18 @@ import {
   RiseOutlined,
   FireOutlined,
   TeamOutlined,
-  NodeIndexOutlined,
-  TrophyOutlined,
+  BankOutlined,
   DollarOutlined,
   ClockCircleOutlined,
 } from '@ant-design/icons';
 import { useAccount } from 'wagmi';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 
 const { Title, Text } = Typography;
 
 const Dashboard = () => {
-  const { address } = useAccount();
-  const [stats, setStats] = useState({
+  const { } = useAccount();
+  const [stats] = useState({
     totalSupply: 21000000,
     circulatingSupply: 1000000,
     burned: 10000,
