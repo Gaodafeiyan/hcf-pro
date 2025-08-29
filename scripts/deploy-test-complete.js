@@ -50,24 +50,16 @@ async function main() {
   console.log("步骤3: 授权交易所");
   console.log("====================================");
   
-  // 使用owner权限授权交易所（如果可能）
+  // 尝试授权交易所
+  console.log("尝试授权交易所...");
   try {
-    // 添加交易所为授权地址
-    console.log("添加交易所为BSDT授权地址...");
-    await bsdt.authorizedExchanges[exchange.address] = true;
-    console.log("✅ 授权成功（直接设置）");
+    // authorizeExchange需要多签权限
+    const tx = await bsdt.authorizeExchange(exchange.address, true);
+    await tx.wait();
+    console.log("✅ 授权成功");
   } catch (e) {
-    console.log("⚠️ 无法直接设置，尝试其他方法...");
-    
-    // 如果authorizeExchange函数存在且owner可以调用
-    try {
-      const tx = await bsdt.authorizeExchange(exchange.address, true);
-      await tx.wait();
-      console.log("✅ 授权成功（通过函数）");
-    } catch (e2) {
-      console.log("❌ 需要多签权限授权");
-      console.log("  提示：部署时BSDT已将部署者地址作为授权LP池");
-    }
+    console.log("❌ 需要多签权限授权");
+    console.log("  提示：部署时BSDT已将部署者地址作为授权LP池");
   }
   
   // 验证授权状态
