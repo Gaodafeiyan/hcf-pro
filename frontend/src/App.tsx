@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@rainbow-me/rainbowkit/styles.css';
 
 import { wagmiConfig } from './config/wagmi';
-import Layout from './components/Layout';
+import Layout from './components/Layout/index';
 import Dashboard from './pages/Dashboard';
 import Staking from './pages/Staking';
 import NodeNFT from './pages/NodeNFT';
