@@ -24,7 +24,7 @@ async function main() {
   console.log("  符号:", hcfSymbol);
   console.log("  精度:", hcfDecimals);
   console.log("  总供应量:", ethers.utils.formatEther(hcfTotalSupply), "HCF");
-  console.log("  预期: 2,100,000 HCF", hcfTotalSupply.eq(ethers.utils.parseEther("2100000")) ? "✅" : "❌");
+  console.log("  预期: 19,000,000 HCF (首发1000万+储备900万)", hcfTotalSupply.eq(ethers.utils.parseEther("19000000")) ? "✅" : "❌");
   
   // BSDT代币
   const BSDTToken = await ethers.getContractAt("BSDTToken", process.env.BSDT_TOKEN_ADDRESS);
