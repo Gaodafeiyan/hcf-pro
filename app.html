@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCF DeFi Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            color: #333;
+            font-size: 2em;
+            font-weight: bold;
+        }
+        .stat-suffix {
+            color: #667eea;
+            font-size: 0.7em;
+            margin-left: 5px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        .wallet-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .success {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .feature-btn {
+            padding: 20px;
+            text-align: center;
+            background: #f8f9fa;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .feature-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        .contract-list {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+        .contract-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .contract-item:last-child {
+            border-bottom: none;
+        }
+        .contract-name {
+            font-weight: bold;
+            color: #667eea;
+        }
+        .contract-address {
+            font-family: monospace;
+            font-size: 0.9em;
+            color: #666;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 HCF DeFi Platform</h1>
+            <p>BSC测试网去中心化金融平台 - 质押挖矿、节点NFT、推荐系统</p>
+        </div>
+
+        <div id="error-container"></div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">总供应量</div>
+                <div class="stat-value">1,000,000,000<span class="stat-suffix">HCF</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">当前价格</div>
+                <div class="stat-value">$0.100<span class="stat-suffix">USDT</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">日收益率</div>
+                <div class="stat-value">0.4-0.8<span class="stat-suffix">%</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">节点限量</div>
+                <div class="stat-value">99<span class="stat-suffix">个</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>💳 钱包连接</h2>
+            <div id="wallet-container">
+                <p>连接您的MetaMask钱包以开始使用平台功能</p>
+                <button class="btn" onclick="connectWallet()">
+                    连接 MetaMask
+                </button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🎯 平台功能</h2>
+            <div class="feature-grid">
+                <div class="feature-btn" onclick="showFeature('staking')">
+                    <div style="font-size: 2em;">💰</div>
+                    <div>质押挖矿</div>
+                    <small>0.4%-0.8% 日收益</small>
+                </div>
+                <div class="feature-btn" onclick="showFeature('nft')">
+                    <div style="font-size: 2em;">🎨</div>
+                    <div>节点NFT</div>
+                    <small>限量99个</small>
+                </div>
+                <div class="feature-btn" onclick="showFeature('referral')">
+                    <div style="font-size: 2em;">👥</div>
+                    <div>推荐系统</div>
+                    <small>20代分佣</small>
+                </div>
+                <div class="feature-btn" onclick="showFeature('governance')">
+                    <div style="font-size: 2em;">🗳️</div>
+                    <div>治理投票</div>
+                    <small>社区决策</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 智能合约</h2>
+            <div class="contract-list">
+                <div class="contract-item">
+                    <span class="contract-name">HCF Token</span>
+                    <span class="contract-address">0x09F320b75e6A74994713a0e4Be54eF8f09fbaEcc</span>
+                </div>
+                <div class="contract-item">
+                    <span class="contract-name">BSDT Token</span>
+                    <span class="contract-address">0x622e568976f6cC2eaE4cfd3836d92F111000E787</span>
+                </div>
+                <div class="contract-item">
+                    <span class="contract-name">Staking</span>
+                    <span class="contract-address">0x6E4e682Cc90124Ef66a8cfC8Fc875CF5Ee8E8a74</span>
+                </div>
+                <div class="contract-item">
+                    <span class="contract-name">NodeNFT</span>
+                    <span class="contract-address">0xFCd9c088f387C2C5a4ef87b87bde979a6EaAbA15</span>
+                </div>
+                <div class="contract-item">
+                    <span class="contract-name">Referral</span>
+                    <span class="contract-address">0x4DBDcfC87D528F616e5B11b9bc84e7C00F0Fc674</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>ℹ️ 平台信息</h2>
+            <ul style="line-height: 1.8;">
+                <li>网络: BSC Testnet (Chain ID: 97)</li>
+                <li>总供应量: 10亿 HCF</li>
+                <li>销毁机制: 交易税自动销毁</li>
+                <li>质押等级: 5级 (100-50000 HCF)</li>
+                <li>推荐深度: 20代</li>
+                <li>节点数量: 限量99个</li>
+                <li>多签保护: 3/5多签 + 48小时时间锁</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let account = null;
+        let connected = false;
+
+        async function connectWallet() {
+            const walletContainer = document.getElementById('wallet-container');
+            const errorContainer = document.getElementById('error-container');
+            
+            try {
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error('请安装 MetaMask 钱包扩展');
+                }
+
+                walletContainer.innerHTML = '<button class="btn" disabled>连接中<span class="loading"></span></button>';
+                
+                // 请求账户
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                
+                if (accounts.length === 0) {
+                    throw new Error('没有找到账户');
+                }
+                
+                account = accounts[0];
+                connected = true;
+                
+                // 检查网络
+                const chainId = await window.ethereum.request({ 
+                    method: 'eth_chainId' 
+                });
+                
+                if (chainId !== '0x61') { // BSC Testnet chainId
+                    await switchToBSCTestnet();
+                }
+                
+                // 更新UI
+                walletContainer.innerHTML = `
+                    <div class="wallet-info">
+                        <p class="success">✅ 钱包已连接</p>
+                        <p>地址: ${account.substring(0, 6)}...${account.substring(38)}</p>
+                        <p>网络: BSC Testnet</p>
+                        <button class="btn btn-secondary" onclick="disconnect()">断开连接</button>
+                    </div>
+                `;
+                
+                errorContainer.innerHTML = '';
+                
+            } catch (error) {
+                console.error('连接错误:', error);
+                errorContainer.innerHTML = `<div class="error">错误: ${error.message}</div>`;
+                walletContainer.innerHTML = '<button class="btn" onclick="connectWallet()">重新连接</button>';
+            }
+        }
+
+        async function switchToBSCTestnet() {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x61' }],
+                });
+            } catch (switchError) {
+                // 如果网络不存在，添加它
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x61',
+                            chainName: 'BSC Testnet',
+                            nativeCurrency: {
+                                name: 'BNB',
+                                symbol: 'BNB',
+                                decimals: 18
+                            },
+                            rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+                            blockExplorerUrls: ['https://testnet.bscscan.com/']
+                        }]
+                    });
+                }
+            }
+        }
+
+        function disconnect() {
+            account = null;
+            connected = false;
+            document.getElementById('wallet-container').innerHTML = `
+                <p>连接您的MetaMask钱包以开始使用平台功能</p>
+                <button class="btn" onclick="connectWallet()">连接 MetaMask</button>
+            `;
+        }
+
+        function showFeature(feature) {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            alert(`功能 "${feature}" 开发中...`);
+        }
+
+        // 监听账户变化
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    disconnect();
+                } else if (account !== accounts[0]) {
+                    account = accounts[0];
+                    connectWallet();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
