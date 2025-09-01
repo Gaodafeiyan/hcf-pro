@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Button, InputNumber, Typography, Space, Tag, Table, Modal, message, Spin } from 'antd';
+import { Row, Col, Card, Button, InputNumber, Typography, Space, Tag, Table, Modal, message, Spin, Checkbox, Divider, List } from 'antd';
 import {
   BankOutlined,
   GiftOutlined,
@@ -29,6 +29,11 @@ const Staking = () => {
   const [stakeAmount, setStakeAmount] = useState<number>(100);
   const [isStakeModalVisible, setIsStakeModalVisible] = useState(false);
   const [balance, setBalance] = useState(0);
+  const [bsdtBalance, setBsdtBalance] = useState(0);
+  const [isLPStake, setIsLPStake] = useState(false);
+  const [isEquityStake, setIsEquityStake] = useState(false);
+  const [bsdtAmount, setBsdtAmount] = useState<number>(0);
+  const [userPositions, setUserPositions] = useState<any[]>([]);
   
   const [stakingInfo, setStakingInfo] = useState({
     totalStaked: 0,
@@ -57,6 +62,15 @@ const Staking = () => {
       // 获取余额
       const hcfBalance = await hcfToken.balanceOf(address);
       setBalance(Number(ethers.formatUnits(hcfBalance, 18)));
+      
+      // 获取BSDT余额（用于权益LP）
+      try {
+        const bsdtContract = await getHCFTokenContract(signer); // 这里应该是getBSDTContract，但暂时使用相同的方式
+        const bsdtBal = await bsdtContract.balanceOf(address);
+        setBsdtBalance(Number(ethers.formatUnits(bsdtBal, 18)));
+      } catch (error) {
+        console.log('获取BSDT余额失败');
+      }
       
       // 获取质押信息
       const userInfo = await stakingContract.getUserInfo(address);
@@ -106,6 +120,43 @@ const Staking = () => {
         nodeBonus: isEquityLP,
         compoundCount: Number(compoundCount),
       });
+      
+      // 解析多个质押仓位（demux展示）
+      const stakedAmount = Number(ethers.formatUnits(amount, 18));
+      if (stakedAmount > 0) {
+        const positions = [];
+        // 如果是LP质押，显示LP收益率
+        if (isLP && levelNum > 0) {
+          positions.push({
+            amount: stakedAmount,
+            rate: STAKING_LEVELS[levelNum - 1].lpRate,
+            type: 'LP质押',
+            level: levelNum
+          });
+        } else if (levelNum > 0) {
+          // 普通质押，显示基础收益率
+          positions.push({
+            amount: stakedAmount,
+            rate: STAKING_LEVELS[levelNum - 1].dailyRate,
+            type: '基础质押',
+            level: levelNum
+          });
+        }
+        
+        // 如果有复投，显示复投收益
+        if (Number(compoundCount) > 0) {
+          const compoundMultiple = levelNum > 0 ? STAKING_LEVELS[levelNum - 1].compoundMultiple : 1;
+          positions.push({
+            amount: Number(compoundCount) * compoundMultiple,
+            rate: dailyRate / 100,
+            type: `复投(${compoundCount}次)`,
+            level: levelNum
+          });
+        }
+        setUserPositions(positions);
+      } else {
+        setUserPositions([]);
+      }
       
     } catch (error) {
       console.error('加载数据失败:', error);
@@ -196,8 +247,7 @@ const Staking = () => {
       });
       
       // stake函数需要3个参数: amount, isLP, isEquity
-      // 普通质押: isLP=false, isEquity=false
-      const stakeTx = await stakingContract.stake(stakeAmountWei, false, false);
+      const stakeTx = await stakingContract.stake(stakeAmountWei, isLPStake, isEquityStake);
       console.log('质押交易发送:', stakeTx.hash);
       
       const receipt = await waitForTransaction(stakeTx);
@@ -295,7 +345,9 @@ const Staking = () => {
                   <Text type="secondary">日收益率</Text>
                   <Title level={4} style={{ margin: '8px 0', color: '#52c41a' }}>
                     {stakingInfo.currentLevel > 0 
-                      ? `${STAKING_LEVELS[stakingInfo.currentLevel - 1]?.dailyRate}% / 天`
+                      ? stakingInfo.lpBonus 
+                        ? `${STAKING_LEVELS[stakingInfo.currentLevel - 1]?.lpRate}% / 天 (LP)`
+                        : `${STAKING_LEVELS[stakingInfo.currentLevel - 1]?.dailyRate}% / 天`
                       : '未质押'}
                   </Title>
                 </div>
@@ -320,11 +372,37 @@ const Staking = () => {
                 </div>
 
                 <div>
-                  <Text type="secondary">复投次数</Text>
+                  <Text type="secondary">复投信息</Text>
                   <Title level={4} style={{ margin: '8px 0' }}>
                     {stakingInfo.compoundCount} 次
+                    {stakingInfo.currentLevel > 0 && stakingInfo.compoundCount > 0 && (
+                      <Text type="secondary" style={{ fontSize: 14, marginLeft: 8 }}>
+                        (×{STAKING_LEVELS[stakingInfo.currentLevel - 1]?.compoundMultiple}倍)
+                      </Text>
+                    )}
                   </Title>
                 </div>
+                
+                {userPositions.length > 0 && (
+                  <div>
+                    <Divider style={{ margin: '12px 0' }} />
+                    <Text type="secondary">质押仓位明细</Text>
+                    <List
+                      size="small"
+                      dataSource={userPositions}
+                      renderItem={(item: any) => (
+                        <List.Item style={{ padding: '4px 0' }}>
+                          <Space>
+                            <Tag color={STAKING_LEVELS[item.level - 1]?.color}>
+                              {item.type}
+                            </Tag>
+                            <Text>{item.amount.toFixed(2)} HCF @ {item.rate}%</Text>
+                          </Space>
+                        </List.Item>
+                      )}
+                    />
+                  </div>
+                )}
               </Space>
             </Card>
           </Col>
@@ -344,10 +422,51 @@ const Staking = () => {
                     formatter={(value) => `${value} HCF`}
                     parser={(value) => Number(value!.replace(' HCF', '')) || 0}
                   />
+                  
+                  <div style={{ marginTop: 12 }}>
+                    <Space direction="vertical" style={{ width: '100%' }}>
+                      <Checkbox 
+                        checked={isLPStake} 
+                        onChange={(e) => {
+                          setIsLPStake(e.target.checked);
+                          if (e.target.checked) setIsEquityStake(false);
+                        }}
+                      >
+                        LP质押 (获得双倍收益率)
+                      </Checkbox>
+                      
+                      <Checkbox 
+                        checked={isEquityStake} 
+                        onChange={(e) => {
+                          setIsEquityStake(e.target.checked);
+                          if (e.target.checked) {
+                            setIsLPStake(false);
+                            // 计算需要的BSDT数量（1:1比例）
+                            setBsdtAmount(stakeAmount);
+                          }
+                        }}
+                      >
+                        权益LP (HCF + BSDT)
+                      </Checkbox>
+                      
+                      {isEquityStake && (
+                        <div style={{ marginTop: 8 }}>
+                          <Text type="secondary">需要BSDT: {bsdtAmount.toFixed(2)} BSDT</Text>
+                          <br />
+                          <Text type={bsdtBalance >= bsdtAmount ? "success" : "danger"}>
+                            BSDT余额: {bsdtBalance.toFixed(2)}
+                          </Text>
+                        </div>
+                      )}
+                    </Space>
+                  </div>
+                  
                   <div style={{ marginTop: 8 }}>
                     <Text type="secondary">
                       预计等级: {getLevelForAmount(stakeAmount) + 1} | 
-                      日收益率: {STAKING_LEVELS[getLevelForAmount(stakeAmount)]?.dailyRate}%
+                      日收益率: {isLPStake || isEquityStake 
+                        ? `${STAKING_LEVELS[getLevelForAmount(stakeAmount)]?.lpRate}% (LP)`
+                        : `${STAKING_LEVELS[getLevelForAmount(stakeAmount)]?.dailyRate}%`}
                     </Text>
                   </div>
                 </div>
@@ -439,7 +558,7 @@ const Staking = () => {
                     render: (amount) => `${amount.toLocaleString()} HCF`,
                   },
                   {
-                    title: '日收益率',
+                    title: '基础日化',
                     dataIndex: 'dailyRate',
                     key: 'dailyRate',
                     render: (rate) => (
@@ -447,11 +566,27 @@ const Staking = () => {
                     ),
                   },
                   {
-                    title: '年化收益率',
+                    title: 'LP日化',
+                    dataIndex: 'lpRate',
+                    key: 'lpRate',
+                    render: (rate) => (
+                      <Text strong style={{ color: '#1890ff' }}>{rate}%</Text>
+                    ),
+                  },
+                  {
+                    title: '复投倍数',
+                    dataIndex: 'compoundMultiple',
+                    key: 'compoundMultiple',
+                    render: (multiple) => (
+                      <Text strong style={{ color: '#fa8c16' }}>×{multiple}</Text>
+                    ),
+                  },
+                  {
+                    title: '年化收益',
                     dataIndex: 'annualRate',
                     key: 'annualRate',
                     render: (rate) => (
-                      <Text strong style={{ color: '#1890ff' }}>{rate.toFixed(0)}%</Text>
+                      <Text type="secondary">{rate.toFixed(0)}%</Text>
                     ),
                   },
                   {
@@ -495,15 +630,35 @@ const Staking = () => {
             <div>
               <Text>日收益率</Text>
               <Title level={4} style={{ color: '#52c41a' }}>
-                {STAKING_LEVELS[getLevelForAmount(stakeAmount)]?.dailyRate}% / 天
+                {isLPStake || isEquityStake 
+                  ? `${STAKING_LEVELS[getLevelForAmount(stakeAmount)]?.lpRate}% / 天 (LP)`
+                  : `${STAKING_LEVELS[getLevelForAmount(stakeAmount)]?.dailyRate}% / 天`}
               </Title>
             </div>
+            {(isLPStake || isEquityStake) && (
+              <div>
+                <Text>复投倍数</Text>
+                <Title level={4} style={{ color: '#fa8c16' }}>
+                  ×{STAKING_LEVELS[getLevelForAmount(stakeAmount)]?.compoundMultiple}
+                </Title>
+              </div>
+            )}
             <div>
               <Text>预计日收益</Text>
               <Title level={4}>
-                {(stakeAmount * STAKING_LEVELS[getLevelForAmount(stakeAmount)]?.dailyRate / 100).toFixed(2)} HCF
+                {(stakeAmount * (isLPStake || isEquityStake 
+                  ? STAKING_LEVELS[getLevelForAmount(stakeAmount)]?.lpRate 
+                  : STAKING_LEVELS[getLevelForAmount(stakeAmount)]?.dailyRate) / 100).toFixed(2)} HCF
               </Title>
             </div>
+            {isEquityStake && (
+              <div>
+                <Text>需要支付</Text>
+                <Title level={4}>
+                  {stakeAmount} HCF + {bsdtAmount.toFixed(2)} BSDT
+                </Title>
+              </div>
+            )}
           </Space>
         </Modal>
       </div>

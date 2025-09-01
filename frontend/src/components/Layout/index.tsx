@@ -1,8 +1,8 @@
 import React from 'react';
-import { Layout, Menu, Space, Typography, Badge, Drawer, Button, Switch } from 'antd';
+import { Layout, Menu, Space, Typography, Badge, Drawer, Button, Dropdown } from 'antd';
 import { Link, useLocation } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import {
   DashboardOutlined,
   BankOutlined,
@@ -15,30 +15,51 @@ import {
   MenuOutlined,
   BulbOutlined,
   BulbFilled,
+  GlobalOutlined,
 } from '@ant-design/icons';
 import { useAccount, useBalance } from 'wagmi';
 import { CONTRACT_ADDRESSES } from '../../config/contracts';
 import { useTheme } from '../../contexts/ThemeContext';
+import { useTranslation } from 'react-i18next';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
-
-const menuItems = [
-  { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
-  { key: '/staking', icon: <BankOutlined />, label: '质押池' },
-  { key: '/node', icon: <NodeIndexOutlined />, label: 'NFT' },
-  { key: '/referral', icon: <TeamOutlined />, label: '推荐系统' },
-  { key: '/ranking', icon: <TrophyOutlined />, label: '排行榜' },
-  { key: '/exchange', icon: <SwapOutlined />, label: '兑换' },
-  { key: '/governance', icon: <SettingOutlined />, label: '治理' },
-];
 
 const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const { address, isConnected } = useAccount();
   const { isDark, toggleTheme } = useTheme();
+  const { t, i18n } = useTranslation();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  
+  const menuItems = [
+    { key: '/', icon: <DashboardOutlined />, label: t('menu.dashboard') },
+    { key: '/staking', icon: <BankOutlined />, label: t('menu.staking') },
+    { key: '/node', icon: <NodeIndexOutlined />, label: t('menu.node') },
+    { key: '/referral', icon: <TeamOutlined />, label: t('menu.referral') },
+    { key: '/ranking', icon: <TrophyOutlined />, label: t('menu.ranking') },
+    { key: '/exchange', icon: <SwapOutlined />, label: t('menu.exchange') },
+    { key: '/governance', icon: <SettingOutlined />, label: t('menu.governance') },
+  ];
+  
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+    localStorage.setItem('language', lng);
+  };
+  
+  const languageMenuItems = [
+    {
+      key: 'zh',
+      label: '中文',
+      onClick: () => changeLanguage('zh'),
+    },
+    {
+      key: 'en',
+      label: 'English',
+      onClick: () => changeLanguage('en'),
+    },
+  ];
   
   // 监听窗口大小变化
   React.useEffect(() => {
@@ -178,11 +199,23 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 />
               </Space>
             )}
+            <Dropdown
+              menu={{ items: languageMenuItems }}
+              placement="bottomRight"
+            >
+              <Button
+                type="text"
+                icon={<GlobalOutlined style={{ color: '#fff', fontSize: 18 }} />}
+                title={i18n.language === 'zh' ? 'Switch Language' : '切换语言'}
+              >
+                {i18n.language === 'zh' ? '中' : 'EN'}
+              </Button>
+            </Dropdown>
             <Button
               type="text"
               icon={isDark ? <BulbFilled style={{ color: '#fadb14', fontSize: 18 }} /> : <BulbOutlined style={{ color: '#fff', fontSize: 18 }} />}
               onClick={toggleTheme}
-              title={isDark ? '切换到亮色模式' : '切换到暗色模式'}
+              title={isDark ? t('common.switchToLight') : t('common.switchToDark')}
             />
             <ConnectButton />
           </Space>
@@ -209,9 +242,9 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
               textAlign: 'center'
             }}>
               <FireOutlined style={{ fontSize: 64, color: '#1890ff', marginBottom: 24 }} />
-              <Title level={2}>欢迎来到 HCF DeFi 平台</Title>
+              <Title level={2}>Welcome to HCF DeFi Platform</Title>
               <Text type="secondary" style={{ marginBottom: 32 }}>
-                请连接钱包开始使用平台功能
+                {t('common.pleaseConnectWallet')}
               </Text>
               <ConnectButton />
             </div>

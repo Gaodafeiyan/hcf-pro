@@ -266,7 +266,7 @@ const NodeNFT = () => {
             <Card title="我的节点" extra={<CrownOutlined />}>
               {userNodes.length > 0 ? (
                 <Space direction="vertical" style={{ width: '100%' }}>
-                  {userNodes.map((node, index) => (
+                  {userNodes.map((node) => (
                     <Card key={node.id} size="small">
                       <Space>
                         <Text strong>节点 #{node.id}</Text>

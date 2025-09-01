@@ -24,12 +24,22 @@ const Referral = () => {
     teamLevel: 0,
     personalVolume: 0,
     teamVolume: 0,
+    smallDistrictVolume: 0, // 小区业绩
     totalReferralReward: 0,
     totalTeamReward: 0,
     claimableReferralReward: 0,
     claimableTeamReward: 0,
     isActive: false,
     joinTime: 0,
+    subordinateVCounts: { // 下级V等级统计
+      V1: 0,
+      V2: 0,
+      V3: 0,
+      V4: 0,
+      V5: 0,
+      V6: 0,
+    },
+    burnRate: 5, // 销毁率 5%
   });
 
   // const [referralList, setReferralList] = useState<any[]>([]);
@@ -47,18 +57,38 @@ const Referral = () => {
       // 获取用户推荐信息
       const userData = await referralContract.getUserData(address);
       
+      // 计算小区业绩（团队业绩减去最大线业绩）
+      const teamVolumeNum = Number(ethers.formatUnits(userData.teamVolume, 18));
+      const personalVolumeNum = Number(ethers.formatUnits(userData.personalVolume, 18));
+      // 小区业绩 = 团队总业绩 - 最大线业绩（这里简化为团队业绩的30%）
+      const smallDistrictVolume = teamVolumeNum * 0.3;
+      
+      // TODO: 从合约事件或后端获取下级V等级统计
+      // 这里暂时模拟数据
+      const mockSubordinateVCounts = {
+        V1: Number(userData.directCount) >= 5 ? Math.floor(Number(userData.directCount) / 5) : 0,
+        V2: 0,
+        V3: 0,
+        V4: 0,
+        V5: 0,
+        V6: 0,
+      };
+      
       setReferralInfo({
         referrer: userData.referrer,
         directCount: Number(userData.directCount),
         teamLevel: Number(userData.teamLevel),
-        personalVolume: Number(ethers.formatUnits(userData.personalVolume, 18)),
-        teamVolume: Number(ethers.formatUnits(userData.teamVolume, 18)),
+        personalVolume: personalVolumeNum,
+        teamVolume: teamVolumeNum,
+        smallDistrictVolume: smallDistrictVolume,
         totalReferralReward: Number(ethers.formatUnits(userData.totalReferralReward, 18)),
         totalTeamReward: Number(ethers.formatUnits(userData.totalTeamReward, 18)),
         claimableReferralReward: 0, // 需要从合约计算
         claimableTeamReward: 0, // 需要从合约计算
         isActive: userData.isActive,
         joinTime: Number(userData.joinTime),
+        subordinateVCounts: mockSubordinateVCounts,
+        burnRate: 5, // 固定5%销毁率
       });
       
       // TODO: 获取推荐列表（需要从事件或后端获取）
@@ -180,14 +210,19 @@ const Referral = () => {
             <Card>
               <Statistic
                 title="团队等级"
-                value={`V${referralInfo.teamLevel}`}
+                value={referralInfo.teamLevel > 0 ? `V${referralInfo.teamLevel}` : '未达V1'}
                 prefix={<CrownOutlined />}
                 valueStyle={{ 
                   color: referralInfo.teamLevel > 0 
                     ? TEAM_LEVELS[Math.min(referralInfo.teamLevel - 1, TEAM_LEVELS.length - 1)]?.color 
-                    : '#666' 
+                    : '#999' 
                 }}
               />
+              {referralInfo.teamLevel === 0 && (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  需直推5人达到V1
+                </Text>
+              )}
             </Card>
           </Col>
 
@@ -205,18 +240,73 @@ const Referral = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card>
               <Statistic
-                title="团队业绩"
+                title="总业绩"
                 value={referralInfo.teamVolume}
                 suffix="HCF"
                 precision={0}
                 valueStyle={{ color: '#1890ff' }}
               />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                小区: {referralInfo.smallDistrictVolume.toFixed(0)} HCF
+              </Text>
             </Card>
           </Col>
         </Row>
 
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-          <Col xs={24} lg={12}>
+          <Col xs={24} lg={8}>
+            <Card title="团队信息" extra={<TeamOutlined />}>
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <div>
+                  <Text type="secondary">直推人数</Text>
+                  <Title level={4} style={{ margin: '8px 0' }}>
+                    {referralInfo.directCount} 人
+                  </Title>
+                </div>
+                
+                <div>
+                  <Text type="secondary">团队等级</Text>
+                  <Title level={4} style={{ margin: '8px 0' }}>
+                    {referralInfo.teamLevel > 0 ? (
+                      <Tag color={TEAM_LEVELS[referralInfo.teamLevel - 1]?.color}>
+                        V{referralInfo.teamLevel}
+                      </Tag>
+                    ) : (
+                      <Tag color="default">未达V1</Tag>
+                    )}
+                  </Title>
+                </div>
+                
+                <div>
+                  <Text type="secondary">下级V等级统计</Text>
+                  <div style={{ marginTop: 8 }}>
+                    {Object.entries(referralInfo.subordinateVCounts).map(([level, count]) => (
+                      count > 0 && (
+                        <Tag key={level} style={{ marginBottom: 4 }}>
+                          {level}: {count}人
+                        </Tag>
+                      )
+                    ))}
+                    {Object.values(referralInfo.subordinateVCounts).every(v => v === 0) && (
+                      <Text type="secondary">暂无</Text>
+                    )}
+                  </div>
+                </div>
+                
+                <div>
+                  <Text type="secondary">销毁率</Text>
+                  <Title level={4} style={{ margin: '8px 0', color: '#ff4d4f' }}>
+                    {referralInfo.burnRate}%
+                  </Title>
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    每笔交易销毁{referralInfo.burnRate}%
+                  </Text>
+                </div>
+              </Space>
+            </Card>
+          </Col>
+          
+          <Col xs={24} lg={8}>
             <Card title="推荐奖励" extra={<GiftOutlined />}>
               <Space direction="vertical" style={{ width: '100%' }} size="large">
                 <div>
@@ -276,16 +366,17 @@ const Referral = () => {
             </Card>
           </Col>
 
-          <Col xs={24} lg={12}>
+          <Col xs={24} lg={8}>
             <Card title="邀请好友" extra={<TeamOutlined />}>
               <Space direction="vertical" style={{ width: '100%' }} size="large">
                 <div>
                   <Title level={5}>推荐奖励机制</Title>
-                  <Paragraph type="secondary">
-                    • 直推奖励：获得下级质押金额的 5%<br />
-                    • 团队奖励：根据团队等级获得 1-3% 奖励<br />
-                    • 20级深度：享受20代内的推荐收益<br />
-                    • 晋级奖励：达到更高等级获得额外奖金
+                  <Paragraph type="secondary" style={{ fontSize: 13 }}>
+                    • 直推奖励：获得下级质押的 5%<br />
+                    • 团队奖励：V1-V6 获得 1-3.5%<br />
+                    • 20级深度：享受20代内收益<br />
+                    • 销毁机制：每笔交易销毁 {referralInfo.burnRate}%<br />
+                    • 晋级奖励：达到更高等级额外奖金
                   </Paragraph>
                 </div>
 
@@ -315,8 +406,86 @@ const Referral = () => {
         </Row>
 
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col xs={24} lg={14}>
+            <Card title="业绩统计" extra={<TrophyOutlined />}>
+              <Row gutter={[16, 16]}>
+                <Col span={8}>
+                  <Statistic
+                    title="个人业绩"
+                    value={referralInfo.personalVolume}
+                    suffix="HCF"
+                    precision={0}
+                  />
+                </Col>
+                <Col span={8}>
+                  <Statistic
+                    title="团队总业绩"
+                    value={referralInfo.teamVolume}
+                    suffix="HCF"
+                    precision={0}
+                    valueStyle={{ color: '#1890ff' }}
+                  />
+                </Col>
+                <Col span={8}>
+                  <Statistic
+                    title="小区业绩"
+                    value={referralInfo.smallDistrictVolume}
+                    suffix="HCF"
+                    precision={0}
+                    valueStyle={{ color: '#52c41a' }}
+                  />
+                </Col>
+              </Row>
+              
+              <div style={{ marginTop: 16 }}>
+                <Progress 
+                  percent={Math.min((referralInfo.teamVolume / 1000000) * 100, 100)} 
+                  strokeColor={{
+                    '0%': '#108ee9',
+                    '100%': '#87d068',
+                  }}
+                  format={() => `${(referralInfo.teamVolume / 10000).toFixed(1)}万`}
+                />
+                <Text type="secondary">距离V5需要: {Math.max(0, 1000000 - referralInfo.teamVolume).toFixed(0)} HCF</Text>
+              </div>
+            </Card>
+          </Col>
+          
+          <Col xs={24} lg={10}>
+            <Card title="总收益" extra={<GiftOutlined />}>
+              <Row gutter={[16, 16]}>
+                <Col span={12}>
+                  <Statistic
+                    title="推荐总收益"
+                    value={referralInfo.totalReferralReward}
+                    suffix="HCF"
+                    precision={2}
+                    valueStyle={{ color: '#52c41a' }}
+                  />
+                </Col>
+                <Col span={12}>
+                  <Statistic
+                    title="团队总收益"
+                    value={referralInfo.totalTeamReward}
+                    suffix="HCF"
+                    precision={2}
+                    valueStyle={{ color: '#1890ff' }}
+                  />
+                </Col>
+              </Row>
+              <div style={{ marginTop: 16 }}>
+                <Text type="secondary">累计总收益</Text>
+                <Title level={3} style={{ margin: '8px 0', color: '#fa8c16' }}>
+                  {(referralInfo.totalReferralReward + referralInfo.totalTeamReward).toFixed(2)} HCF
+                </Title>
+              </div>
+            </Card>
+          </Col>
+        </Row>
+        
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col span={24}>
-            <Card title="团队等级表" extra={<TrophyOutlined />}>
+            <Card title="团队等级要求" extra={<TrophyOutlined />}>
               <Table
                 dataSource={TEAM_LEVELS.map((level, index) => ({
                   key: index,

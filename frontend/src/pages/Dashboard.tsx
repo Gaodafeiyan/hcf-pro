@@ -1,4 +1,4 @@
-import { Row, Col, Card, Statistic, Typography, Progress, Space, Table, Tag, Spin, message } from 'antd';
+import { Row, Col, Card, Statistic, Typography, Progress, Space, Table, Tag, Spin, message, Alert, Tooltip, Badge } from 'antd';
 import {
   WalletOutlined,
   RiseOutlined,
@@ -7,6 +7,9 @@ import {
   BankOutlined,
   DollarOutlined,
   ClockCircleOutlined,
+  InfoCircleOutlined,
+  FallOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import { useAccount } from 'wagmi';
 import { useState, useEffect } from 'react';
@@ -35,6 +38,11 @@ const Dashboard = () => {
     totalStaked: 0,
     totalNodes: 0,
     maxNodes: 99, // 最大节点数
+    dynamicYieldRate: 70, // 动态收益率 50%-100%
+    decayRate: 0, // 衰减率
+    burnRate: 5, // 销毁率 5%
+    purchaseLimit: 10000, // 单次购买限额
+    impermanentLossPool: 0, // 无常损失补偿池
   });
 
   const [userStats, setUserStats] = useState({
@@ -103,6 +111,19 @@ const Dashboard = () => {
         console.log('获取价格失败，使用默认值');
       }
       
+      // 计算动态收益率 (50%-100% 基于总质押量)
+      const totalStakedNum = Number(ethers.formatUnits(totalStaked, 18));
+      let dynamicYieldRate = 100; // 默认100%
+      if (totalStakedNum > 100000000) { // 超过1亿
+        dynamicYieldRate = Math.max(50, 100 - (totalStakedNum - 100000000) / 2000000); // 每200万减1%
+      }
+      
+      // 计算衰减率
+      let decayRate = 0;
+      if (totalStakedNum > 110000000) { // 超过1.1亿开始衰减
+        decayRate = Math.min(50, (totalStakedNum - 110000000) / 1000000 * 0.1); // 每100万减0.1%
+      }
+      
       // 设置状态
       const totalSupplyNum = Number(ethers.formatUnits(totalSupply, 18));
       const circulatingSupplyNum = Number(ethers.formatUnits(circulatingSupply, 18));
@@ -116,9 +137,14 @@ const Dashboard = () => {
         priceUSD: hcfPrice,
         marketCap: circulatingSupplyNum * hcfPrice,
         holders: 0, // 需要后端或索引器支持
-        totalStaked: Number(ethers.formatUnits(totalStaked, 18)),
+        totalStaked: totalStakedNum,
         totalNodes: nodeCount,
         maxNodes: 99,
+        dynamicYieldRate: dynamicYieldRate,
+        decayRate: decayRate,
+        burnRate: 5,
+        purchaseLimit: 10000,
+        impermanentLossPool: totalStakedNum * 0.01, // 假设1%用于无常损失补偿
       });
       
       // 计算日收益
@@ -170,13 +196,6 @@ const Dashboard = () => {
     }
   }, [isConnected, address]);
 
-  const recentTransactions = [
-    { key: '1', type: '质押', amount: 1000, time: '2分钟前', status: 'success' },
-    { key: '2', type: '领取奖励', amount: 35, time: '1小时前', status: 'success' },
-    { key: '3', type: '推荐奖励', amount: 50, time: '3小时前', status: 'success' },
-    { key: '4', type: '节点分红', amount: 200, time: '1天前', status: 'success' },
-  ];
-
   if (!isConnected) {
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
@@ -192,6 +211,25 @@ const Dashboard = () => {
         <Title level={2}>仪表盘</Title>
         <Text type="secondary">实时数据概览</Text>
 
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col span={24}>
+            <Alert
+              message="系统机制提示"
+              description={
+                <Space direction="vertical">
+                  <Text>• 销毁率: 每笔交易自动销毁 {stats.burnRate}%</Text>
+                  <Text>• 购买限制: 单次最大购买 {stats.purchaseLimit.toLocaleString()} HCF</Text>
+                  <Text>• 赎回机制: BSDT/HCF 1:1 赎回保障</Text>
+                  <Text>• 无常损失: 补偿池 {stats.impermanentLossPool.toFixed(0)} HCF</Text>
+                </Space>
+              }
+              type="info"
+              showIcon
+              icon={<InfoCircleOutlined />}
+            />
+          </Col>
+        </Row>
+
         <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
           <Col xs={24} sm={12} lg={6}>
             <Card>
@@ -204,9 +242,7 @@ const Dashboard = () => {
                 precision={4}
               />
               <Text type="secondary" style={{ fontSize: 12 }}>
-                24h: <Text type={stats.price > 0.1 ? "success" : "danger"}>
-                  {stats.price > 0.1 ? '+' : ''}{((stats.price - 0.1) / 0.1 * 100).toFixed(2)}%
-                </Text>
+                稳定区间: $0.099 - $0.101
               </Text>
             </Card>
           </Col>
@@ -235,17 +271,23 @@ const Dashboard = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card>
               <Statistic
-                title="已销毁"
+                title={<Space><FireOutlined />已销毁</Space>}
                 value={stats.burned}
                 suffix="HCF"
                 valueStyle={{ color: '#ff4d4f' }}
+                formatter={(value) => {
+                  const num = Number(value);
+                  if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
+                  if (num >= 1000) return `${(num / 1000).toFixed(2)}K`;
+                  return num.toFixed(0);
+                }}
               />
               <Progress 
-                percent={Math.min((stats.burned / 990000) * 100, 100)} 
+                percent={Math.min((stats.burned / 990000000) * 100, 100)} 
                 strokeColor="#ff4d4f" 
                 showInfo={false} 
               />
-              <Text type="secondary">目标: 990,000</Text>
+              <Badge status="processing" text={`销毁率: ${stats.burnRate}%`} />
             </Card>
           </Col>
 
@@ -267,7 +309,55 @@ const Dashboard = () => {
         </Row>
 
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-          <Col xs={24} lg={12}>
+          <Col xs={24} lg={8}>
+            <Card title="动态收益" extra={<ThunderboltOutlined />}>
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <div>
+                  <Text type="secondary">当前动态收益率</Text>
+                  <Title level={3} style={{ margin: '8px 0', color: '#52c41a' }}>
+                    {stats.dynamicYieldRate.toFixed(1)}%
+                  </Title>
+                  <Progress 
+                    percent={stats.dynamicYieldRate} 
+                    strokeColor={{
+                      '0%': '#ff4d4f',
+                      '50%': '#faad14',
+                      '100%': '#52c41a',
+                    }}
+                  />
+                  <Text type="secondary" style={{ fontSize: 12 }}>
+                    范围: 50% - 100%
+                  </Text>
+                </div>
+                
+                {stats.decayRate > 0 && (
+                  <Alert
+                    message={`衰减状态: -${stats.decayRate.toFixed(1)}%`}
+                    description={`总质押量超过1.1亿，收益衰减${stats.decayRate.toFixed(1)}%`}
+                    type="warning"
+                    showIcon
+                    icon={<FallOutlined />}
+                  />
+                )}
+                
+                <div style={{ background: '#f0f2f5', padding: 12, borderRadius: 8 }}>
+                  <Text strong>实际收益计算</Text>
+                  <div style={{ marginTop: 8 }}>
+                    <Text>基础: 1000 HCF</Text><br />
+                    <Text>动态: × {stats.dynamicYieldRate}%</Text><br />
+                    {stats.decayRate > 0 && (
+                      <><Text>衰减: - {stats.decayRate}%</Text><br /></>
+                    )}
+                    <Text strong style={{ color: '#52c41a' }}>
+                      实际: {(1000 * stats.dynamicYieldRate / 100 * (1 - stats.decayRate / 100)).toFixed(0)} HCF
+                    </Text>
+                  </div>
+                </div>
+              </Space>
+            </Card>
+          </Col>
+          
+          <Col xs={24} lg={8}>
             <Card title="我的资产" extra={<WalletOutlined />}>
               <Row gutter={[16, 16]}>
                 <Col span={12}>
@@ -313,7 +403,7 @@ const Dashboard = () => {
             </Card>
           </Col>
 
-          <Col xs={24} lg={12}>
+          <Col xs={24} lg={8}>
             <Card title="最近交易" extra={<ClockCircleOutlined />}>
               <Table
                 dataSource={recentTransactions}
@@ -330,7 +420,14 @@ const Dashboard = () => {
                     title: '数量',
                     dataIndex: 'amount',
                     key: 'amount',
-                    render: (val) => <Text strong>+{val} HCF</Text>,
+                    render: (val) => (
+                      <Space>
+                        <Text strong>+{val} HCF</Text>
+                        <Tooltip title={`销毁 ${(Number(val) * 0.05).toFixed(2)} HCF (5%)`}>
+                          <Tag color="red" style={{ fontSize: 10 }}>-5%</Tag>
+                        </Tooltip>
+                      </Space>
+                    ),
                   },
                   {
                     title: '时间',
@@ -390,13 +487,13 @@ const Dashboard = () => {
                 </Col>
                 <Col xs={12} sm={6}>
                   <Statistic
-                    title="总供应量"
+                    title={<Tooltip title="初始总供应量 10亿 HCF">总供应量</Tooltip>}
                     value={stats.totalSupply}
                     suffix="HCF"
                     prefix={<FireOutlined />}
                     formatter={(value) => {
                       const num = Number(value);
-                      if (num >= 1000000000) return `${(num / 1000000000).toFixed(2)}B`;
+                      if (num >= 1000000000) return `${(num / 1000000000).toFixed(0)}B`;
                       if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
                       return num.toFixed(0);
                     }}

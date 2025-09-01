@@ -30,11 +30,46 @@ export const NETWORK_CONFIG = {
 
 // 质押等级配置
 export const STAKING_LEVELS = [
-  { level: 1, minAmount: 100, dailyRate: 0.4, color: '#52c41a' },
-  { level: 2, minAmount: 1000, dailyRate: 0.5, color: '#1890ff' },
-  { level: 3, minAmount: 5000, dailyRate: 0.6, color: '#722ed1' },
-  { level: 4, minAmount: 10000, dailyRate: 0.7, color: '#fa8c16' },
-  { level: 5, minAmount: 50000, dailyRate: 0.8, color: '#f5222d' },
+  { 
+    level: 1, 
+    minAmount: 100, 
+    dailyRate: 0.4, // 基础日化 0.4%
+    lpRate: 0.8,    // LP日化 0.8%
+    compoundMultiple: 10, // 复投倍数 10倍
+    color: '#52c41a' 
+  },
+  { 
+    level: 2, 
+    minAmount: 1000, 
+    dailyRate: 0.5, // 基础日化 0.5%
+    lpRate: 1.0,    // LP日化 1.0%
+    compoundMultiple: 20, // 复投倍数 20倍
+    color: '#1890ff' 
+  },
+  { 
+    level: 3, 
+    minAmount: 5000, 
+    dailyRate: 0.6, // 基础日化 0.6%
+    lpRate: 1.2,    // LP日化 1.2%
+    compoundMultiple: 200, // 复投倍数 200倍
+    color: '#722ed1' 
+  },
+  { 
+    level: 4, 
+    minAmount: 10000, 
+    dailyRate: 0.7, // 基础日化 0.7%
+    lpRate: 1.4,    // LP日化 1.4%
+    compoundMultiple: 2000, // 复投倍数 2000倍
+    color: '#fa8c16' 
+  },
+  { 
+    level: 5, 
+    minAmount: 50000, 
+    dailyRate: 0.8, // 基础日化 0.8%
+    lpRate: 1.6,    // LP日化 1.6%
+    compoundMultiple: 20000, // 复投倍数 20000倍
+    color: '#f5222d' 
+  },
 ];
 
 // 团队等级配置

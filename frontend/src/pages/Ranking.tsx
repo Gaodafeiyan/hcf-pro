@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Typography, Space, Tag, Table, Statistic, Tabs, Spin, Alert } from 'antd';
+import { Row, Col, Card, Typography, Space, Tag, Table, Statistic, Tabs, Spin, Alert, Select, Button, Radio } from 'antd';
 import { TrophyOutlined, CrownOutlined, FireOutlined, TeamOutlined, BankOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useAccount } from 'wagmi';
 import { ethers } from 'ethers';
@@ -15,6 +15,8 @@ const Ranking = () => {
   const { address, isConnected } = useAccount();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('staking');
+  const [period, setPeriod] = useState<'DAY' | 'WEEK' | 'MONTH'>('DAY');
+  const [rankingLimit, setRankingLimit] = useState(100); // Default to top 100, can show up to 2000
   
   const [userStats, setUserStats] = useState({
     stakingAmount: 0,
@@ -25,21 +27,22 @@ const Ranking = () => {
     estimatedRank: 0,
   });
 
-  // 模拟排行榜数据 - 实际生产环境应从后端/索引器获取
+  // 质押排行榜数据 - 实际生产环境应从后端/索引器获取
   const [stakingRanking] = useState([
-    { key: '1', rank: 1, address: '0x1234...5678', amount: 50000, dailyReward: 400, level: 5 },
-    { key: '2', rank: 2, address: '0x2345...6789', amount: 45000, dailyReward: 360, level: 5 },
-    { key: '3', rank: 3, address: '0x3456...7890', amount: 40000, dailyReward: 320, level: 4 },
-    { key: '4', rank: 4, address: '0x4567...8901', amount: 35000, dailyReward: 280, level: 4 },
-    { key: '5', rank: 5, address: '0x5678...9012', amount: 30000, dailyReward: 240, level: 3 },
+    { key: '1', rank: 1, address: '0x1234...5678', amount: 50000, dailyReward: 400, level: 5, bonus: 10000, bonusPercent: 20 },
+    { key: '2', rank: 2, address: '0x2345...6789', amount: 45000, dailyReward: 360, level: 5, bonus: 4500, bonusPercent: 10 },
+    { key: '3', rank: 3, address: '0x3456...7890', amount: 40000, dailyReward: 320, level: 4, bonus: 4000, bonusPercent: 10 },
+    { key: '4', rank: 4, address: '0x4567...8901', amount: 35000, dailyReward: 280, level: 4, bonus: 3500, bonusPercent: 10 },
+    { key: '5', rank: 5, address: '0x5678...9012', amount: 30000, dailyReward: 240, level: 3, bonus: 3000, bonusPercent: 10 },
   ]);
 
-  const [referralRanking] = useState([
-    { key: '1', rank: 1, address: '0x1234...5678', teamLevel: 'V6', teamVolume: 2000000, totalReward: 50000 },
-    { key: '2', rank: 2, address: '0x2345...6789', teamLevel: 'V5', teamVolume: 1500000, totalReward: 35000 },
-    { key: '3', rank: 3, address: '0x3456...7890', teamLevel: 'V4', teamVolume: 1000000, totalReward: 25000 },
-    { key: '4', rank: 4, address: '0x4567...8901', teamLevel: 'V3', teamVolume: 800000, totalReward: 18000 },
-    { key: '5', rank: 5, address: '0x5678...9012', teamLevel: 'V2', teamVolume: 500000, totalReward: 12000 },
+  // 小区排行榜数据 (只显示业绩>0且直推>1的)
+  const [communityRanking] = useState([
+    { key: '1', rank: 1, address: '0x1234...5678', teamLevel: 'V6', communityVolume: 600000, directCount: 20, bonus: 120000, bonusPercent: 20 },
+    { key: '2', rank: 2, address: '0x2345...6789', teamLevel: 'V5', communityVolume: 450000, directCount: 15, bonus: 45000, bonusPercent: 10 },
+    { key: '3', rank: 3, address: '0x3456...7890', teamLevel: 'V4', communityVolume: 300000, directCount: 12, bonus: 30000, bonusPercent: 10 },
+    { key: '4', rank: 4, address: '0x4567...8901', teamLevel: 'V3', communityVolume: 240000, directCount: 8, bonus: 24000, bonusPercent: 10 },
+    { key: '5', rank: 5, address: '0x5678...9012', teamLevel: 'V2', communityVolume: 150000, directCount: 5, bonus: 15000, bonusPercent: 10 },
   ]);
 
   const [nodeRanking] = useState([
@@ -167,16 +170,18 @@ const Ranking = () => {
       ),
     },
     {
-      title: '日收益',
-      dataIndex: 'dailyReward',
-      key: 'dailyReward',
-      render: (val: number) => (
-        <Text strong style={{ color: '#52c41a' }}>+{val} HCF</Text>
+      title: '奖励',
+      key: 'reward',
+      render: (record: any) => (
+        <Space direction="vertical" size="small">
+          <Text strong style={{ color: '#52c41a' }}>+{record.bonus.toLocaleString()} HCF</Text>
+          <Tag color="gold">{record.bonusPercent}% 加成</Tag>
+        </Space>
       ),
     },
   ];
 
-  const referralColumns = [
+  const communityColumns = [
     {
       title: '排名',
       dataIndex: 'rank',
@@ -203,17 +208,27 @@ const Ranking = () => {
       ),
     },
     {
-      title: '团队业绩',
-      dataIndex: 'teamVolume',
-      key: 'teamVolume',
+      title: '小区业绩',
+      dataIndex: 'communityVolume',
+      key: 'communityVolume',
       render: (val: number) => `${val.toLocaleString()} HCF`,
     },
     {
-      title: '累计奖励',
-      dataIndex: 'totalReward',
-      key: 'totalReward',
+      title: '直推人数',
+      dataIndex: 'directCount',
+      key: 'directCount',
       render: (val: number) => (
-        <Text strong style={{ color: '#52c41a' }}>+{val} HCF</Text>
+        <Tag color="blue">{val} 人</Tag>
+      ),
+    },
+    {
+      title: '奖励',
+      key: 'reward',
+      render: (record: any) => (
+        <Space direction="vertical" size="small">
+          <Text strong style={{ color: '#52c41a' }}>+{record.bonus.toLocaleString()} HCF</Text>
+          <Tag color="gold">{record.bonusPercent}% 加成</Tag>
+        </Space>
       ),
     },
   ];
@@ -272,8 +287,34 @@ const Ranking = () => {
   return (
     <Spin spinning={loading}>
       <div>
-        <Title level={2}>排行榜</Title>
-        <Text type="secondary">查看各维度排名，争夺奖励</Text>
+        <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+          <Col>
+            <Title level={2} style={{ margin: 0 }}>排行榜</Title>
+            <Text type="secondary">查看各维度排名，争夺奖励</Text>
+          </Col>
+          <Col>
+            <Space>
+              <Radio.Group value={period} onChange={(e) => setPeriod(e.target.value)} buttonStyle="solid">
+                <Radio.Button value="DAY">日榜</Radio.Button>
+                <Radio.Button value="WEEK">周榜</Radio.Button>
+                <Radio.Button value="MONTH">月榜</Radio.Button>
+              </Radio.Group>
+              <Select
+                value={rankingLimit}
+                onChange={setRankingLimit}
+                style={{ width: 120 }}
+                options={[
+                  { value: 10, label: 'Top 10' },
+                  { value: 50, label: 'Top 50' },
+                  { value: 100, label: 'Top 100' },
+                  { value: 500, label: 'Top 500' },
+                  { value: 2000, label: 'Top 2000' },
+                ]}
+              />
+              <Button type="primary" ghost>刷新</Button>
+            </Space>
+          </Col>
+        </Row>
 
         <Alert
           message="排行榜数据说明"
@@ -356,20 +397,33 @@ const Ranking = () => {
                 ),
               },
               {
-                key: 'referral',
+                key: 'community',
                 label: (
                   <Space>
                     <TeamOutlined />
-                    推荐排行
+                    小区排行
                   </Space>
                 ),
                 children: (
-                  <Table
-                    dataSource={referralRanking}
-                    columns={referralColumns}
-                    pagination={false}
-                    size="small"
-                  />
+                  <>
+                    <Alert
+                      message="小区排行规则"
+                      description="只显示业绩>0且直推人数>1的用户，按小区业绩（团队业绩减去最大线）排序"
+                      type="info"
+                      showIcon
+                      style={{ marginBottom: 16 }}
+                    />
+                    <Table
+                      dataSource={communityRanking.filter(item => item.communityVolume > 0 && item.directCount > 1)}
+                      columns={communityColumns}
+                      pagination={{
+                        pageSize: 20,
+                        total: Math.min(rankingLimit, communityRanking.length),
+                        showTotal: (total) => `共 ${total} 条记录`,
+                      }}
+                      size="small"
+                    />
+                  </>
                 ),
               },
               {
@@ -400,21 +454,22 @@ const Ranking = () => {
                 <div>
                   <Text strong>质押排行榜奖励</Text>
                   <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
-                    • 第1名：1000 HCF<br />
-                    • 第2名：800 HCF<br />
-                    • 第3名：600 HCF<br />
-                    • 第4-10名：300 HCF<br />
-                    • 第11-50名：100 HCF
+                    • 第1名：基础产出的 <Text strong style={{ color: '#52c41a' }}>20%</Text> 加成<br />
+                    • 第2-10名：基础产出的 <Text strong style={{ color: '#52c41a' }}>10%</Text> 加成<br />
+                    • 第11-50名：基础产出的 <Text strong style={{ color: '#52c41a' }}>5%</Text> 加成<br />
+                    • 第51-100名：基础产出的 <Text strong style={{ color: '#52c41a' }}>3%</Text> 加成<br />
+                    • 第101-2000名：基础产出的 <Text strong style={{ color: '#52c41a' }}>1%</Text> 加成
                   </Text>
                 </div>
                 <div>
-                  <Text strong>推荐排行榜奖励</Text>
+                  <Text strong>小区排行榜奖励</Text>
                   <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
-                    • 第1名：2000 HCF<br />
-                    • 第2名：1500 HCF<br />
-                    • 第3名：1000 HCF<br />
-                    • 第4-10名：500 HCF<br />
-                    • 第11-100名：100 HCF
+                    • 第1名：小区业绩的 <Text strong style={{ color: '#52c41a' }}>20%</Text> 奖励<br />
+                    • 第2-10名：小区业绩的 <Text strong style={{ color: '#52c41a' }}>10%</Text> 奖励<br />
+                    • 第11-50名：小区业绩的 <Text strong style={{ color: '#52c41a' }}>5%</Text> 奖励<br />
+                    • 第51-100名：小区业绩的 <Text strong style={{ color: '#52c41a' }}>3%</Text> 奖励<br />
+                    • 第101-2000名：小区业绩的 <Text strong style={{ color: '#52c41a' }}>1%</Text> 奖励<br />
+                    • <Text type="warning">仅业绩{'>'}0且直推{'>'}1的用户可参与</Text>
                   </Text>
                 </div>
               </Space>
@@ -427,17 +482,20 @@ const Ranking = () => {
                 <div>
                   <Text strong>更新频率</Text>
                   <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
-                    • 实时更新：质押量、推荐业绩<br />
-                    • 每日更新：节点分红<br />
-                    • 每周结算：排行榜奖励
+                    • 实时更新：质押量、小区业绩<br />
+                    • 每日重置：日榜（UTC 00:00）<br />
+                    • 每周重置：周榜（周一 UTC 00:00）<br />
+                    • 每月重置：月榜（每月1日 UTC 00:00）<br />
+                    • 结算时间：每个周期结束时自动结算奖励
                   </Text>
                 </div>
                 <div>
                   <Text strong>排名规则</Text>
                   <Text type="secondary" style={{ display: 'block', marginTop: 4 }}>
-                    • 质押排行：按质押总量排序<br />
-                    • 推荐排行：按团队业绩排序<br />
-                    • 节点排行：按累计分红排序
+                    • 质押排行：按质押总量排序（显示Top 2000）<br />
+                    • 小区排行：按小区业绩排序（业绩{'>'}0且直推{'>'}1）<br />
+                    • 节点排行：按累计分红排序（持有节点NFT用户）<br />
+                    • 同分情况：按达到时间先后排序
                   </Text>
                 </div>
               </Space>

@@ -3,9 +3,12 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@rainbow-me/rainbowkit/styles.css';
+import './i18n'; // Initialize i18n
 
 import { wagmiConfig } from './config/wagmi';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { I18nextProvider } from 'react-i18next';
+import i18n from './i18n';
 import Layout from './components/Layout/index';
 import Dashboard from './pages/Dashboard';
 import Staking from './pages/Staking';
@@ -23,22 +26,24 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <WagmiProvider config={wagmiConfig}>
         <RainbowKitProvider theme={darkTheme()}>
-          <ThemeProvider>
-            <Router>
-              <Layout>
-                <Routes>
-                  <Route path="/" element={<Dashboard />} />
-                  <Route path="/staking" element={<Staking />} />
-                  <Route path="/node" element={<NodeNFT />} />
-                  <Route path="/referral" element={<Referral />} />
-                  <Route path="/ranking" element={<Ranking />} />
-                  <Route path="/exchange" element={<Exchange />} />
-                  <Route path="/governance" element={<Governance />} />
-                  <Route path="/test" element={<Test />} />
-                </Routes>
-              </Layout>
-            </Router>
-          </ThemeProvider>
+          <I18nextProvider i18n={i18n}>
+            <ThemeProvider>
+              <Router>
+                <Layout>
+                  <Routes>
+                    <Route path="/" element={<Dashboard />} />
+                    <Route path="/staking" element={<Staking />} />
+                    <Route path="/node" element={<NodeNFT />} />
+                    <Route path="/referral" element={<Referral />} />
+                    <Route path="/ranking" element={<Ranking />} />
+                    <Route path="/exchange" element={<Exchange />} />
+                    <Route path="/governance" element={<Governance />} />
+                    <Route path="/test" element={<Test />} />
+                  </Routes>
+                </Layout>
+              </Router>
+            </ThemeProvider>
+          </I18nextProvider>
         </RainbowKitProvider>
       </WagmiProvider>
     </QueryClientProvider>
