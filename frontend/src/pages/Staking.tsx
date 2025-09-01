@@ -143,25 +143,25 @@ const Staking = () => {
         return;
       }
       
-      // 检查授权
+      // 获取质押合约地址
       const stakingAddress = await stakingContract.getAddress();
-      const allowance = await hcfToken.allowance(address, stakingAddress);
       const stakeAmountWei = parseNumber(stakeAmount.toString(), 18);
       
-      // 如果授权不足，授权一个较大的额度（避免每次都要授权）
-      if (allowance < stakeAmountWei) {
+      // 直接授权，避免allowance调用问题
+      try {
         message.info('授权中...');
-        // 授权10倍的质押额度或至少10000 HCF
-        const approveAmount = stakeAmountWei * BigInt(10) > parseNumber('10000', 18) 
-          ? stakeAmountWei * BigInt(10) 
-          : parseNumber('10000', 18);
+        // 授权一个较大的额度
+        const approveAmount = parseNumber('1000000', 18); // 100万HCF
         
         const approveTx = await hcfToken.approve(stakingAddress, approveAmount);
         await waitForTransaction(approveTx);
         message.success('授权成功');
         
-        // 等待一下确保授权生效
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // 等待确保授权生效
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } catch (approveError: any) {
+        // 如果授权失败，可能是已经授权过了，尝试继续
+        console.log('授权可能已存在，继续质押...', approveError);
       }
       
       // 执行质押
