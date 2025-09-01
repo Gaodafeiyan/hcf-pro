@@ -44,6 +44,6 @@ export default defineConfig({
         }
       }
     },
-    chunkSizeWarningLimit: 600
+    chunkSizeWarningLimit: 3000 // 提高到3MB，消除警告
   }
 })
