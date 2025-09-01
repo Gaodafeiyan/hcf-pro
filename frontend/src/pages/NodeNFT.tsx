@@ -13,6 +13,14 @@ import {
 
 const { Title, Text, Paragraph } = Typography;
 
+// 节点等级定义
+const NODE_LEVELS = [
+  { level: 1, name: '轻量节点', price: 10000, power: 100, color: '#87d068' },
+  { level: 2, name: '标准节点', price: 50000, power: 200, color: '#108ee9' },
+  { level: 3, name: '高级节点', price: 200000, power: 500, color: '#722ed1' },
+  { level: 4, name: '至尊节点', price: 500000, power: 1000, color: '#f50' },
+];
+
 const NodeNFT = () => {
   const { address, isConnected } = useAccount();
   const [loading, setLoading] = useState(false);
@@ -262,6 +270,25 @@ const NodeNFT = () => {
         </Row>
 
         <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col xs={24}>
+            <Card title="节点等级" extra={<RocketOutlined />}>
+              <Row gutter={[16, 16]}>
+                {NODE_LEVELS.map(level => (
+                  <Col xs={24} sm={12} md={6} key={level.level}>
+                    <Card size="small" style={{ borderColor: level.color }}>
+                      <Tag color={level.color} style={{ marginBottom: 8 }}>{level.name}</Tag>
+                      <div><Text type="secondary">价格: </Text><Text strong>{level.price.toLocaleString()} HCF</Text></div>
+                      <div><Text type="secondary">算力: </Text><Text strong>{level.power}</Text></div>
+                      <div><Text type="secondary">分红权重: </Text><Text strong>{level.power / 100}x</Text></div>
+                    </Card>
+                  </Col>
+                ))}
+              </Row>
+            </Card>
+          </Col>
+        </Row>
+
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
           <Col xs={24} lg={12}>
             <Card title="我的节点" extra={<CrownOutlined />}>
               {userNodes.length > 0 ? (
@@ -270,7 +297,9 @@ const NodeNFT = () => {
                     <Card key={node.id} size="small">
                       <Space>
                         <Text strong>节点 #{node.id}</Text>
-                        <Tag color="purple">等级 {node.level}</Tag>
+                        <Tag color={NODE_LEVELS[Math.min(node.level - 1, 3)]?.color || 'purple'}>
+                          {NODE_LEVELS[Math.min(node.level - 1, 3)]?.name || `等级 ${node.level}`}
+                        </Tag>
                         <Text>算力: {node.power}</Text>
                         <Text type="success">累计: {node.rewards.toFixed(2)} HCF</Text>
                       </Space>
@@ -313,13 +342,19 @@ const NodeNFT = () => {
                 <div>
                   <Text strong>治理投票权</Text>
                   <Paragraph type="secondary">
-                    节点NFT持有者拥有协议治理投票权
+                    节点NFT持有者拥有协议治理投票权，参与重大决策
                   </Paragraph>
                 </div>
                 <div>
                   <Text strong>额外加成</Text>
                   <Paragraph type="secondary">
-                    质押收益+20%，推荐奖励+20%
+                    质押收益+20%，推荐奖励+20%，团队奖励+10%
+                  </Paragraph>
+                </div>
+                <div>
+                  <Text strong>排行榜权益</Text>
+                  <Paragraph type="secondary">
+                    进入节点算力排行榜，享受额外分红池奖励
                   </Paragraph>
                 </div>
                 <div style={{ marginTop: 16 }}>

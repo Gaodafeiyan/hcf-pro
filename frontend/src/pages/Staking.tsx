@@ -555,7 +555,7 @@ const Staking = () => {
                     title: '最低质押量',
                     dataIndex: 'minAmount',
                     key: 'minAmount',
-                    render: (amount) => `${amount.toLocaleString()} HCF`,
+                    render: (amount) => `${amount.toLocaleString()}+ HCF`,
                   },
                   {
                     title: '基础日化',

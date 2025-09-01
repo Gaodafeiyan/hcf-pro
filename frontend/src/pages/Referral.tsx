@@ -372,8 +372,8 @@ const Referral = () => {
                 <div>
                   <Title level={5}>推荐奖励机制</Title>
                   <Paragraph type="secondary" style={{ fontSize: 13 }}>
-                    • 直推奖励：获得下级质押的 5%<br />
-                    • 团队奖励：V1-V6 获得 1-3.5%<br />
+                    • 直推奖励：获得下级每日收益的 20%<br />
+                    • 代数奖励：获得10代每日收益的 10%<br />
                     • 20级深度：享受20代内收益<br />
                     • 销毁机制：每笔交易销毁 {referralInfo.burnRate}%<br />
                     • 晋级奖励：达到更高等级额外奖金

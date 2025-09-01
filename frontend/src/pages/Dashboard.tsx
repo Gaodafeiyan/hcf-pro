@@ -239,11 +239,12 @@ const Dashboard = () => {
                 prefix="$"
                 suffix=""
                 valueStyle={{ color: '#3f8600' }}
-                precision={4}
+                precision={3}
               />
               <Text type="secondary" style={{ fontSize: 12 }}>
                 稳定区间: $0.099 - $0.101
               </Text>
+              <Badge status="processing" text={`销毁率: ${stats.burnRate}%`} style={{ marginTop: 8 }} />
             </Card>
           </Col>
           
