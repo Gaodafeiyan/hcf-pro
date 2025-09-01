@@ -1,49 +1,57 @@
-# WalletConnect Project ID 设置指南
+# WalletConnect 配置指南
 
-## 当前状态
-- ✅ 已配置临时测试用Project ID
-- ⚠️ 生产环境需要替换为真实的Project ID
+## 问题
+当前使用的是临时测试 Project ID，导致以下错误：
+- 403 Forbidden 错误
+- "Origin not found on Allowlist" 错误
 
-## 获取真实Project ID步骤
+## 解决步骤
 
-### 1. 注册WalletConnect账户
-1. 访问 https://cloud.walletconnect.com/
-2. 点击 "Sign Up" 注册账户
-3. 验证邮箱地址
+### 1. 创建 WalletConnect Project
+1. 访问 https://cloud.walletconnect.com
+2. 点击 "Sign Up" 或 "Sign In"
+3. 创建新项目：
+   - 项目名称: HCF DeFi Platform
+   - 项目类型: Web App
+   - 项目描述: HCF DeFi Platform - Staking, Referral & Node NFT System
 
-### 2. 创建新项目
-1. 登录后点击 "New Project"
-2. 填写项目信息：
-   - Project Name: `HCF DeFi Platform`
-   - Project Type: `App`
-   - Project Homepage: `https://hcf-finance.xyz`
-3. 点击 "Create"
+### 2. 配置域名白名单
+在项目设置中添加以下域名：
+- `https://hcf-finance.xyz`
+- `http://hcf-finance.xyz`
+- `http://localhost:5173` (开发环境)
+- `http://118.107.4.216` (如果需要IP访问)
 
-### 3. 获取Project ID
-1. 在项目页面找到 "Project ID"
-2. 复制32位的Project ID字符串
+### 3. 获取 Project ID
+从项目详情页复制真实的 Project ID
 
-### 4. 更新配置
-1. 编辑文件 `frontend/src/config/wagmi.ts`
-2. 替换 `projectId` 的值：
+### 4. 更新代码
+编辑 `frontend/src/config/wagmi.ts`：
 ```typescript
-projectId: '你的真实Project_ID', // 替换这里
+export const wagmiConfig = getDefaultConfig({
+  appName: 'HCF DeFi Platform',
+  projectId: '你的真实PROJECT_ID', // 替换这里
+  chains: [bscTestnet],
+  ssr: false,
+  appDescription: 'HCF DeFi Platform - Staking, Referral & Node NFT System',
+  appUrl: 'https://hcf-finance.xyz',
+  appIcon: 'https://hcf-finance.xyz/logo.png',
+});
 ```
 
-### 5. 重新构建前端
+### 5. 重新部署
 ```bash
-cd /srv/hcf-pro/frontend
+cd frontend
 npm run build
-pm2 restart hcf-frontend
+# 部署到服务器
 ```
 
-## 重要提示
-- 免费账户支持100,000次月度请求
-- 超出限制需要升级到付费计划
-- Project ID是公开的，可以安全地提交到代码库
-- 不要泄露API Secret Keys
+## 临时解决方案
+如果暂时无法创建WalletConnect项目，可以：
+1. 继续使用MetaMask直接连接（不受影响）
+2. 禁用WalletConnect模式，只使用injected wallet
 
-## 当前临时ID限制
-- 仅供测试使用
-- 可能会有连接限制
-- 建议尽快替换为真实ID
+## 注意事项
+- Project ID 需要等待几分钟才能生效
+- 确保域名完全匹配（包括协议 http/https）
+- 生产环境强烈建议使用真实的 Project ID

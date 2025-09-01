@@ -67,23 +67,32 @@ const Staking = () => {
       // 计算质押天数 (暂时使用当前时间，因为合约没有返回stakingTime)
       const stakingDays = Number(amount) > 0 ? 1 : 0; // 简化处理
       
-      // 获取日收益率
+      // 获取日收益率 - 使用合约中定义的固定收益率
       const levelNum = Number(level);
       let dailyRate = 0;
       let dailyReward = 0;
       
-      // getDailyRate只接受1-5的等级
+      // 等级收益率（baseRate，单位：基点，需要除以10000）
+      const levelRates = [
+        40,  // Level 1: 0.4%
+        50,  // Level 2: 0.5%
+        60,  // Level 3: 0.6%
+        70,  // Level 4: 0.7%
+        80   // Level 5: 0.8%
+      ];
+      
+      const lpRates = [
+        80,   // Level 1 LP: 0.8%
+        100,  // Level 2 LP: 1.0%
+        120,  // Level 3 LP: 1.2%
+        140,  // Level 4 LP: 1.4%
+        160   // Level 5 LP: 1.6%
+      ];
+      
       if (levelNum >= 1 && levelNum <= 5) {
-        try {
-          dailyRate = await stakingContract.getDailyRate(levelNum);
-          dailyReward = Number(ethers.formatUnits(amount, 18)) * Number(dailyRate) / 10000;
-        } catch (error) {
-          console.log('获取日收益率失败，使用默认值:', error);
-          // 使用默认收益率
-          const defaultRates = [40, 50, 60, 70, 80]; // 0.4%, 0.5%, 0.6%, 0.7%, 0.8%
-          dailyRate = defaultRates[levelNum - 1] || 0;
-          dailyReward = Number(ethers.formatUnits(amount, 18)) * dailyRate / 10000;
-        }
+        // 如果是LP，使用LP收益率，否则使用基础收益率
+        dailyRate = isLP ? lpRates[levelNum - 1] : levelRates[levelNum - 1];
+        dailyReward = Number(ethers.formatUnits(amount, 18)) * dailyRate / 10000;
       }
       
       setStakingInfo({

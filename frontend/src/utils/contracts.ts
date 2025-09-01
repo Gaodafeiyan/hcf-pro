@@ -36,7 +36,6 @@ const STAKING_ABI = [
   'function withdraw(uint256 amount)',
   'function claim()',
   'function compound()',
-  'function getDailyRate(uint256 level) view returns (uint256)',
   'function getTotalStaked() view returns (uint256)',
   'function levels(uint256) view returns (uint256 minAmount, uint256 baseRate, uint256 lpRate, uint256 maxPositions, uint256 compoundUnit)',
 ];
