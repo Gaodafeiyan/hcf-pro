@@ -32,7 +32,7 @@ const Referral = () => {
     joinTime: 0,
   });
 
-  const [referralList, setReferralList] = useState<any[]>([]);
+  // const [referralList, setReferralList] = useState<any[]>([]);
 
   // 加载推荐数据
   const loadReferralData = async () => {
@@ -354,7 +354,7 @@ const Referral = () => {
                   {
                     title: '状态',
                     key: 'status',
-                    render: (_, record, index) => {
+                    render: (_, _record, index) => {
                       const currentLevel = referralInfo.teamLevel;
                       if (currentLevel > index + 1) {
                         return <Tag color="success">已达成</Tag>;

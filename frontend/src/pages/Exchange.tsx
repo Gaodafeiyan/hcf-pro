@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Button, Typography, Space, Tag, InputNumber, Statistic, Progress, Modal, message, Spin } from 'antd';
-import { SwapOutlined, DollarOutlined, BankOutlined, InfoCircleOutlined } from '@ant-design/icons';
+import { Row, Col, Card, Button, Typography, Space, Tag, InputNumber, Statistic, Modal, message, Spin } from 'antd';
+import { SwapOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { useAccount } from 'wagmi';
 import { ethers } from 'ethers';
 import { 
