@@ -1,324 +1,400 @@
-import { useState } from 'react';
-import { Row, Col, Card, Button, Typography, Space, Tag, InputNumber, Statistic, Progress, Modal, message } from 'antd';
+import { useState, useEffect } from 'react';
+import { Row, Col, Card, Button, Typography, Space, Tag, InputNumber, Statistic, Progress, Modal, message, Spin } from 'antd';
 import { SwapOutlined, DollarOutlined, BankOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import { useAccount, useBalance } from 'wagmi';
-import { CONTRACT_ADDRESSES } from '../config/contracts';
+import { useAccount } from 'wagmi';
+import { ethers } from 'ethers';
+import { 
+  getHCFTokenContract,
+  getBSDTTokenContract,
+  getExchangeContract,
+  parseNumber,
+  waitForTransaction,
+  handleContractError
+} from '../utils/contracts';
 
 const { Title, Text, Paragraph } = Typography;
 
 const Exchange = () => {
-  const { address } = useAccount();
+  const { address, isConnected } = useAccount();
+  const [loading, setLoading] = useState(false);
+  const [swapping, setSwapping] = useState(false);
   const [swapAmount, setSwapAmount] = useState<number>(100);
   const [swapDirection, setSwapDirection] = useState<'hcf2bsdt' | 'bsdt2hcf'>('hcf2bsdt');
   const [isSwapModalVisible, setIsSwapModalVisible] = useState(false);
-
-  // 获取余额
-  const { data: hcfBalance } = useBalance({
-    address,
-    token: CONTRACT_ADDRESSES.HCFToken as `0x${string}`,
+  
+  const [balances, setBalances] = useState({
+    hcf: 0,
+    bsdt: 0
   });
-
-  const { data: bsdtBalance } = useBalance({
-    address,
-    token: CONTRACT_ADDRESSES.BSDT as `0x${string}`,
-  });
-
-  // 模拟数据
-  const exchangeInfo = {
-    hcfPrice: 0.1, // USDT
-    bsdtPrice: 1.0, // USDT
+  
+  const [exchangeInfo, setExchangeInfo] = useState({
+    hcfPrice: 0.1,
+    bsdtPrice: 1.0,
     exchangeRate: 10, // 1 BSDT = 10 HCF
-    slippage: 0.5, // 0.5%
+    slippage: 0.5,
     minSwap: 10,
     maxSwap: 10000,
-    totalVolume: 500000,
-    dailyVolume: 25000,
+    totalVolume: 0,
+    dailyVolume: 0,
+  });
+
+  // 加载数据
+  const loadData = async () => {
+    if (!isConnected || !address) return;
+    
+    try {
+      setLoading(true);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      const hcfToken = getHCFTokenContract(signer);
+      const bsdtToken = getBSDTTokenContract(signer);
+      const exchangeContract = getExchangeContract(signer);
+      
+      // 获取余额
+      const [hcfBal, bsdtBal] = await Promise.all([
+        hcfToken.balanceOf(address),
+        bsdtToken.balanceOf(address)
+      ]);
+      
+      setBalances({
+        hcf: Number(ethers.formatUnits(hcfBal, 18)),
+        bsdt: Number(ethers.formatUnits(bsdtBal, 18))
+      });
+      
+      // 获取兑换率和滑点
+      try {
+        const [rate, slippage] = await Promise.all([
+          exchangeContract.getExchangeRate(),
+          exchangeContract.getSlippage()
+        ]);
+        
+        setExchangeInfo(prev => ({
+          ...prev,
+          exchangeRate: Number(rate) / 100, // 假设合约返回的是百分比
+          slippage: Number(slippage) / 100
+        }));
+      } catch (error) {
+        console.log('获取兑换信息失败，使用默认值');
+      }
+      
+    } catch (error) {
+      console.error('加载数据失败:', error);
+    } finally {
+      setLoading(false);
+    }
   };
+  
+  useEffect(() => {
+    if (isConnected && address) {
+      loadData();
+      const interval = setInterval(loadData, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isConnected, address]);
 
   const calculateOutput = (input: number, direction: string) => {
+    const slippageFactor = 1 - exchangeInfo.slippage / 100;
     if (direction === 'hcf2bsdt') {
-      return input / exchangeInfo.exchangeRate;
+      return (input / exchangeInfo.exchangeRate) * slippageFactor;
     } else {
-      return input * exchangeInfo.exchangeRate;
+      return (input * exchangeInfo.exchangeRate) * slippageFactor;
     }
   };
 
   const handleSwap = () => {
+    const sourceToken = swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT';
+    const sourceBalance = swapDirection === 'hcf2bsdt' ? balances.hcf : balances.bsdt;
+    
     if (swapAmount < exchangeInfo.minSwap) {
-      message.error(`最小兑换数量为 ${exchangeInfo.minSwap} ${swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'}`);
+      message.error(`最小兑换数量为 ${exchangeInfo.minSwap} ${sourceToken}`);
       return;
     }
     if (swapAmount > exchangeInfo.maxSwap) {
-      message.error(`最大兑换数量为 ${exchangeInfo.maxSwap} ${swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'}`);
+      message.error(`最大兑换数量为 ${exchangeInfo.maxSwap} ${sourceToken}`);
+      return;
+    }
+    if (swapAmount > sourceBalance) {
+      message.error(`${sourceToken} 余额不足`);
       return;
     }
     setIsSwapModalVisible(true);
   };
 
-  const confirmSwap = () => {
-    const output = calculateOutput(swapAmount, swapDirection);
-    message.success(`成功兑换 ${swapAmount} ${swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'} 获得 ${output.toFixed(2)} ${swapDirection === 'hcf2bsdt' ? 'BSDT' : 'HCF'}`);
-    setIsSwapModalVisible(false);
+  const confirmSwap = async () => {
+    if (!isConnected || !address) {
+      message.error('请先连接钱包');
+      return;
+    }
+    
+    try {
+      setSwapping(true);
+      const provider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await provider.getSigner();
+      
+      const hcfToken = getHCFTokenContract(signer);
+      const bsdtToken = getBSDTTokenContract(signer);
+      const exchangeContract = getExchangeContract(signer);
+      const exchangeAddress = await exchangeContract.getAddress();
+      
+      const swapAmountWei = parseNumber(swapAmount.toString(), 18);
+      
+      if (swapDirection === 'hcf2bsdt') {
+        // HCF -> BSDT
+        // 先授权HCF
+        message.info('授权HCF...');
+        const approveTx = await hcfToken.approve(exchangeAddress, swapAmountWei);
+        await waitForTransaction(approveTx);
+        
+        // 执行兑换
+        message.info('兑换中...');
+        const swapTx = await exchangeContract.swapHCFToBSDT(swapAmountWei);
+        await waitForTransaction(swapTx);
+        
+      } else {
+        // BSDT -> HCF
+        // 先授权BSDT
+        message.info('授权BSDT...');
+        const approveTx = await bsdtToken.approve(exchangeAddress, swapAmountWei);
+        await waitForTransaction(approveTx);
+        
+        // 执行兑换
+        message.info('兑换中...');
+        const swapTx = await exchangeContract.swapBSDTToHCF(swapAmountWei);
+        await waitForTransaction(swapTx);
+      }
+      
+      const output = calculateOutput(swapAmount, swapDirection);
+      message.success(`成功兑换 ${swapAmount} ${swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'} 获得 ${output.toFixed(2)} ${swapDirection === 'hcf2bsdt' ? 'BSDT' : 'HCF'}`);
+      
+      setIsSwapModalVisible(false);
+      
+      // 刷新余额
+      await loadData();
+      
+    } catch (error: any) {
+      console.error('兑换失败:', error);
+      message.error(handleContractError(error));
+    } finally {
+      setSwapping(false);
+    }
   };
 
+  if (!isConnected) {
+    return (
+      <div style={{ textAlign: 'center', padding: '50px' }}>
+        <Title level={3}>请先连接钱包</Title>
+        <Text type="secondary">连接钱包后进行兑换操作</Text>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <Title level={2}>BSDT 兑换</Title>
-      <Text type="secondary">HCF 与 BSDT 稳定币之间的兑换</Text>
+    <Spin spinning={loading}>
+      <div>
+        <Title level={2}>BSDT 兑换</Title>
+        <Text type="secondary">HCF 与 BSDT 稳定币之间的兑换</Text>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="HCF 价格"
-              value={exchangeInfo.hcfPrice}
-              prefix="$"
-              suffix="USDT"
-              valueStyle={{ color: '#3f8600' }}
-              precision={4}
-            />
-          </Card>
-        </Col>
-        
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="BSDT 价格"
-              value={exchangeInfo.bsdtPrice}
-              prefix="$"
-              suffix="USDT"
-              valueStyle={{ color: '#1890ff' }}
-              precision={2}
-            />
-          </Card>
-        </Col>
+        <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="HCF 价格"
+                value={exchangeInfo.hcfPrice}
+                prefix="$"
+                suffix="USDT"
+                valueStyle={{ color: '#3f8600' }}
+                precision={4}
+              />
+            </Card>
+          </Col>
+          
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="BSDT 价格"
+                value={exchangeInfo.bsdtPrice}
+                prefix="$"
+                suffix="USDT"
+                valueStyle={{ color: '#1890ff' }}
+                precision={2}
+              />
+            </Card>
+          </Col>
 
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="兑换汇率"
-              value={exchangeInfo.exchangeRate}
-              suffix="HCF/BSDT"
-              valueStyle={{ color: '#722ed1' }}
-            />
-          </Card>
-        </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="兑换汇率"
+                value={exchangeInfo.exchangeRate}
+                suffix="HCF/BSDT"
+                valueStyle={{ color: '#722ed1' }}
+              />
+            </Card>
+          </Col>
 
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="滑点"
-              value={exchangeInfo.slippage}
-              suffix="%"
-              valueStyle={{ color: '#fa8c16' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                title="滑点"
+                value={exchangeInfo.slippage}
+                suffix="%"
+                valueStyle={{ color: '#fa8c16' }}
+                precision={2}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} lg={12}>
-          <Card title="我的余额" extra={<BankOutlined />}>
-            <Space direction="vertical" style={{ width: '100%' }} size="large">
-              <div>
-                <Text type="secondary">HCF 余额</Text>
-                <Title level={3}>
-                  {hcfBalance ? Number(hcfBalance.formatted).toFixed(2) : '0.00'} HCF
-                </Title>
-                <Text type="secondary">
-                  ≈ ${hcfBalance ? (Number(hcfBalance.formatted) * exchangeInfo.hcfPrice).toFixed(2) : '0.00'} USDT
-                </Text>
-              </div>
-              <div>
-                <Text type="secondary">BSDT 余额</Text>
-                <Title level={3}>
-                  {bsdtBalance ? Number(bsdtBalance.formatted).toFixed(2) : '0.00'} BSDT
-                </Title>
-                <Text type="secondary">
-                  ≈ ${bsdtBalance ? Number(bsdtBalance.formatted).toFixed(2) : '0.00'} USDT
-                </Text>
-              </div>
-            </Space>
-          </Card>
-        </Col>
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+          <Col xs={24} lg={12}>
+            <Card title="兑换" extra={<SwapOutlined />}>
+              <Space direction="vertical" style={{ width: '100%' }} size="large">
+                <div>
+                  <Text>我的余额</Text>
+                  <div style={{ marginTop: 8 }}>
+                    <Space>
+                      <Tag color="blue">HCF: {balances.hcf.toFixed(2)}</Tag>
+                      <Tag color="green">BSDT: {balances.bsdt.toFixed(2)}</Tag>
+                    </Space>
+                  </div>
+                </div>
 
-        <Col xs={24} lg={12}>
-          <Card title="兑换" extra={<SwapOutlined />}>
-            <Space direction="vertical" style={{ width: '100%' }} size="large">
-              <div>
-                <Space>
-                  <Button 
-                    type={swapDirection === 'hcf2bsdt' ? 'primary' : 'default'}
-                    onClick={() => setSwapDirection('hcf2bsdt')}
-                  >
-                    HCF → BSDT
-                  </Button>
-                  <Button 
-                    type={swapDirection === 'bsdt2hcf' ? 'primary' : 'default'}
-                    onClick={() => setSwapDirection('bsdt2hcf')}
-                  >
-                    BSDT → HCF
-                  </Button>
-                </Space>
-              </div>
+                <div>
+                  <Text>兑换方向</Text>
+                  <div style={{ marginTop: 8 }}>
+                    <Space>
+                      <Button
+                        type={swapDirection === 'hcf2bsdt' ? 'primary' : 'default'}
+                        onClick={() => setSwapDirection('hcf2bsdt')}
+                      >
+                        HCF → BSDT
+                      </Button>
+                      <Button
+                        type={swapDirection === 'bsdt2hcf' ? 'primary' : 'default'}
+                        onClick={() => setSwapDirection('bsdt2hcf')}
+                      >
+                        BSDT → HCF
+                      </Button>
+                    </Space>
+                  </div>
+                </div>
 
-              <div>
-                <Text>兑换数量</Text>
-                <InputNumber
-                  style={{ width: '100%', marginTop: 8 }}
-                  size="large"
-                  min={exchangeInfo.minSwap}
-                  max={exchangeInfo.maxSwap}
-                  value={swapAmount}
-                  onChange={(val) => setSwapAmount(val || 0)}
-                  addonAfter={swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'}
-                />
-                <Text type="secondary" style={{ fontSize: 12 }}>
-                  范围: {exchangeInfo.minSwap} - {exchangeInfo.maxSwap.toLocaleString()} {swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'}
-                </Text>
-              </div>
+                <div>
+                  <Text>兑换数量</Text>
+                  <InputNumber
+                    style={{ width: '100%', marginTop: 8 }}
+                    size="large"
+                    min={exchangeInfo.minSwap}
+                    max={Math.min(
+                      exchangeInfo.maxSwap,
+                      swapDirection === 'hcf2bsdt' ? balances.hcf : balances.bsdt
+                    )}
+                    value={swapAmount}
+                    onChange={(value) => setSwapAmount(value || 100)}
+                    formatter={(value) => `${value} ${swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'}`}
+                    parser={(value) => Number(value!.replace(/[^\d.]/g, '')) || 0}
+                  />
+                </div>
 
-              <div>
-                <Text>预计获得</Text>
-                <Title level={4} style={{ margin: '8px 0', color: '#52c41a' }}>
-                  {calculateOutput(swapAmount, swapDirection).toFixed(2)} {swapDirection === 'hcf2bsdt' ? 'BSDT' : 'HCF'}
-                </Title>
-                <Text type="secondary">
-                  汇率: 1 {swapDirection === 'hcf2bsdt' ? 'BSDT' : 'HCF'} = {swapDirection === 'hcf2bsdt' ? exchangeInfo.exchangeRate : (1/exchangeInfo.exchangeRate).toFixed(4)} {swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'}
-                </Text>
-              </div>
-
-              <Button 
-                type="primary" 
-                size="large" 
-                block 
-                onClick={handleSwap}
-                icon={<SwapOutlined />}
-                disabled={!address}
-              >
-                {address ? '确认兑换' : '请先连接钱包'}
-              </Button>
-
-              <div style={{ 
-                padding: 12, 
-                background: '#1f1f1f', 
-                borderRadius: 6,
-                border: '1px solid #303030'
-              }}>
-                <Space>
-                  <InfoCircleOutlined style={{ color: '#1890ff' }} />
-                  <Text type="secondary" style={{ fontSize: 12 }}>
-                    滑点保护: {exchangeInfo.slippage}% | 最小兑换: {exchangeInfo.minSwap} | 最大兑换: {exchangeInfo.maxSwap.toLocaleString()}
+                <div>
+                  <Text>预计获得</Text>
+                  <Title level={3} style={{ margin: '8px 0', color: '#52c41a' }}>
+                    {calculateOutput(swapAmount, swapDirection).toFixed(4)} {swapDirection === 'hcf2bsdt' ? 'BSDT' : 'HCF'}
+                  </Title>
+                  <Text type="secondary">
+                    (已扣除 {exchangeInfo.slippage}% 滑点)
                   </Text>
-                </Space>
-              </div>
-            </Space>
-          </Card>
-        </Col>
-      </Row>
+                </div>
 
-      <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-        <Col xs={24} lg={12}>
-          <Card title="交易统计" extra={<DollarOutlined />}>
-            <Row gutter={[16, 16]}>
-              <Col span={12}>
-                <Statistic
-                  title="总交易量"
-                  value={exchangeInfo.totalVolume}
-                  suffix="HCF"
-                  valueStyle={{ color: '#52c41a' }}
-                />
-              </Col>
-              <Col span={12}>
-                <Statistic
-                  title="日交易量"
-                  value={exchangeInfo.dailyVolume}
-                  suffix="HCF"
-                  valueStyle={{ color: '#1890ff' }}
-                />
-              </Col>
-            </Row>
-            <Progress 
-              percent={Math.round((exchangeInfo.dailyVolume / exchangeInfo.totalVolume) * 100)} 
-              strokeColor="#52c41a" 
-              showInfo={false} 
-              style={{ marginTop: 16 }}
-            />
-          </Card>
-        </Col>
+                <Button 
+                  type="primary" 
+                  size="large" 
+                  block 
+                  onClick={handleSwap}
+                  disabled={!isConnected}
+                >
+                  兑换
+                </Button>
+              </Space>
+            </Card>
+          </Col>
 
-        <Col xs={24} lg={12}>
-          <Card title="兑换说明">
-            <Space direction="vertical" style={{ width: '100%' }} size="middle">
-              <div>
-                <Text strong>BSDT 稳定币</Text>
-                <Paragraph type="secondary">
-                  BSDT 是 1:1 锚定 USDT 的稳定币，提供稳定的价值存储和交易媒介。
-                </Paragraph>
-              </div>
-              <div>
-                <Text strong>兑换优势</Text>
-                <Paragraph type="secondary">
-                  • 零滑点兑换<br />
-                  • 即时确认<br />
-                  • 低手续费<br />
-                  • 稳定价值
-                </Paragraph>
-              </div>
-              <div>
-                <Text strong>注意事项</Text>
-                <Paragraph type="secondary">
-                  • 兑换前请确认数量<br />
-                  • 注意滑点保护<br />
-                  • 确保钱包有足够余额<br />
-                  • 交易不可撤销
-                </Paragraph>
-              </div>
-            </Space>
-          </Card>
-        </Col>
-      </Row>
+          <Col xs={24} lg={12}>
+            <Card title="兑换说明" extra={<InfoCircleOutlined />}>
+              <Space direction="vertical" size="middle">
+                <div>
+                  <Title level={5}>BSDT 稳定币</Title>
+                  <Paragraph type="secondary">
+                    BSDT 是与 USDT 1:1 锚定的稳定币，提供稳定的价值存储和交易媒介。
+                  </Paragraph>
+                </div>
 
-      <Modal
-        title="确认兑换"
-        open={isSwapModalVisible}
-        onOk={confirmSwap}
-        onCancel={() => setIsSwapModalVisible(false)}
-        okText="确认兑换"
-        cancelText="取消"
-      >
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div>
-            <Text>兑换方向：</Text>
-            <Tag color="blue">
-              {swapDirection === 'hcf2bsdt' ? 'HCF → BSDT' : 'BSDT → HCF'}
-            </Tag>
-          </div>
-          <div>
-            <Text>兑换数量：</Text>
-            <Title level={4}>{swapAmount} {swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'}</Title>
-          </div>
-          <div>
-            <Text>预计获得：</Text>
-            <Title level={4} style={{ color: '#52c41a' }}>
-              {calculateOutput(swapAmount, swapDirection).toFixed(2)} {swapDirection === 'hcf2bsdt' ? 'BSDT' : 'HCF'}
-            </Title>
-          </div>
-          <div>
-            <Text>滑点：</Text>
-            <Text strong style={{ color: '#fa8c16' }}>
-              {exchangeInfo.slippage}%
-            </Text>
-          </div>
-          <div>
-            <Text>手续费：</Text>
-            <Text strong>
-              0.1% ({(swapAmount * 0.001).toFixed(2)} {swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'})
-            </Text>
-          </div>
-        </Space>
-      </Modal>
-    </div>
+                <div>
+                  <Title level={5}>兑换机制</Title>
+                  <Paragraph type="secondary">
+                    - 实时汇率基于流动性池自动计算<br />
+                    - 大额交易可能产生较高滑点<br />
+                    - 所有交易需要支付少量手续费
+                  </Paragraph>
+                </div>
+
+                <div>
+                  <Title level={5}>使用场景</Title>
+                  <Paragraph type="secondary">
+                    - 价值存储：将收益转换为稳定币<br />
+                    - 风险对冲：市场波动时的避险工具<br />
+                    - 支付结算：稳定的支付和结算方式
+                  </Paragraph>
+                </div>
+
+                <div>
+                  <Space>
+                    <Tag color="blue">最小兑换: {exchangeInfo.minSwap}</Tag>
+                    <Tag color="orange">最大兑换: {exchangeInfo.maxSwap}</Tag>
+                  </Space>
+                </div>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+
+        <Modal
+          title="确认兑换"
+          open={isSwapModalVisible}
+          onOk={confirmSwap}
+          onCancel={() => setIsSwapModalVisible(false)}
+          confirmLoading={swapping}
+        >
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <div>
+              <Text>兑换方向</Text>
+              <Title level={4}>
+                {swapDirection === 'hcf2bsdt' ? 'HCF → BSDT' : 'BSDT → HCF'}
+              </Title>
+            </div>
+            <div>
+              <Text>支付数量</Text>
+              <Title level={3}>
+                {swapAmount} {swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'}
+              </Title>
+            </div>
+            <div>
+              <Text>预计获得</Text>
+              <Title level={3} style={{ color: '#52c41a' }}>
+                {calculateOutput(swapAmount, swapDirection).toFixed(4)} {swapDirection === 'hcf2bsdt' ? 'BSDT' : 'HCF'}
+              </Title>
+            </div>
+            <div>
+              <Text type="secondary">
+                汇率: 1 BSDT = {exchangeInfo.exchangeRate} HCF<br />
+                滑点: {exchangeInfo.slippage}%
+              </Text>
+            </div>
+          </Space>
+        </Modal>
+      </div>
+    </Spin>
   );
 };
 
