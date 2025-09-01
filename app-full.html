@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCF DeFi Platform</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            color: #333;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .stat-label {
+            color: #888;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+        }
+        .stat-value {
+            color: #333;
+            font-size: 2em;
+            font-weight: bold;
+        }
+        .stat-suffix {
+            color: #667eea;
+            font-size: 0.7em;
+            margin-left: 5px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        .wallet-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+        .success {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .error {
+            background: #ffebee;
+            color: #c62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background: white;
+            margin: 10% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+        }
+        .close {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 28px;
+            cursor: pointer;
+            color: #999;
+        }
+        .close:hover {
+            color: #333;
+        }
+        .input-group {
+            margin: 20px 0;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        .input-group input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .input-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 16px;
+            border-bottom: 3px solid transparent;
+            margin-bottom: -2px;
+        }
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .staking-levels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .level-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .level-card:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .level-card.selected {
+            border-color: #667eea;
+            background: #667eea;
+            color: white;
+        }
+        .info-box {
+            background: #f0f8ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 HCF DeFi Platform</h1>
+            <p>BSC测试网去中心化金融平台 - 质押挖矿、节点NFT、推荐系统</p>
+        </div>
+
+        <div id="error-container"></div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-label">总供应量</div>
+                <div class="stat-value" id="totalSupply">1,000,000,000<span class="stat-suffix">HCF</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">当前价格</div>
+                <div class="stat-value" id="currentPrice">$0.100<span class="stat-suffix">USDT</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">我的余额</div>
+                <div class="stat-value" id="myBalance">0<span class="stat-suffix">HCF</span></div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">质押总量</div>
+                <div class="stat-value" id="totalStaked">0<span class="stat-suffix">HCF</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>💳 钱包连接</h2>
+            <div id="wallet-container">
+                <p>连接您的MetaMask钱包以开始使用平台功能</p>
+                <button class="btn" onclick="connectWallet()">
+                    连接 MetaMask
+                </button>
+            </div>
+        </div>
+
+        <!-- 质押挖矿 -->
+        <div class="card" id="staking-section" style="display:none;">
+            <h2>💰 质押挖矿</h2>
+            <div class="tabs">
+                <button class="tab active" onclick="switchTab('stake')">质押</button>
+                <button class="tab" onclick="switchTab('unstake')">取消质押</button>
+                <button class="tab" onclick="switchTab('claim')">领取奖励</button>
+            </div>
+            
+            <div id="stake-tab" class="tab-content active">
+                <div class="staking-levels">
+                    <div class="level-card" onclick="selectLevel(1)">
+                        <h3>Level 1</h3>
+                        <p>最低: 100 HCF</p>
+                        <p>日化: 0.4%</p>
+                    </div>
+                    <div class="level-card" onclick="selectLevel(2)">
+                        <h3>Level 2</h3>
+                        <p>最低: 1,000 HCF</p>
+                        <p>日化: 0.5%</p>
+                    </div>
+                    <div class="level-card" onclick="selectLevel(3)">
+                        <h3>Level 3</h3>
+                        <p>最低: 5,000 HCF</p>
+                        <p>日化: 0.6%</p>
+                    </div>
+                    <div class="level-card" onclick="selectLevel(4)">
+                        <h3>Level 4</h3>
+                        <p>最低: 10,000 HCF</p>
+                        <p>日化: 0.7%</p>
+                    </div>
+                    <div class="level-card" onclick="selectLevel(5)">
+                        <h3>Level 5</h3>
+                        <p>最低: 50,000 HCF</p>
+                        <p>日化: 0.8%</p>
+                    </div>
+                </div>
+                
+                <div class="input-group">
+                    <label>质押数量</label>
+                    <input type="number" id="stakeAmount" placeholder="输入质押数量">
+                </div>
+                
+                <div class="info-box">
+                    <p>选择的等级: <span id="selectedLevel">未选择</span></p>
+                    <p>预计日收益: <span id="estimatedDaily">0</span> HCF</p>
+                </div>
+                
+                <button class="btn" onclick="stake()">确认质押</button>
+            </div>
+            
+            <div id="unstake-tab" class="tab-content">
+                <div class="info-box">
+                    <p>当前质押: <span id="currentStaked">0</span> HCF</p>
+                    <p>质押等级: <span id="stakingLevel">无</span></p>
+                </div>
+                <button class="btn" onclick="unstake()">取消全部质押</button>
+            </div>
+            
+            <div id="claim-tab" class="tab-content">
+                <div class="info-box">
+                    <p>可领取奖励: <span id="claimableRewards">0</span> HCF</p>
+                </div>
+                <button class="btn" onclick="claimRewards()">领取奖励</button>
+            </div>
+        </div>
+
+        <!-- 节点NFT -->
+        <div class="card" id="nft-section" style="display:none;">
+            <h2>🎨 节点NFT</h2>
+            <div class="info-box">
+                <p>节点价格: 10,000 HCF</p>
+                <p>剩余数量: <span id="remainingNodes">99</span> / 99</p>
+                <p>我的节点: <span id="myNodes">0</span> 个</p>
+            </div>
+            <button class="btn" onclick="buyNode()">购买节点NFT</button>
+            <button class="btn btn-secondary" onclick="claimNodeRewards()">领取节点分红</button>
+        </div>
+
+        <!-- 推荐系统 -->
+        <div class="card" id="referral-section" style="display:none;">
+            <h2>👥 推荐系统</h2>
+            <div class="info-box">
+                <p>我的推荐链接:</p>
+                <input type="text" id="referralLink" readonly style="width:100%; padding:10px; margin:10px 0;">
+                <button class="btn btn-secondary" onclick="copyReferralLink()">复制链接</button>
+            </div>
+            <div class="info-box">
+                <p>直推人数: <span id="directReferrals">0</span> 人</p>
+                <p>团队人数: <span id="teamSize">0</span> 人</p>
+                <p>推荐奖励: <span id="referralRewards">0</span> HCF</p>
+            </div>
+            <button class="btn" onclick="claimReferralRewards()">领取推荐奖励</button>
+        </div>
+
+        <!-- 合约地址 -->
+        <div class="card">
+            <h2>📋 智能合约</h2>
+            <div style="font-family: monospace; font-size: 0.9em; line-height: 1.8;">
+                <p>HCF Token: 0x09F320b75e6A74994713a0e4Be54eF8f09fbaEcc</p>
+                <p>BSDT Token: 0x622e568976f6cC2eaE4cfd3836d92F111000E787</p>
+                <p>Staking: 0x6E4e682Cc90124Ef66a8cfC8Fc875CF5Ee8E8a74</p>
+                <p>NodeNFT: 0xFCd9c088f387C2C5a4ef87b87bde979a6EaAbA15</p>
+                <p>Referral: 0x4DBDcfC87D528F616e5B11b9bc84e7C00F0Fc674</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载Ethers.js -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    
+    <script>
+        // 合约地址
+        const CONTRACTS = {
+            HCF: '0x09F320b75e6A74994713a0e4Be54eF8f09fbaEcc',
+            BSDT: '0x622e568976f6cC2eaE4cfd3836d92F111000E787',
+            Staking: '0x6E4e682Cc90124Ef66a8cfC8Fc875CF5Ee8E8a74',
+            NodeNFT: '0xFCd9c088f387C2C5a4ef87b87bde979a6EaAbA15',
+            Referral: '0x4DBDcfC87D528F616e5B11b9bc84e7C00F0Fc674'
+        };
+
+        // 简化的ABI
+        const HCF_ABI = [
+            "function balanceOf(address) view returns (uint256)",
+            "function totalSupply() view returns (uint256)",
+            "function approve(address spender, uint256 amount) returns (bool)",
+            "function transfer(address to, uint256 amount) returns (bool)"
+        ];
+
+        const STAKING_ABI = [
+            "function stake(uint256 amount, bool isLP, bool isEquity) returns (bool)",
+            "function unstake() returns (bool)",
+            "function claimReward() returns (bool)",
+            "function getUserInfo(address user) view returns (tuple(uint256 amount, uint256 rewardDebt, uint256 pendingReward, uint256 lastStakeTime, uint256 level, bool isActive, uint256 totalClaimed, uint256 referralReward, bool isLP))"
+        ];
+
+        const NODE_NFT_ABI = [
+            "function mintNode() returns (uint256)",
+            "function balanceOf(address) view returns (uint256)",
+            "function totalSupply() view returns (uint256)",
+            "function NODE_PRICE() view returns (uint256)",
+            "function claimDividends() returns (bool)"
+        ];
+
+        // 全局变量
+        let provider = null;
+        let signer = null;
+        let account = null;
+        let connected = false;
+        let selectedStakeLevel = 0;
+
+        // 连接钱包
+        async function connectWallet() {
+            const walletContainer = document.getElementById('wallet-container');
+            const errorContainer = document.getElementById('error-container');
+            
+            try {
+                if (typeof window.ethereum === 'undefined') {
+                    throw new Error('请安装 MetaMask 钱包扩展');
+                }
+
+                walletContainer.innerHTML = '<button class="btn" disabled>连接中<span class="loading"></span></button>';
+                
+                // 创建provider
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                
+                // 请求账户
+                const accounts = await provider.send("eth_requestAccounts", []);
+                
+                if (accounts.length === 0) {
+                    throw new Error('没有找到账户');
+                }
+                
+                account = accounts[0];
+                signer = provider.getSigner();
+                connected = true;
+                
+                // 检查网络
+                const network = await provider.getNetwork();
+                if (network.chainId !== 97) { // BSC Testnet
+                    await switchToBSCTestnet();
+                }
+                
+                // 更新UI
+                walletContainer.innerHTML = `
+                    <div class="wallet-info">
+                        <p class="success">✅ 钱包已连接</p>
+                        <p>地址: ${account.substring(0, 6)}...${account.substring(38)}</p>
+                        <p>网络: BSC Testnet</p>
+                        <button class="btn btn-secondary" onclick="disconnect()">断开连接</button>
+                    </div>
+                `;
+                
+                // 显示功能区域
+                document.getElementById('staking-section').style.display = 'block';
+                document.getElementById('nft-section').style.display = 'block';
+                document.getElementById('referral-section').style.display = 'block';
+                
+                // 加载数据
+                await loadData();
+                
+                // 生成推荐链接
+                document.getElementById('referralLink').value = `https://hcf-finance.xyz?ref=${account}`;
+                
+                errorContainer.innerHTML = '';
+                
+            } catch (error) {
+                console.error('连接错误:', error);
+                errorContainer.innerHTML = `<div class="error">错误: ${error.message}</div>`;
+                walletContainer.innerHTML = '<button class="btn" onclick="connectWallet()">重新连接</button>';
+            }
+        }
+
+        // 切换到BSC测试网
+        async function switchToBSCTestnet() {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x61' }],
+                });
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x61',
+                            chainName: 'BSC Testnet',
+                            nativeCurrency: {
+                                name: 'BNB',
+                                symbol: 'BNB',
+                                decimals: 18
+                            },
+                            rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+                            blockExplorerUrls: ['https://testnet.bscscan.com/']
+                        }]
+                    });
+                }
+            }
+        }
+
+        // 加载数据
+        async function loadData() {
+            if (!connected) return;
+            
+            try {
+                const hcfContract = new ethers.Contract(CONTRACTS.HCF, HCF_ABI, provider);
+                const stakingContract = new ethers.Contract(CONTRACTS.Staking, STAKING_ABI, provider);
+                const nodeContract = new ethers.Contract(CONTRACTS.NodeNFT, NODE_NFT_ABI, provider);
+                
+                // 获取余额
+                const balance = await hcfContract.balanceOf(account);
+                document.getElementById('myBalance').innerHTML = `${ethers.utils.formatUnits(balance, 18).slice(0, 10)}<span class="stat-suffix">HCF</span>`;
+                
+                // 获取质押信息
+                try {
+                    const userInfo = await stakingContract.getUserInfo(account);
+                    const stakedAmount = ethers.utils.formatUnits(userInfo.amount || userInfo[0], 18);
+                    document.getElementById('currentStaked').textContent = stakedAmount;
+                    document.getElementById('stakingLevel').textContent = `Level ${userInfo.level || userInfo[4]}`;
+                    
+                    const pendingReward = ethers.utils.formatUnits(userInfo.pendingReward || userInfo[2], 18);
+                    document.getElementById('claimableRewards').textContent = pendingReward;
+                } catch (e) {
+                    console.log('获取质押信息失败:', e);
+                }
+                
+                // 获取节点信息
+                try {
+                    const nodeBalance = await nodeContract.balanceOf(account);
+                    const totalNodes = await nodeContract.totalSupply();
+                    document.getElementById('myNodes').textContent = nodeBalance.toString();
+                    document.getElementById('remainingNodes').textContent = 99 - Number(totalNodes);
+                } catch (e) {
+                    console.log('获取节点信息失败:', e);
+                }
+                
+            } catch (error) {
+                console.error('加载数据失败:', error);
+            }
+        }
+
+        // 选择质押等级
+        function selectLevel(level) {
+            selectedStakeLevel = level;
+            document.querySelectorAll('.level-card').forEach(card => card.classList.remove('selected'));
+            event.target.closest('.level-card').classList.add('selected');
+            document.getElementById('selectedLevel').textContent = `Level ${level}`;
+            
+            const amount = document.getElementById('stakeAmount').value;
+            if (amount) {
+                const rates = [0.004, 0.005, 0.006, 0.007, 0.008];
+                const daily = amount * rates[level - 1];
+                document.getElementById('estimatedDaily').textContent = daily.toFixed(2);
+            }
+        }
+
+        // 质押
+        async function stake() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            const amount = document.getElementById('stakeAmount').value;
+            if (!amount || amount <= 0) {
+                alert('请输入质押数量');
+                return;
+            }
+            
+            try {
+                const hcfContract = new ethers.Contract(CONTRACTS.HCF, HCF_ABI, signer);
+                const stakingContract = new ethers.Contract(CONTRACTS.Staking, STAKING_ABI, signer);
+                
+                // 授权
+                const amountWei = ethers.utils.parseUnits(amount, 18);
+                const approveTx = await hcfContract.approve(CONTRACTS.Staking, amountWei);
+                await approveTx.wait();
+                
+                // 质押
+                const stakeTx = await stakingContract.stake(amountWei, false, false);
+                await stakeTx.wait();
+                
+                alert('质押成功！');
+                await loadData();
+                
+            } catch (error) {
+                console.error('质押失败:', error);
+                alert('质押失败: ' + error.message);
+            }
+        }
+
+        // 取消质押
+        async function unstake() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            try {
+                const stakingContract = new ethers.Contract(CONTRACTS.Staking, STAKING_ABI, signer);
+                const tx = await stakingContract.unstake();
+                await tx.wait();
+                
+                alert('取消质押成功！');
+                await loadData();
+                
+            } catch (error) {
+                console.error('取消质押失败:', error);
+                alert('取消质押失败: ' + error.message);
+            }
+        }
+
+        // 领取奖励
+        async function claimRewards() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            try {
+                const stakingContract = new ethers.Contract(CONTRACTS.Staking, STAKING_ABI, signer);
+                const tx = await stakingContract.claimReward();
+                await tx.wait();
+                
+                alert('领取成功！');
+                await loadData();
+                
+            } catch (error) {
+                console.error('领取失败:', error);
+                alert('领取失败: ' + error.message);
+            }
+        }
+
+        // 购买节点
+        async function buyNode() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            try {
+                const hcfContract = new ethers.Contract(CONTRACTS.HCF, HCF_ABI, signer);
+                const nodeContract = new ethers.Contract(CONTRACTS.NodeNFT, NODE_NFT_ABI, signer);
+                
+                // 获取价格
+                const price = await nodeContract.NODE_PRICE();
+                
+                // 授权
+                const approveTx = await hcfContract.approve(CONTRACTS.NodeNFT, price);
+                await approveTx.wait();
+                
+                // 购买
+                const mintTx = await nodeContract.mintNode();
+                await mintTx.wait();
+                
+                alert('购买节点成功！');
+                await loadData();
+                
+            } catch (error) {
+                console.error('购买失败:', error);
+                alert('购买失败: ' + error.message);
+            }
+        }
+
+        // 领取节点分红
+        async function claimNodeRewards() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            try {
+                const nodeContract = new ethers.Contract(CONTRACTS.NodeNFT, NODE_NFT_ABI, signer);
+                const tx = await nodeContract.claimDividends();
+                await tx.wait();
+                
+                alert('领取分红成功！');
+                await loadData();
+                
+            } catch (error) {
+                console.error('领取失败:', error);
+                alert('领取失败: ' + error.message);
+            }
+        }
+
+        // 复制推荐链接
+        function copyReferralLink() {
+            const link = document.getElementById('referralLink');
+            link.select();
+            document.execCommand('copy');
+            alert('链接已复制！');
+        }
+
+        // 领取推荐奖励
+        async function claimReferralRewards() {
+            alert('推荐奖励功能开发中...');
+        }
+
+        // 切换标签
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tab + '-tab').classList.add('active');
+        }
+
+        // 断开连接
+        function disconnect() {
+            account = null;
+            connected = false;
+            provider = null;
+            signer = null;
+            
+            document.getElementById('wallet-container').innerHTML = `
+                <p>连接您的MetaMask钱包以开始使用平台功能</p>
+                <button class="btn" onclick="connectWallet()">连接 MetaMask</button>
+            `;
+            
+            document.getElementById('staking-section').style.display = 'none';
+            document.getElementById('nft-section').style.display = 'none';
+            document.getElementById('referral-section').style.display = 'none';
+        }
+
+        // 监听账户变化
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    disconnect();
+                } else if (account !== accounts[0]) {
+                    account = accounts[0];
+                    connectWallet();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
