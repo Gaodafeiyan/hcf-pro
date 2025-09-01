@@ -19,7 +19,7 @@ import {
 } from '../utils/contracts';
 import { STAKING_LEVELS } from '../config/contracts';
 
-const { Title, Text, Paragraph } = Typography;
+const { Title, Text } = Typography;
 
 const Staking = () => {
   const { address, isConnected } = useAccount();
@@ -27,7 +27,6 @@ const Staking = () => {
   const [staking, setStaking] = useState(false);
   const [claiming, setClaiming] = useState(false);
   const [stakeAmount, setStakeAmount] = useState<number>(100);
-  const [selectedLevel, setSelectedLevel] = useState(0);
   const [isStakeModalVisible, setIsStakeModalVisible] = useState(false);
   const [balance, setBalance] = useState(0);
   
@@ -42,8 +41,6 @@ const Staking = () => {
     nodeBonus: false,
     compoundCount: 0,
   });
-
-  const [stakingHistory, setStakingHistory] = useState<any[]>([]);
 
   // 加载用户数据
   const loadUserData = async () => {
@@ -284,7 +281,7 @@ const Staking = () => {
                     value={stakeAmount}
                     onChange={(value) => setStakeAmount(value || 100)}
                     formatter={(value) => `${value} HCF`}
-                    parser={(value) => value!.replace(' HCF', '')}
+                    parser={(value) => Number(value!.replace(' HCF', '')) || 0}
                   />
                   <div style={{ marginTop: 8 }}>
                     <Text type="secondary">
