@@ -61,27 +61,27 @@ const Staking = () => {
       // 获取质押信息
       const userInfo = await stakingContract.getUserInfo(address);
       
-      // 计算质押天数
-      const stakingTimestamp = Number(userInfo.stakingTime);
-      const stakingDays = stakingTimestamp > 0 
-        ? Math.floor((Date.now() / 1000 - stakingTimestamp) / 86400)
-        : 0;
+      // 解析返回值 (9个值)
+      const [amount, level, pending, totalClaimed, isLP, compoundCount, isEquityLP, lpHCFAmount, lpBSDTAmount] = userInfo;
+      
+      // 计算质押天数 (暂时使用当前时间，因为合约没有返回stakingTime)
+      const stakingDays = Number(amount) > 0 ? 1 : 0; // 简化处理
       
       // 获取日收益率
-      const level = Number(userInfo.level);
-      const dailyRate = level > 0 ? await stakingContract.getDailyRate(level) : 0;
-      const dailyReward = Number(ethers.formatUnits(userInfo.amount, 18)) * Number(dailyRate) / 10000;
+      const levelNum = Number(level);
+      const dailyRate = levelNum > 0 ? await stakingContract.getDailyRate(levelNum) : 0;
+      const dailyReward = Number(ethers.formatUnits(amount, 18)) * Number(dailyRate) / 10000;
       
       setStakingInfo({
-        totalStaked: Number(ethers.formatUnits(userInfo.amount, 18)),
-        currentLevel: level,
+        totalStaked: Number(ethers.formatUnits(amount, 18)),
+        currentLevel: levelNum,
         dailyReward: dailyReward,
-        totalRewards: Number(ethers.formatUnits(userInfo.totalClaimed, 18)),
-        claimableRewards: Number(ethers.formatUnits(userInfo.pending, 18)),
+        totalRewards: Number(ethers.formatUnits(totalClaimed, 18)),
+        claimableRewards: Number(ethers.formatUnits(pending, 18)),
         stakingTime: `${stakingDays}天`,
-        lpBonus: userInfo.isLP,
-        nodeBonus: userInfo.isEquityLP,
-        compoundCount: Number(userInfo.compoundCount),
+        lpBonus: isLP,
+        nodeBonus: isEquityLP,
+        compoundCount: Number(compoundCount),
       });
       
     } catch (error) {

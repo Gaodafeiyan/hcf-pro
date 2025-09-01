@@ -31,7 +31,7 @@ const BSDT_TOKEN_ABI = [
 ];
 
 const STAKING_ABI = [
-  'function getUserInfo(address user) view returns (uint256 amount, uint256 level, uint256 pending, uint256 totalClaimed, bool isLP, uint256 compoundCount, bool isEquityLP, uint256 lpHCFAmount, uint256 lpBSDTAmount, uint256 lastUpdate, uint256[7] buyHistory, uint256 sharingTotal, uint256 lastClaimTime, uint256 stakingTime)',
+  'function getUserInfo(address user) view returns (uint256 amount, uint256 level, uint256 pending, uint256 totalClaimed, bool isLP, uint256 compoundCount, bool isEquityLP, uint256 lpHCFAmount, uint256 lpBSDTAmount)',
   'function stake(uint256 amount, bool isLP, bool isEquity)',
   'function withdraw(uint256 amount)',
   'function claim()',
