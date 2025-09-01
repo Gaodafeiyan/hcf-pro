@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCF项目诊断</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+        .warning { color: #ff0; }
+        pre { background: #000; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔍 HCF-PRO 项目诊断报告</h1>
+    
+    <h2>项目概述</h2>
+    <pre>
+项目名称: HCF-PRO
+类型: DeFi平台 (去中心化金融)
+网络: BSC测试网 (Chain ID: 97)
+技术栈: Solidity + React + TypeScript + Web3
+    </pre>
+
+    <h2>核心功能</h2>
+    <ul>
+        <li class="success">✅ 质押挖矿系统 (5级，0.4%-0.8%日收益)</li>
+        <li class="success">✅ BSDT稳定币 (1:1锚定USDT)</li>
+        <li class="success">✅ 推荐系统 (20代分佣)</li>
+        <li class="success">✅ 节点NFT (限量99个)</li>
+        <li class="success">✅ 治理投票系统</li>
+        <li class="success">✅ 市场保护机制</li>
+    </ul>
+
+    <h2>已部署合约</h2>
+    <pre>
+HCF Token:    0x09F320b75e6A74994713a0e4Be54eF8f09fbaEcc
+BSDT Token:   0x622e568976f6cC2eaE4cfd3836d92F111000E787
+Staking:      0x6E4e682Cc90124Ef66a8cfC8Fc875CF5Ee8E8a74
+NodeNFT:      0xFCd9c088f387C2C5a4ef87b87bde979a6EaAbA15
+Referral:     0x4DBDcfC87D528F616e5B11b9bc84e7C00F0Fc674
+Exchange:     0xb97E39eE96652baB8FEfBe49AA8cD9f2b1F829c7
+多签钱包:      0x3df246f746e9Ec8FF7d72056DAEc0bC0FbdFe4eC
+    </pre>
+
+    <h2>前端诊断</h2>
+    <div id="frontend-check">
+        <p>正在检查前端文件...</p>
+    </div>
+
+    <h2 class="warning">⚠️ 已知问题</h2>
+    <ol>
+        <li class="warning">WalletConnect Project ID 使用临时ID (可能导致403错误)</li>
+        <li class="warning">缺少BSCSCAN API密钥 (无法验证合约)</li>
+        <li class="warning">排行榜使用模拟数据 (需要后端服务)</li>
+    </ol>
+
+    <h2>解决方案</h2>
+    <pre>
+1. 前端空白问题:
+   - 打开浏览器控制台 (F12)
+   - 查看是否有红色错误
+   - 尝试强制刷新 (Ctrl+F5)
+   - 检查是否安装了MetaMask
+
+2. WalletConnect问题:
+   - 访问 https://cloud.walletconnect.com
+   - 创建新项目获取真实Project ID
+   - 更新 frontend/src/config/wagmi.ts
+
+3. 测试步骤:
+   - 确保已连接BSC测试网
+   - 获取测试BNB: https://testnet.binance.org/faucet-smart
+   - 访问 http://你的域名/test-app.html 查看错误
+    </pre>
+
+    <script>
+        // 检查前端文件
+        const checkFrontend = async () => {
+            const div = document.getElementById('frontend-check');
+            let html = '<ul>';
+            
+            const files = [
+                '/assets/index-lyCukfOC.js',
+                '/assets/vendor-react-C3GF5-Zd.js',
+                '/assets/vendor-wagmi-BKlMsgSD.js',
+                '/assets/vendor-wallet-BBmfcUXt.js'
+            ];
+            
+            for (const file of files) {
+                try {
+                    const response = await fetch(file, { method: 'HEAD' });
+                    if (response.ok) {
+                        html += `<li class="success">✅ ${file} - 存在</li>`;
+                    } else {
+                        html += `<li class="error">❌ ${file} - 404</li>`;
+                    }
+                } catch (e) {
+                    html += `<li class="error">❌ ${file} - 错误: ${e.message}</li>`;
+                }
+            }
+            
+            html += '</ul>';
+            div.innerHTML = html;
+        };
+        
+        checkFrontend();
+    </script>
+</body>
+</html>
