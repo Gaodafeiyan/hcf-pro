@@ -1,11 +1,11 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { ConfigProvider, theme } from 'antd';
 import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@rainbow-me/rainbowkit/styles.css';
 
 import { wagmiConfig } from './config/wagmi';
+import { ThemeProvider } from './contexts/ThemeContext';
 import Layout from './components/Layout/index';
 import Dashboard from './pages/Dashboard';
 import Staking from './pages/Staking';
@@ -23,15 +23,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <WagmiProvider config={wagmiConfig}>
         <RainbowKitProvider theme={darkTheme()}>
-          <ConfigProvider
-            theme={{
-              algorithm: theme.darkAlgorithm,
-              token: {
-                colorPrimary: '#1890ff',
-                borderRadius: 8,
-              },
-            }}
-          >
+          <ThemeProvider>
             <Router>
               <Layout>
                 <Routes>
@@ -46,7 +38,7 @@ function App() {
                 </Routes>
               </Layout>
             </Router>
-          </ConfigProvider>
+          </ThemeProvider>
         </RainbowKitProvider>
       </WagmiProvider>
     </QueryClientProvider>

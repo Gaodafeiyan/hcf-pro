@@ -1,8 +1,8 @@
 import React from 'react';
-import { Layout, Menu, Space, Typography, Badge, Drawer, Button } from 'antd';
+import { Layout, Menu, Space, Typography, Badge, Drawer, Button, Switch } from 'antd';
 import { Link, useLocation } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import {
   DashboardOutlined,
   BankOutlined,
@@ -13,26 +13,30 @@ import {
   SettingOutlined,
   FireOutlined,
   MenuOutlined,
+  BulbOutlined,
+  BulbFilled,
 } from '@ant-design/icons';
 import { useAccount, useBalance } from 'wagmi';
 import { CONTRACT_ADDRESSES } from '../../config/contracts';
+import { useTheme } from '../../contexts/ThemeContext';
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
 
 const menuItems = [
   { key: '/', icon: <DashboardOutlined />, label: '仪表盘' },
-  { key: '/staking', icon: <BankOutlined />, label: '质押挖矿' },
-  { key: '/node', icon: <NodeIndexOutlined />, label: '节点NFT' },
+  { key: '/staking', icon: <BankOutlined />, label: '质押池' },
+  { key: '/node', icon: <NodeIndexOutlined />, label: 'NFT' },
   { key: '/referral', icon: <TeamOutlined />, label: '推荐系统' },
   { key: '/ranking', icon: <TrophyOutlined />, label: '排行榜' },
-  { key: '/exchange', icon: <SwapOutlined />, label: 'BSDT兑换' },
+  { key: '/exchange', icon: <SwapOutlined />, label: '兑换' },
   { key: '/governance', icon: <SettingOutlined />, label: '治理' },
 ];
 
 const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const { address, isConnected } = useAccount();
+  const { isDark, toggleTheme } = useTheme();
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   
@@ -57,7 +61,7 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
 
   const MenuContent = () => (
     <Menu
-      theme="dark"
+      theme={isDark ? "dark" : "light"}
       mode="inline"
       selectedKeys={[location.pathname]}
       items={menuItems.map(item => ({
@@ -65,6 +69,7 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
         icon: item.icon,
         label: <Link to={item.key} onClick={() => setDrawerVisible(false)}>{item.label}</Link>,
       }))}
+      style={{ background: 'transparent' }}
     />
   );
 
@@ -75,7 +80,7 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
         width={220} 
         className="desktop-sider"
         style={{ 
-          background: '#001529',
+          background: isDark ? '#001529' : '#f0f2f5',
           display: !isMobile ? 'block' : 'none'
         }}
         breakpoint="lg"
@@ -138,11 +143,12 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
           alignItems: 'center', 
           justifyContent: 'space-between',
           padding: '0 24px',
-          background: '#001529',
-          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          background: isDark ? '#001529' : '#fff',
+          borderBottom: isDark ? '1px solid rgba(255,255,255,0.1)' : '1px solid #f0f0f0',
           position: 'sticky',
           top: 0,
-          zIndex: 100
+          zIndex: 100,
+          boxShadow: '0 2px 8px rgba(0,0,0,0.06)'
         }}>
           <Space>
             {isMobile && (
@@ -172,6 +178,12 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
                 />
               </Space>
             )}
+            <Button
+              type="text"
+              icon={isDark ? <BulbFilled style={{ color: '#fadb14', fontSize: 18 }} /> : <BulbOutlined style={{ color: '#fff', fontSize: 18 }} />}
+              onClick={toggleTheme}
+              title={isDark ? '切换到亮色模式' : '切换到暗色模式'}
+            />
             <ConnectButton />
           </Space>
         </Header>
@@ -179,10 +191,11 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
         <Content style={{ 
           margin: '24px',
           padding: 24,
-          background: '#141414',
+          background: isDark ? '#141414' : '#ffffff',
           borderRadius: 8,
           minHeight: 280,
-          overflow: 'auto'
+          overflow: 'auto',
+          boxShadow: isDark ? 'none' : '0 1px 2px 0 rgba(0,0,0,0.03)'
         }}>
           {isConnected ? (
             children
