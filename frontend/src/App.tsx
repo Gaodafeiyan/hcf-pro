@@ -14,6 +14,7 @@ import Referral from './pages/Referral';
 import Ranking from './pages/Ranking';
 import Exchange from './pages/Exchange';
 import Governance from './pages/Governance';
+import Test from './pages/Test';
 
 const queryClient = new QueryClient();
 
@@ -41,6 +42,7 @@ function App() {
                   <Route path="/ranking" element={<Ranking />} />
                   <Route path="/exchange" element={<Exchange />} />
                   <Route path="/governance" element={<Governance />} />
+                  <Route path="/test" element={<Test />} />
                 </Routes>
               </Layout>
             </Router>
