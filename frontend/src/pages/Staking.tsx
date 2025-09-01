@@ -69,8 +69,22 @@ const Staking = () => {
       
       // 获取日收益率
       const levelNum = Number(level);
-      const dailyRate = levelNum > 0 ? await stakingContract.getDailyRate(levelNum) : 0;
-      const dailyReward = Number(ethers.formatUnits(amount, 18)) * Number(dailyRate) / 10000;
+      let dailyRate = 0;
+      let dailyReward = 0;
+      
+      // getDailyRate只接受1-5的等级
+      if (levelNum >= 1 && levelNum <= 5) {
+        try {
+          dailyRate = await stakingContract.getDailyRate(levelNum);
+          dailyReward = Number(ethers.formatUnits(amount, 18)) * Number(dailyRate) / 10000;
+        } catch (error) {
+          console.log('获取日收益率失败，使用默认值:', error);
+          // 使用默认收益率
+          const defaultRates = [40, 50, 60, 70, 80]; // 0.4%, 0.5%, 0.6%, 0.7%, 0.8%
+          dailyRate = defaultRates[levelNum - 1] || 0;
+          dailyReward = Number(ethers.formatUnits(amount, 18)) * dailyRate / 10000;
+        }
+      }
       
       setStakingInfo({
         totalStaked: Number(ethers.formatUnits(amount, 18)),

@@ -6,4 +6,7 @@ export const wagmiConfig = getDefaultConfig({
   projectId: '2c8e9d8b7a3f5e1d4b6c9a2f8e7d3c1b', // 临时测试用ID - 生产环境请替换
   chains: [bscTestnet],
   ssr: false,
+  appDescription: 'HCF DeFi Platform - Staking, Referral & Node NFT System',
+  appUrl: 'https://hcf-finance.xyz',
+  appIcon: 'https://hcf-finance.xyz/logo.png',
 });
