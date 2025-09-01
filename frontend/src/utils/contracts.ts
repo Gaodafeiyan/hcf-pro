@@ -63,7 +63,7 @@ const EXCHANGE_ABI = [
 
 // 获取合约实例
 export const getContract = (address: string, abi: any[], signer?: ethers.Signer) => {
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  const provider = new ethers.BrowserProvider(window.ethereum);
   return new ethers.Contract(address, abi, signer || provider);
 };
 
@@ -98,13 +98,13 @@ export const getExchangeContract = (signer?: ethers.Signer) => {
 };
 
 // 格式化数字
-export const formatNumber = (value: ethers.BigNumber, decimals: number = 18) => {
-  return Number(ethers.utils.formatUnits(value, decimals)).toFixed(2);
+export const formatNumber = (value: bigint, decimals: number = 18) => {
+  return Number(ethers.formatUnits(value, decimals)).toFixed(2);
 };
 
 // 解析数字
 export const parseNumber = (value: string, decimals: number = 18) => {
-  return ethers.utils.parseUnits(value, decimals);
+  return ethers.parseUnits(value, decimals);
 };
 
 // 错误处理
@@ -131,7 +131,7 @@ export const handleContractError = (error: any) => {
 };
 
 // 等待交易确认
-export const waitForTransaction = async (tx: ethers.ContractTransaction) => {
+export const waitForTransaction = async (tx: ethers.ContractTransactionResponse) => {
   try {
     const receipt = await tx.wait();
     return receipt;
@@ -146,10 +146,10 @@ export const checkNetwork = async () => {
     throw new Error('请安装MetaMask钱包');
   }
   
-  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  const provider = new ethers.BrowserProvider(window.ethereum);
   const network = await provider.getNetwork();
   
-  if (network.chainId !== 97) {
+  if (network.chainId !== 97n) {
     throw new Error('请切换到BSC测试网');
   }
   
@@ -160,7 +160,7 @@ export const checkNetwork = async () => {
 export const connectWallet = async () => {
   try {
     await checkNetwork();
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    const provider = new ethers.BrowserProvider(window.ethereum);
     await provider.send('eth_requestAccounts', []);
     return provider.getSigner();
   } catch (error) {

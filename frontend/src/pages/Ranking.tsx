@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Row, Col, Card, Typography, Space, Tag, Table, Statistic, Tabs, Avatar } from 'antd';
+import { Row, Col, Card, Typography, Space, Tag, Table, Statistic, Tabs } from 'antd';
 import { TrophyOutlined, CrownOutlined, FireOutlined, TeamOutlined, BankOutlined } from '@ant-design/icons';
 
 const { Title, Text } = Typography;

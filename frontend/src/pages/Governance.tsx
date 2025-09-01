@@ -1,12 +1,10 @@
 import { useState } from 'react';
 import { Row, Col, Card, Button, Typography, Space, Tag, Table, Statistic, Progress, Modal, message, Tabs } from 'antd';
-import { SettingOutlined, VoteOutlined, CrownOutlined, ClockCircleOutlined, CheckCircleOutlined, CloseCircleOutlined } from '@ant-design/icons';
-import { useAccount } from 'wagmi';
+import { SettingOutlined, CrownOutlined, ClockCircleOutlined, CheckCircleOutlined } from '@ant-design/icons';
 
 const { Title, Text, Paragraph } = Typography;
 
 const Governance = () => {
-  const { address } = useAccount();
   const [activeTab, setActiveTab] = useState('active');
   const [isVoteModalVisible, setIsVoteModalVisible] = useState(false);
   const [selectedProposal, setSelectedProposal] = useState<any>(null);
@@ -163,7 +161,7 @@ const Governance = () => {
     {
       title: '操作',
       key: 'action',
-      render: (_, record: any) => (
+      render: (_: any, record: any) => (
         <Space>
           <Button 
             size="small" 
@@ -214,7 +212,7 @@ const Governance = () => {
             <Statistic
               title="活跃提案"
               value={governanceInfo.activeProposals}
-              prefix={<VoteOutlined />}
+              prefix={<SettingOutlined />}
               valueStyle={{ color: '#1890ff' }}
             />
           </Card>
@@ -258,7 +256,7 @@ const Governance = () => {
               key: 'active',
               label: (
                 <Space>
-                  <VoteOutlined />
+                  <SettingOutlined />
                   活跃提案 ({activeProposals.length})
                 </Space>
               ),
