@@ -15,7 +15,8 @@ import {
   getHCFTokenContract, 
   getStakingContract,
   getReferralContract,
-  getNodeNFTContract
+  getNodeNFTContract,
+  getExchangeContract
 } from '../utils/contracts';
 
 const { Title, Text } = Typography;
@@ -24,14 +25,16 @@ const Dashboard = () => {
   const { address, isConnected } = useAccount();
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
-    totalSupply: 0,
-    circulatingSupply: 0,
+    totalSupply: 1000000000, // 10亿初始供应
+    circulatingSupply: 1000000000,
     burned: 0,
-    price: 0,
+    price: 0.1, // HCF价格
+    priceUSD: 0.1, // USD价格
     marketCap: 0,
     holders: 0,
     totalStaked: 0,
     totalNodes: 0,
+    maxNodes: 99, // 最大节点数
   });
 
   const [userStats, setUserStats] = useState({
@@ -42,6 +45,8 @@ const Dashboard = () => {
     teamLevel: 'V0',
     ranking: 0,
   });
+
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
   // 加载合约数据
   const loadContractData = async () => {
@@ -72,32 +77,79 @@ const Dashboard = () => {
       // 获取推荐信息
       const referralInfo = await referral.getUserData(address);
       
-      // 获取节点信息（预留后续使用）
-      await nodeNFT.balanceOf(address);
+      // 获取节点数量
+      let nodeCount = 0;
+      try {
+        const totalNodes = await nodeNFT.totalSupply();
+        nodeCount = Number(totalNodes);
+      } catch (error) {
+        console.log('获取节点数量失败');
+      }
       
       // 计算流通量
       const circulatingSupply = totalSupply - burned;
       
+      // 获取价格 (从Exchange合约获取汇率)
+      let hcfPrice = 0.1; // 默认价格
+      try {
+        const exchangeContract = getExchangeContract(signer);
+        const reserves = await exchangeContract.getReserves();
+        const hcfReserve = Number(ethers.formatUnits(reserves.hcfReserve, 18));
+        const usdtReserve = Number(ethers.formatUnits(reserves.bsdtReserve, 18));
+        if (hcfReserve > 0) {
+          hcfPrice = usdtReserve / hcfReserve; // USDT/HCF 价格
+        }
+      } catch (error) {
+        console.log('获取价格失败，使用默认值');
+      }
+      
       // 设置状态
+      const totalSupplyNum = Number(ethers.formatUnits(totalSupply, 18));
+      const circulatingSupplyNum = Number(ethers.formatUnits(circulatingSupply, 18));
+      const burnedNum = Number(ethers.formatUnits(burned, 18));
+      
       setStats({
-        totalSupply: Number(ethers.formatUnits(totalSupply, 18)),
-        circulatingSupply: Number(ethers.formatUnits(circulatingSupply, 18)),
-        burned: Number(ethers.formatUnits(burned, 18)),
-        price: 0.1, // 需要从交易所合约获取实际价格
-        marketCap: Number(ethers.formatUnits(circulatingSupply, 18)) * 0.1,
-        holders: 1250, // 需要从链上事件统计
+        totalSupply: totalSupplyNum,
+        circulatingSupply: circulatingSupplyNum,
+        burned: burnedNum,
+        price: hcfPrice,
+        priceUSD: hcfPrice,
+        marketCap: circulatingSupplyNum * hcfPrice,
+        holders: 0, // 需要后端或索引器支持
         totalStaked: Number(ethers.formatUnits(totalStaked, 18)),
-        totalNodes: 45, // 需要从NFT合约获取总发行量
+        totalNodes: nodeCount,
+        maxNodes: 99,
       });
+      
+      // 计算日收益
+      const stakedAmount = Number(ethers.formatUnits(stakingInfo.amount, 18));
+      const stakingLevel = Number(stakingInfo.level);
+      let dailyReward = 0;
+      
+      if (stakingLevel > 0 && stakedAmount > 0) {
+        // 根据等级计算日收益率
+        const dailyRates = [0.004, 0.005, 0.006, 0.007, 0.008]; // 0.4%, 0.5%, 0.6%, 0.7%, 0.8%
+        const rate = dailyRates[stakingLevel - 1] || 0;
+        dailyReward = stakedAmount * rate;
+      }
       
       setUserStats({
         balance: Number(ethers.formatUnits(hcfBalance, 18)),
-        staked: Number(ethers.formatUnits(stakingInfo.amount, 18)),
-        dailyReward: Number(ethers.formatUnits(stakingInfo.pending, 18)),
+        staked: stakedAmount,
+        dailyReward: dailyReward,
         referralReward: Number(ethers.formatUnits(referralInfo.totalReferralReward, 18)),
-        teamLevel: `V${referralInfo.teamLevel}`,
-        ranking: 0, // 需要从排名合约获取
+        teamLevel: Number(referralInfo.teamLevel) > 0 ? `V${referralInfo.teamLevel}` : 'V0',
+        ranking: 0,
       });
+      
+      // 模拟交易记录（实际应从链上事件获取）
+      const mockTransactions = [
+        { key: '1', type: '质押', amount: stakedAmount > 0 ? stakedAmount.toFixed(2) : '0', time: '2分钟前', status: 'success' },
+        { key: '2', type: '领取', amount: dailyReward.toFixed(2), time: '1小时前', status: 'success' },
+        { key: '3', type: '兑换', amount: '100', time: '3小时前', status: 'success' },
+      ].filter(tx => Number(tx.amount) > 0);
+      
+      setRecentTransactions(mockTransactions);
       
     } catch (error) {
       console.error('加载数据失败:', error);
@@ -147,11 +199,15 @@ const Dashboard = () => {
                 title="HCF 价格"
                 value={stats.price}
                 prefix="$"
-                suffix="USDT"
+                suffix=""
                 valueStyle={{ color: '#3f8600' }}
                 precision={4}
               />
-              <Progress percent={75} strokeColor="#52c41a" showInfo={false} />
+              <Text type="secondary" style={{ fontSize: 12 }}>
+                24h: <Text type={stats.price > 0.1 ? "success" : "danger"}>
+                  {stats.price > 0.1 ? '+' : ''}{((stats.price - 0.1) / 0.1 * 100).toFixed(2)}%
+                </Text>
+              </Text>
             </Card>
           </Col>
           
@@ -162,6 +218,12 @@ const Dashboard = () => {
                 value={stats.marketCap}
                 prefix="$"
                 valueStyle={{ color: '#1890ff' }}
+                formatter={(value) => {
+                  const num = Number(value);
+                  if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
+                  if (num >= 1000) return `${(num / 1000).toFixed(2)}K`;
+                  return num.toFixed(2);
+                }}
               />
               <Space>
                 <RiseOutlined style={{ color: '#52c41a' }} />
@@ -195,7 +257,11 @@ const Dashboard = () => {
                 suffix="/ 99"
                 valueStyle={{ color: '#722ed1' }}
               />
-              <Progress percent={45} strokeColor="#722ed1" showInfo={false} />
+              <Progress 
+                percent={Math.round((stats.totalNodes / stats.maxNodes) * 100)} 
+                strokeColor="#722ed1" 
+                showInfo={false} 
+              />
             </Card>
           </Col>
         </Row>
@@ -293,12 +359,18 @@ const Dashboard = () => {
                     value={stats.totalStaked}
                     suffix="HCF"
                     prefix={<BankOutlined />}
+                    formatter={(value) => {
+                      const num = Number(value);
+                      if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
+                      if (num >= 1000) return `${(num / 1000).toFixed(2)}K`;
+                      return num.toFixed(0);
+                    }}
                   />
                 </Col>
                 <Col xs={12} sm={6}>
                   <Statistic
                     title="持币地址"
-                    value={stats.holders}
+                    value={stats.holders || 'N/A'}
                     prefix={<TeamOutlined />}
                   />
                 </Col>
@@ -308,6 +380,12 @@ const Dashboard = () => {
                     value={stats.circulatingSupply}
                     suffix="HCF"
                     prefix={<DollarOutlined />}
+                    formatter={(value) => {
+                      const num = Number(value);
+                      if (num >= 1000000000) return `${(num / 1000000000).toFixed(2)}B`;
+                      if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
+                      return num.toFixed(0);
+                    }}
                   />
                 </Col>
                 <Col xs={12} sm={6}>
@@ -316,6 +394,12 @@ const Dashboard = () => {
                     value={stats.totalSupply}
                     suffix="HCF"
                     prefix={<FireOutlined />}
+                    formatter={(value) => {
+                      const num = Number(value);
+                      if (num >= 1000000000) return `${(num / 1000000000).toFixed(2)}B`;
+                      if (num >= 1000000) return `${(num / 1000000).toFixed(2)}M`;
+                      return num.toFixed(0);
+                    }}
                   />
                 </Col>
               </Row>
