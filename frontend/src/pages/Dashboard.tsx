@@ -13,11 +13,9 @@ import { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
 import { 
   getHCFTokenContract, 
-  getBSDTTokenContract,
   getStakingContract,
   getReferralContract,
-  getNodeNFTContract,
-  formatNumber 
+  getNodeNFTContract
 } from '../utils/contracts';
 
 const { Title, Text } = Typography;
@@ -56,7 +54,6 @@ const Dashboard = () => {
       
       // 获取合约实例
       const hcfToken = getHCFTokenContract(signer);
-      const bsdtToken = getBSDTTokenContract(signer);
       const staking = getStakingContract(signer);
       const referral = getReferralContract(signer);
       const nodeNFT = getNodeNFTContract(signer);
@@ -75,8 +72,8 @@ const Dashboard = () => {
       // 获取推荐信息
       const referralInfo = await referral.getUserData(address);
       
-      // 获取节点信息
-      const nodeBalance = await nodeNFT.balanceOf(address);
+      // 获取节点信息（预留后续使用）
+      await nodeNFT.balanceOf(address);
       
       // 计算流通量
       const circulatingSupply = totalSupply - burned;
