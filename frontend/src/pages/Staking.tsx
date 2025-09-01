@@ -126,21 +126,50 @@ const Staking = () => {
       const hcfToken = getHCFTokenContract(signer);
       const stakingContract = getStakingContract(signer);
       
+      // 检查余额
+      const currentBalance = await hcfToken.balanceOf(address);
+      console.log('当前HCF余额:', ethers.formatUnits(currentBalance, 18));
+      
+      if (currentBalance < parseNumber(stakeAmount.toString(), 18)) {
+        message.error('余额不足！');
+        setStaking(false);
+        return;
+      }
+      
       // 检查授权
-      const allowance = await hcfToken.allowance(address, await stakingContract.getAddress());
+      const stakingAddress = await stakingContract.getAddress();
+      const allowance = await hcfToken.allowance(address, stakingAddress);
       const stakeAmountWei = parseNumber(stakeAmount.toString(), 18);
       
+      // 如果授权不足，授权一个较大的额度（避免每次都要授权）
       if (allowance < stakeAmountWei) {
         message.info('授权中...');
-        const approveTx = await hcfToken.approve(await stakingContract.getAddress(), stakeAmountWei);
+        // 授权10倍的质押额度或至少10000 HCF
+        const approveAmount = stakeAmountWei * BigInt(10) > parseNumber('10000', 18) 
+          ? stakeAmountWei * BigInt(10) 
+          : parseNumber('10000', 18);
+        
+        const approveTx = await hcfToken.approve(stakingAddress, approveAmount);
         await waitForTransaction(approveTx);
         message.success('授权成功');
+        
+        // 等待一下确保授权生效
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
       
       // 执行质押
       message.info('质押中...');
+      console.log('质押参数:', {
+        amount: stakeAmount,
+        amountWei: stakeAmountWei.toString(),
+        stakingContract: stakingAddress
+      });
+      
       const stakeTx = await stakingContract.stake(stakeAmountWei);
-      await waitForTransaction(stakeTx);
+      console.log('质押交易发送:', stakeTx.hash);
+      
+      const receipt = await waitForTransaction(stakeTx);
+      console.log('质押交易完成:', receipt);
       
       message.success(`成功质押 ${stakeAmount} HCF`);
       setIsStakeModalVisible(false);
