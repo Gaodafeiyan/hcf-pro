@@ -5,7 +5,7 @@ import { useAccount } from 'wagmi';
 import { ethers } from 'ethers';
 import { 
   getHCFTokenContract,
-  getBSDTTokenContract,
+  getUSDTTokenContract,
   getExchangeContract,
   parseNumber,
   waitForTransaction,
@@ -19,18 +19,18 @@ const Exchange = () => {
   const [loading, setLoading] = useState(false);
   const [swapping, setSwapping] = useState(false);
   const [swapAmount, setSwapAmount] = useState<number>(100);
-  const [swapDirection, setSwapDirection] = useState<'hcf2bsdt' | 'bsdt2hcf'>('hcf2bsdt');
+  const [swapDirection, setSwapDirection] = useState<'hcf2usdt' | 'usdt2hcf'>('hcf2usdt');
   const [isSwapModalVisible, setIsSwapModalVisible] = useState(false);
   
   const [balances, setBalances] = useState({
     hcf: 0,
-    bsdt: 0
+    usdt: 0
   });
   
   const [exchangeInfo, setExchangeInfo] = useState({
     hcfPrice: 0.1,
-    bsdtPrice: 1.0,
-    exchangeRate: 10, // 1 BSDT = 10 HCF
+    usdtPrice: 1.0,
+    exchangeRate: 10, // 1 USDT = 10 HCF
     slippage: 0.5,
     minSwap: 10,
     maxSwap: 10000,
@@ -48,31 +48,36 @@ const Exchange = () => {
       const signer = await provider.getSigner();
       
       const hcfToken = getHCFTokenContract(signer);
-      const bsdtToken = getBSDTTokenContract(signer);
+      const usdtToken = getUSDTTokenContract(signer);
       const exchangeContract = getExchangeContract(signer);
       
       // 获取余额
-      const [hcfBal, bsdtBal] = await Promise.all([
+      const [hcfBal, usdtBal] = await Promise.all([
         hcfToken.balanceOf(address),
-        bsdtToken.balanceOf(address)
+        usdtToken.balanceOf(address)
       ]);
       
       setBalances({
         hcf: Number(ethers.formatUnits(hcfBal, 18)),
-        bsdt: Number(ethers.formatUnits(bsdtBal, 18))
+        usdt: Number(ethers.formatUnits(usdtBal, 18))
       });
       
-      // 获取兑换率和滑点
+      // 获取兑换信息
       try {
-        const [rate, slippage] = await Promise.all([
-          exchangeContract.getExchangeRate(),
-          exchangeContract.getSlippage()
+        const [reserves, sellFee] = await Promise.all([
+          exchangeContract.getReserves(),
+          exchangeContract.sellFeeRate()
         ]);
+        
+        // 计算兑换率 (HCF/USDT比率)
+        const hcfReserve = Number(ethers.formatUnits(reserves.hcfReserve, 18));
+        const usdtReserve = Number(ethers.formatUnits(reserves.usdtReserve, 18));
+        const rate = usdtReserve > 0 ? hcfReserve / usdtReserve : 10;
         
         setExchangeInfo(prev => ({
           ...prev,
-          exchangeRate: Number(rate) / 100, // 假设合约返回的是百分比
-          slippage: Number(slippage) / 100
+          exchangeRate: rate,
+          slippage: Number(sellFee) / 100 // sellFeeRate是基点，除以100得到百分比
         }));
       } catch (error) {
         console.log('获取兑换信息失败，使用默认值');
@@ -94,17 +99,20 @@ const Exchange = () => {
   }, [isConnected, address]);
 
   const calculateOutput = (input: number, direction: string) => {
-    const slippageFactor = 1 - exchangeInfo.slippage / 100;
-    if (direction === 'hcf2bsdt') {
-      return (input / exchangeInfo.exchangeRate) * slippageFactor;
+    if (direction === 'hcf2usdt') {
+      // HCF换USDT，扣除3%手续费
+      const feeRate = exchangeInfo.slippage / 100;
+      const afterFee = input * (1 - feeRate);
+      return afterFee / exchangeInfo.exchangeRate; // HCF价格相对于USDT
     } else {
-      return (input * exchangeInfo.exchangeRate) * slippageFactor;
+      // USDT换HCF，无手续费
+      return input * exchangeInfo.exchangeRate;
     }
   };
 
   const handleSwap = () => {
-    const sourceToken = swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT';
-    const sourceBalance = swapDirection === 'hcf2bsdt' ? balances.hcf : balances.bsdt;
+    const sourceToken = swapDirection === 'hcf2usdt' ? 'HCF' : 'USDT';
+    const sourceBalance = swapDirection === 'hcf2usdt' ? balances.hcf : balances.usdt; // 注：usdt余额实际是USDT
     
     if (swapAmount < exchangeInfo.minSwap) {
       message.error(`最小兑换数量为 ${exchangeInfo.minSwap} ${sourceToken}`);
@@ -133,14 +141,14 @@ const Exchange = () => {
       const signer = await provider.getSigner();
       
       const hcfToken = getHCFTokenContract(signer);
-      const bsdtToken = getBSDTTokenContract(signer);
+      const usdtToken = getUSDTTokenContract(signer);
       const exchangeContract = getExchangeContract(signer);
       const exchangeAddress = await exchangeContract.getAddress();
       
       const swapAmountWei = parseNumber(swapAmount.toString(), 18);
       
-      if (swapDirection === 'hcf2bsdt') {
-        // HCF -> BSDT
+      if (swapDirection === 'hcf2usdt') {
+        // HCF -> USDT (实际上USDT和USDT 1:1锚定)
         // 先授权HCF
         message.info('授权HCF...');
         const approveTx = await hcfToken.approve(exchangeAddress, swapAmountWei);
@@ -148,24 +156,24 @@ const Exchange = () => {
         
         // 执行兑换
         message.info('兑换中...');
-        const swapTx = await exchangeContract.swapHCFToBSDT(swapAmountWei);
+        const swapTx = await exchangeContract.swapHCFToUSDT(swapAmountWei);
         await waitForTransaction(swapTx);
         
       } else {
-        // BSDT -> HCF
-        // 先授权BSDT
-        message.info('授权BSDT...');
-        const approveTx = await bsdtToken.approve(exchangeAddress, swapAmountWei);
+        // USDT -> HCF (使用USDT作为USDT)
+        // 先授权USDT（作为USDT）
+        message.info('授权USDT...');
+        const approveTx = await usdtToken.approve(exchangeAddress, swapAmountWei);
         await waitForTransaction(approveTx);
         
         // 执行兑换
         message.info('兑换中...');
-        const swapTx = await exchangeContract.swapBSDTToHCF(swapAmountWei);
+        const swapTx = await exchangeContract.swapUSDTToHCF(swapAmountWei);
         await waitForTransaction(swapTx);
       }
       
       const output = calculateOutput(swapAmount, swapDirection);
-      message.success(`成功兑换 ${swapAmount} ${swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'} 获得 ${output.toFixed(2)} ${swapDirection === 'hcf2bsdt' ? 'BSDT' : 'HCF'}`);
+      message.success(`成功兑换 ${swapAmount} ${swapDirection === 'hcf2usdt' ? 'HCF' : 'USDT'} 获得 ${output.toFixed(2)} ${swapDirection === 'hcf2usdt' ? 'USDT' : 'HCF'}`);
       
       setIsSwapModalVisible(false);
       
@@ -192,8 +200,8 @@ const Exchange = () => {
   return (
     <Spin spinning={loading}>
       <div>
-        <Title level={2}>BSDT 兑换</Title>
-        <Text type="secondary">HCF 与 BSDT 稳定币之间的兑换</Text>
+        <Title level={2}>USDT 兑换</Title>
+        <Text type="secondary">HCF 与 USDT 稳定币之间的兑换</Text>
 
         <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
           <Col xs={24} sm={12} lg={6}>
@@ -212,8 +220,8 @@ const Exchange = () => {
           <Col xs={24} sm={12} lg={6}>
             <Card>
               <Statistic
-                title="BSDT 价格"
-                value={exchangeInfo.bsdtPrice}
+                title="USDT 价格"
+                value={exchangeInfo.usdtPrice}
                 prefix="$"
                 suffix="USDT"
                 valueStyle={{ color: '#1890ff' }}
@@ -227,7 +235,7 @@ const Exchange = () => {
               <Statistic
                 title="兑换汇率"
                 value={exchangeInfo.exchangeRate}
-                suffix="HCF/BSDT"
+                suffix="HCF/USDT"
                 valueStyle={{ color: '#722ed1' }}
               />
             </Card>
@@ -255,7 +263,7 @@ const Exchange = () => {
                   <div style={{ marginTop: 8 }}>
                     <Space>
                       <Tag color="blue">HCF: {balances.hcf.toFixed(2)}</Tag>
-                      <Tag color="green">BSDT: {balances.bsdt.toFixed(2)}</Tag>
+                      <Tag color="green">USDT: {balances.usdt.toFixed(2)}</Tag>
                     </Space>
                   </div>
                 </div>
@@ -265,16 +273,16 @@ const Exchange = () => {
                   <div style={{ marginTop: 8 }}>
                     <Space>
                       <Button
-                        type={swapDirection === 'hcf2bsdt' ? 'primary' : 'default'}
-                        onClick={() => setSwapDirection('hcf2bsdt')}
+                        type={swapDirection === 'hcf2usdt' ? 'primary' : 'default'}
+                        onClick={() => setSwapDirection('hcf2usdt')}
                       >
-                        HCF → BSDT
+                        HCF → USDT
                       </Button>
                       <Button
-                        type={swapDirection === 'bsdt2hcf' ? 'primary' : 'default'}
-                        onClick={() => setSwapDirection('bsdt2hcf')}
+                        type={swapDirection === 'usdt2hcf' ? 'primary' : 'default'}
+                        onClick={() => setSwapDirection('usdt2hcf')}
                       >
-                        BSDT → HCF
+                        USDT → HCF
                       </Button>
                     </Space>
                   </div>
@@ -288,11 +296,11 @@ const Exchange = () => {
                     min={exchangeInfo.minSwap}
                     max={Math.min(
                       exchangeInfo.maxSwap,
-                      swapDirection === 'hcf2bsdt' ? balances.hcf : balances.bsdt
+                      swapDirection === 'hcf2usdt' ? balances.hcf : balances.usdt
                     )}
                     value={swapAmount}
                     onChange={(value) => setSwapAmount(value || 100)}
-                    formatter={(value) => `${value} ${swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'}`}
+                    formatter={(value) => `${value} ${swapDirection === 'hcf2usdt' ? 'HCF' : 'USDT'}`}
                     parser={(value) => Number(value!.replace(/[^\d.]/g, '')) || 0}
                   />
                 </div>
@@ -300,7 +308,7 @@ const Exchange = () => {
                 <div>
                   <Text>预计获得</Text>
                   <Title level={3} style={{ margin: '8px 0', color: '#52c41a' }}>
-                    {calculateOutput(swapAmount, swapDirection).toFixed(4)} {swapDirection === 'hcf2bsdt' ? 'BSDT' : 'HCF'}
+                    {calculateOutput(swapAmount, swapDirection).toFixed(4)} {swapDirection === 'hcf2usdt' ? 'USDT' : 'HCF'}
                   </Title>
                   <Text type="secondary">
                     (已扣除 {exchangeInfo.slippage}% 滑点)
@@ -324,9 +332,9 @@ const Exchange = () => {
             <Card title="兑换说明" extra={<InfoCircleOutlined />}>
               <Space direction="vertical" size="middle">
                 <div>
-                  <Title level={5}>BSDT 稳定币</Title>
+                  <Title level={5}>USDT 稳定币</Title>
                   <Paragraph type="secondary">
-                    BSDT 是与 USDT 1:1 锚定的稳定币，提供稳定的价值存储和交易媒介。
+                    USDT 是与美元 1:1 锚定的稳定币，提供稳定的价值存储和交易媒介。
                   </Paragraph>
                 </div>
 
@@ -370,24 +378,24 @@ const Exchange = () => {
             <div>
               <Text>兑换方向</Text>
               <Title level={4}>
-                {swapDirection === 'hcf2bsdt' ? 'HCF → BSDT' : 'BSDT → HCF'}
+                {swapDirection === 'hcf2usdt' ? 'HCF → USDT' : 'USDT → HCF'}
               </Title>
             </div>
             <div>
               <Text>支付数量</Text>
               <Title level={3}>
-                {swapAmount} {swapDirection === 'hcf2bsdt' ? 'HCF' : 'BSDT'}
+                {swapAmount} {swapDirection === 'hcf2usdt' ? 'HCF' : 'USDT'}
               </Title>
             </div>
             <div>
               <Text>预计获得</Text>
               <Title level={3} style={{ color: '#52c41a' }}>
-                {calculateOutput(swapAmount, swapDirection).toFixed(4)} {swapDirection === 'hcf2bsdt' ? 'BSDT' : 'HCF'}
+                {calculateOutput(swapAmount, swapDirection).toFixed(4)} {swapDirection === 'hcf2usdt' ? 'USDT' : 'HCF'}
               </Title>
             </div>
             <div>
               <Text type="secondary">
-                汇率: 1 BSDT = {exchangeInfo.exchangeRate} HCF<br />
+                汇率: 1 USDT = {exchangeInfo.exchangeRate} HCF<br />
                 滑点: {exchangeInfo.slippage}%
               </Text>
             </div>

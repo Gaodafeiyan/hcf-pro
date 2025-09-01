@@ -57,10 +57,13 @@ const REFERRAL_ABI = [
 ];
 
 const EXCHANGE_ABI = [
-  'function swapHCFToBSDT(uint256 hcfAmount)',
-  'function swapBSDTToHCF(uint256 bsdtAmount)',
-  'function getExchangeRate() view returns (uint256)',
-  'function getSlippage() view returns (uint256)',
+  'function swapHCFToUSDT(uint256 hcfAmount) returns (uint256)',
+  'function swapUSDTToHCF(uint256 usdtAmount) returns (uint256)',
+  'function getReserves() view returns (uint256 hcfReserve, uint256 bsdtReserve)',
+  'function sellFeeRate() view returns (uint256)',
+  'function minSlippage() view returns (uint256)',
+  'function maxSlippage() view returns (uint256)',
+  'function addLiquidity(uint256 hcfAmount, uint256 bsdtAmount, bool isEquityLP) returns (uint256)',
 ];
 
 // 获取合约实例
@@ -74,8 +77,13 @@ export const getHCFTokenContract = (signer?: ethers.Signer) => {
   return getContract(CONTRACT_ADDRESSES.HCFToken, HCF_TOKEN_ABI, signer);
 };
 
-// BSDT代币合约
+// BSDT代币合约 (实际上用作USDT)
 export const getBSDTTokenContract = (signer?: ethers.Signer) => {
+  return getContract(CONTRACT_ADDRESSES.BSDT, BSDT_TOKEN_ABI, signer);
+};
+
+// USDT代币合约 (使用BSDT地址，因为合约中BSDT就是稳定币)
+export const getUSDTTokenContract = (signer?: ethers.Signer) => {
   return getContract(CONTRACT_ADDRESSES.BSDT, BSDT_TOKEN_ABI, signer);
 };
 
