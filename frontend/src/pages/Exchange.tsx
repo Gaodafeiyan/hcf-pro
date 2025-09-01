@@ -160,8 +160,8 @@ const Exchange = () => {
         await waitForTransaction(swapTx);
         
       } else {
-        // USDT -> HCF (使用USDT作为USDT)
-        // 先授权USDT（作为USDT）
+        // USDT -> HCF
+        // 先授权USDT
         message.info('授权USDT...');
         const approveTx = await usdtToken.approve(exchangeAddress, swapAmountWei);
         await waitForTransaction(approveTx);

@@ -81,9 +81,18 @@ export const getBSDTTokenContract = (signer?: ethers.Signer) => {
   return getContract(CONTRACT_ADDRESSES.BSDT, BSDT_TOKEN_ABI, signer);
 };
 
-// USDT代币合约 (使用BSDT地址，因为合约中BSDT就是稳定币)
+// USDT代币合约 (使用真实的BSC Testnet USDT)
 export const getUSDTTokenContract = (signer?: ethers.Signer) => {
-  return getContract(CONTRACT_ADDRESSES.BSDT, BSDT_TOKEN_ABI, signer);
+  // BSC Testnet USDT 使用标准ERC20 ABI
+  const USDT_ABI = [
+    'function balanceOf(address) view returns (uint256)',
+    'function transfer(address, uint256) returns (bool)',
+    'function approve(address, uint256) returns (bool)',
+    'function allowance(address, address) view returns (uint256)',
+    'function decimals() view returns (uint8)',
+    'function totalSupply() view returns (uint256)',
+  ];
+  return getContract(CONTRACT_ADDRESSES.USDT, USDT_ABI, signer);
 };
 
 // 质押合约
