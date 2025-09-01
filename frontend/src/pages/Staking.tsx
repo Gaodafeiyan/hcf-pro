@@ -62,7 +62,7 @@ const Staking = () => {
       const userInfo = await stakingContract.getUserInfo(address);
       
       // 解析返回值 (9个值)
-      const [amount, level, pending, totalClaimed, isLP, compoundCount, isEquityLP, lpHCFAmount, lpBSDTAmount] = userInfo;
+      const [amount, level, pending, totalClaimed, isLP, compoundCount, isEquityLP] = userInfo;
       
       // 计算质押天数 (暂时使用当前时间，因为合约没有返回stakingTime)
       const stakingDays = Number(amount) > 0 ? 1 : 0; // 简化处理
