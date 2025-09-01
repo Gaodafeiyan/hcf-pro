@@ -393,8 +393,29 @@
         </div>
     </div>
 
-    <!-- 加载Ethers.js -->
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <!-- 加载Ethers.js - 使用可靠的CDN -->
+    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    
+    <!-- 备用CDN -->
+    <script>
+        // 检查ethers是否加载成功
+        window.addEventListener('load', function() {
+            if (typeof ethers === 'undefined') {
+                console.log('主CDN失败，尝试备用CDN...');
+                var script = document.createElement('script');
+                script.src = 'https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js';
+                script.onload = function() {
+                    console.log('Ethers.js 加载成功 (备用CDN)');
+                };
+                script.onerror = function() {
+                    alert('无法加载 Ethers.js 库，请检查网络连接');
+                };
+                document.head.appendChild(script);
+            } else {
+                console.log('Ethers.js 加载成功');
+            }
+        });
+    </script>
     
     <script>
         // 合约地址
