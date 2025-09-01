@@ -1,3 +1,4 @@
+import React from 'react';
 import { Layout, Menu, Space, Typography, Badge, Drawer, Button } from 'antd';
 import { Link, useLocation } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
@@ -33,6 +34,16 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
   const location = useLocation();
   const { address, isConnected } = useAccount();
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  
+  // 监听窗口大小变化
+  React.useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
   
   const { data: hcfBalance } = useBalance({
     address,
@@ -65,8 +76,10 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
         className="desktop-sider"
         style={{ 
           background: '#001529',
-          display: window.innerWidth > 768 ? 'block' : 'none'
+          display: !isMobile ? 'block' : 'none'
         }}
+        breakpoint="lg"
+        collapsedWidth="0"
       >
         <div style={{ 
           height: 64, 
@@ -132,13 +145,14 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
           zIndex: 100
         }}>
           <Space>
-            <Button
-              type="text"
-              icon={<MenuOutlined style={{ color: '#fff', fontSize: 20 }} />}
-              onClick={() => setDrawerVisible(true)}
-              style={{ display: window.innerWidth <= 768 ? 'block' : 'none' }}
-            />
-            {window.innerWidth > 768 && (
+            {isMobile && (
+              <Button
+                type="text"
+                icon={<MenuOutlined style={{ color: '#fff', fontSize: 20 }} />}
+                onClick={() => setDrawerVisible(true)}
+              />
+            )}
+            {!isMobile && (
               <Title level={4} style={{ margin: 0, color: '#fff' }}>
                 {menuItems.find(item => item.key === location.pathname)?.label || '仪表盘'}
               </Title>
@@ -146,7 +160,7 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
           </Space>
           
           <Space size="middle">
-            {isConnected && window.innerWidth > 576 && (
+            {isConnected && !isMobile && (
               <Space>
                 <Badge 
                   count={hcfBalance ? `${Number(hcfBalance.formatted).toFixed(2)} HCF` : '0 HCF'} 

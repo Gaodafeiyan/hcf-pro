@@ -67,7 +67,7 @@ const Staking = () => {
       <Text type="secondary">质押 HCF 获取稳定收益</Text>
 
       <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
-        <Col xs={24} lg={8}>
+        <Col xs={24} md={24} lg={8}>
           <Card title="我的质押信息" extra={<BankOutlined />}>
             <Space direction="vertical" style={{ width: '100%' }} size="large">
               <div>
@@ -119,19 +119,25 @@ const Staking = () => {
           </Card>
         </Col>
 
-        <Col xs={24} lg={16}>
+        <Col xs={24} md={24} lg={16}>
           <Card title="质押等级" extra={<RocketOutlined />}>
             <Row gutter={[16, 16]}>
               {STAKING_LEVELS.map((level, index) => (
-                <Col xs={24} sm={12} lg={8} key={index}>
+                <Col xs={24} sm={12} md={8} lg={8} key={index}>
                   <Card
                     size="small"
                     style={{
-                      borderColor: selectedLevel === index ? level.color : undefined,
+                      borderColor: selectedLevel === index ? level.color : '#303030',
                       borderWidth: selectedLevel === index ? 2 : 1,
                       cursor: 'pointer',
+                      transition: 'all 0.3s',
+                      background: selectedLevel === index ? 'rgba(24, 144, 255, 0.1)' : 'transparent'
                     }}
-                    onClick={() => setSelectedLevel(index)}
+                    onClick={() => {
+                      setSelectedLevel(index);
+                      setStakeAmount(level.minAmount);
+                    }}
+                    hoverable
                   >
                     <Space direction="vertical" style={{ width: '100%' }}>
                       <Tag color={level.color}>等级 {level.level}</Tag>
@@ -151,7 +157,13 @@ const Staking = () => {
               ))}
             </Row>
 
-            <Card style={{ marginTop: 16, background: '#1f1f1f' }}>
+            <Card 
+              style={{ 
+                marginTop: 16, 
+                background: '#1f1f1f',
+                border: '1px solid #303030'
+              }}
+            >
               <Title level={4}>新增质押</Title>
               <Space direction="vertical" style={{ width: '100%' }} size="large">
                 <div>
@@ -206,6 +218,7 @@ const Staking = () => {
           <Card title="质押记录" extra={<ClockCircleOutlined />}>
             <Table
               dataSource={stakingHistory}
+              scroll={{ x: 600 }}
               columns={[
                 {
                   title: '操作',
@@ -264,9 +277,11 @@ const Staking = () => {
 
       <Modal
         title="确认质押"
-        visible={isStakeModalVisible}
+        open={isStakeModalVisible}
         onOk={confirmStake}
         onCancel={() => setIsStakeModalVisible(false)}
+        okText="确认"
+        cancelText="取消"
       >
         <Space direction="vertical" style={{ width: '100%' }}>
           <div>

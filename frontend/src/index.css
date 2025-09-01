@@ -24,17 +24,37 @@ body {
   min-height: 100vh;
 }
 
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1f1f1f;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #434343;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 /* 覆盖Ant Design默认样式 */
 .ant-layout {
   min-height: 100vh;
-  background: #141414 !important;
+  background: #000000 !important;
 }
 
 .ant-layout-sider {
   background: #001529 !important;
   overflow: auto;
   height: 100vh;
-  position: fixed;
+  position: relative;
   left: 0;
   top: 0;
   bottom: 0;
@@ -48,20 +68,127 @@ body {
   justify-content: space-between;
   position: sticky;
   top: 0;
-  z-index: 10;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .ant-layout-content {
-  margin-left: 220px;
-  background: #141414 !important;
+  background: #000000 !important;
   overflow: initial;
+  padding: 24px;
 }
 
 /* 卡片样式 */
 .ant-card {
-  background: #1f1f1f !important;
-  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  background: #141414 !important;
+  border: 1px solid #303030 !important;
   border-radius: 8px;
+  transition: all 0.3s;
+}
+
+.ant-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.ant-card-head {
+  border-bottom: 1px solid #303030 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+/* 按钮样式优化 */
+.ant-btn {
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  transition: all 0.3s !important;
+}
+
+.ant-btn-primary {
+  background: #1890ff !important;
+  border-color: #1890ff !important;
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3) !important;
+}
+
+.ant-btn-primary:hover:not(:disabled) {
+  background: #40a9ff !important;
+  border-color: #40a9ff !important;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.5) !important;
+  transform: translateY(-2px);
+}
+
+.ant-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* 表格样式 */
+.ant-table {
+  background: transparent !important;
+}
+
+.ant-table-thead > tr > th {
+  background: #1f1f1f !important;
+  border-bottom: 1px solid #303030 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.ant-table-tbody > tr > td {
+  border-bottom: 1px solid #303030 !important;
+  color: rgba(255, 255, 255, 0.65) !important;
+}
+
+.ant-table-tbody > tr:hover > td {
+  background: rgba(255, 255, 255, 0.04) !important;
+}
+
+/* Modal样式 */
+.ant-modal-content {
+  background: #1f1f1f !important;
+}
+
+.ant-modal-header {
+  background: #1f1f1f !important;
+  border-bottom: 1px solid #303030 !important;
+}
+
+.ant-modal-title {
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.ant-modal-footer {
+  border-top: 1px solid #303030 !important;
+  background: #1f1f1f !important;
+}
+
+/* 输入框样式 */
+.ant-input,
+.ant-input-number,
+.ant-select-selector {
+  background: #1f1f1f !important;
+  border: 1px solid #303030 !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+}
+
+.ant-input:hover,
+.ant-input-number:hover,
+.ant-select-selector:hover {
+  border-color: #1890ff !important;
+}
+
+.ant-input:focus,
+.ant-input-number:focus,
+.ant-select-focused .ant-select-selector {
+  border-color: #1890ff !important;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2) !important;
+}
+
+/* Tag样式 */
+.ant-tag {
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+/* Badge样式 */
+.ant-badge-count {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
 }
 
 /* 响应式设计 */
