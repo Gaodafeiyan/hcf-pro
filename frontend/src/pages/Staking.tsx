@@ -105,6 +105,13 @@ const Staking = () => {
       message.error('最小质押数量为 100 HCF');
       return;
     }
+    
+    // 1000 HCF以上必须是100的倍数
+    if (stakeAmount >= 1000 && stakeAmount % 100 !== 0) {
+      message.error('1000 HCF以上的质押数量必须是100的倍数');
+      return;
+    }
+    
     if (stakeAmount > balance) {
       message.error('余额不足');
       return;
@@ -165,7 +172,9 @@ const Staking = () => {
         stakingContract: stakingAddress
       });
       
-      const stakeTx = await stakingContract.stake(stakeAmountWei);
+      // stake函数需要3个参数: amount, isLP, isEquity
+      // 普通质押: isLP=false, isEquity=false
+      const stakeTx = await stakingContract.stake(stakeAmountWei, false, false);
       console.log('质押交易发送:', stakeTx.hash);
       
       const receipt = await waitForTransaction(stakeTx);

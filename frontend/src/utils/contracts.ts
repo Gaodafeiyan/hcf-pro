@@ -32,11 +32,13 @@ const BSDT_TOKEN_ABI = [
 
 const STAKING_ABI = [
   'function getUserInfo(address user) view returns (uint256 amount, uint256 level, uint256 pending, uint256 totalClaimed, bool isLP, uint256 compoundCount, bool isEquityLP, uint256 lpHCFAmount, uint256 lpBSDTAmount, uint256 lastUpdate, uint256[7] buyHistory, uint256 sharingTotal, uint256 lastClaimTime, uint256 stakingTime)',
-  'function stake(uint256 amount)',
-  'function unstake(uint256 amount)',
+  'function stake(uint256 amount, bool isLP, bool isEquity)',
+  'function withdraw(uint256 amount)',
   'function claim()',
+  'function compound()',
   'function getDailyRate(uint256 level) view returns (uint256)',
   'function getTotalStaked() view returns (uint256)',
+  'function levels(uint256) view returns (uint256 minAmount, uint256 baseRate, uint256 lpRate, uint256 maxPositions, uint256 compoundUnit)',
 ];
 
 const NODE_NFT_ABI = [
