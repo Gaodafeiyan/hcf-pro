@@ -32,16 +32,14 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
     uint256 public constant PRICE_THRESHOLD = 1.3 * 10**18;     // 价格阈值1.3U
     uint256 public constant DEFAULT_MAX_LP = 1000 * 10**18;     // 默认最大LP 1000 HCF
     
-    // 节点等级门槛
-    uint256[4] public LEVEL_THRESHOLDS = [
+    // 节点等级门槛（只有轻量级和超级）
+    uint256[2] public LEVEL_THRESHOLDS = [
         10000 * 10**18,    // 轻量级: 1万 HCF
-        50000 * 10**18,    // 中级: 5万 HCF
-        200000 * 10**18,   // 高级: 20万 HCF
         500000 * 10**18    // 超级: 50万 HCF
     ];
     
     // 等级名称
-    string[4] public LEVEL_NAMES = ["Light", "Medium", "Advanced", "Super"];
+    string[2] public LEVEL_NAMES = ["Light", "Super"];
     
     // ============ 状态变量 ============
     IERC20 public hcfToken;
@@ -383,15 +381,11 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
         
         uint256 oldLevel = node.level;
         
-        // 根据持币量确定等级
-        if (balance >= LEVEL_THRESHOLDS[3]) {
-            node.level = 4;    // 超级
-        } else if (balance >= LEVEL_THRESHOLDS[2]) {
-            node.level = 3;    // 高级
-        } else if (balance >= LEVEL_THRESHOLDS[1]) {
-            node.level = 2;    // 中级
+        // 根据持币量确定等级（只有两级）
+        if (balance >= LEVEL_THRESHOLDS[1]) {
+            node.level = 2;    // 超级：50万HCF
         } else if (balance >= LEVEL_THRESHOLDS[0]) {
-            node.level = 1;    // 轻量
+            node.level = 1;    // 轻量：1万HCF
         } else {
             node.level = 0;    // 无等级
         }
@@ -406,10 +400,8 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
      */
     function _getLevelBonus(uint256 level) private pure returns (uint256) {
         if (level == 0) return 0;
-        if (level == 1) return 500;     // +5%
-        if (level == 2) return 1000;    // +10%
-        if (level == 3) return 1500;    // +15%
-        if (level == 4) return 2000;    // +20%
+        if (level == 1) return 2000;    // 轻量级+20%
+        if (level == 2) return 2000;    // 超级+20%
         return 0;
     }
     
@@ -433,13 +425,9 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
         if (!node.isActive) return 0;
         
         // 超级节点+500分
-        if (node.level == 4) return 500;
-        // 高级节点+300分
-        if (node.level == 3) return 300;
-        // 中级节点+150分
-        if (node.level == 2) return 150;
-        // 轻量节点+50分
-        if (node.level == 1) return 50;
+        if (node.level == 2) return 500;
+        // 轻量节点+500分（两级都加500分）
+        if (node.level == 1) return 500;
         
         return 0;
     }

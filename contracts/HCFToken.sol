@@ -17,7 +17,7 @@ interface IMultiSigWallet {
 contract HCFToken is ERC20, Ownable, ReentrancyGuard {
     
     // ============ 常量 ============
-    uint256 public constant TOTAL_SUPPLY = 1_000_000_000 * 10**18;  // 总量10亿（潜在最大值）
+    uint256 public constant TOTAL_SUPPLY = 1_000_000_000 * 10**18;  // 总量10亿（固定）
     uint256 public constant INITIAL_RELEASE = 10_000_000 * 10**18;  // 首发1000万
     uint256 public constant RESERVE_FUND = 9_000_000 * 10**18;     // 储备底池900万
     uint256 public constant BURN_STOP_SUPPLY = 990_000 * 10**18;   // 销毁停止在99万
@@ -133,9 +133,13 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         require(to != address(0), "Transfer to zero address");
         require(amount > 0, "Transfer amount must be greater than zero");
         
-        // 检查最小余额要求（发送方必须保留0.0001）
+        // 检查最小余额要求（发送方必须保留0.0001，无法转账/交易）
         if (from != address(this) && from != multiSigWallet && !isExcludedFromTax[from]) {
             require(balanceOf(from) >= amount + MIN_BALANCE, "Must keep minimum balance");
+            // 如果余额接近最小值，禁止交易
+            if (balanceOf(from) - amount <= MIN_BALANCE) {
+                revert("Balance too low to transfer");
+            }
         }
         
         uint256 taxAmount = 0;

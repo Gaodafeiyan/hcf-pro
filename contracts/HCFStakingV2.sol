@@ -46,7 +46,7 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
     address public lpPool;
     
     // 基础日化收益率 (基点，10000 = 100%)
-    uint256[5] public baseDailyRates = [40, 50, 60, 70, 80]; // 0.4%-0.8%
+    uint256[5] public baseDailyRates = [40, 40, 50, 60, 80]; // VIP1:0.4%, VIP2:0.4%, VIP3:0.5%, VIP4:0.6%, VIP5:0.8%
     
     // 全局参数
     uint256 public totalStaked;

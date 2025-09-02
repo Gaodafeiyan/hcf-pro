@@ -140,13 +140,13 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
         hcfToken = IERC20(_hcfToken);
         stakingContract = IHCFStaking(_stakingContract);
         
-        // 初始化团队V级要求
+        // 初始化团队V级要求（正确的下级V要求）
         teamRequirements[0] = TeamRequirement(2000 * 10**18, 0, 600);          // V1: 2000 HCF, 6%
-        teamRequirements[1] = TeamRequirement(10000 * 10**18, 1, 1200);        // V2: 1万 HCF, 需要V1, 12%
-        teamRequirements[2] = TeamRequirement(100000 * 10**18, 2, 1800);       // V3: 10万 HCF, 需要V2, 18%
-        teamRequirements[3] = TeamRequirement(1000000 * 10**18, 3, 2400);      // V4: 100万 HCF, 需要V3, 24%
-        teamRequirements[4] = TeamRequirement(5000000 * 10**18, 4, 3000);      // V5: 500万 HCF, 需要V4, 30%
-        teamRequirements[5] = TeamRequirement(20000000 * 10**18, 5, 3600);     // V6: 2000万 HCF, 需要V5, 36%
+        teamRequirements[1] = TeamRequirement(20000 * 10**18, 2, 1200);        // V2: 2万 HCF, 需要2个V1, 12%
+        teamRequirements[2] = TeamRequirement(100000 * 10**18, 2, 1800);       // V3: 10万 HCF, 需要2个V2, 18%
+        teamRequirements[3] = TeamRequirement(500000 * 10**18, 3, 2400);       // V4: 50万 HCF, 需要3个V3, 24%
+        teamRequirements[4] = TeamRequirement(3000000 * 10**18, 3, 3000);      // V5: 300万 HCF, 需要3个V4, 30%
+        teamRequirements[5] = TeamRequirement(20000000 * 10**18, 3, 3600);     // V6: 2000万 HCF, 需要3个V5, 36%
     }
     
     // ============ 推荐功能 ============
@@ -409,14 +409,18 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
     }
     
     /**
-     * @dev 检查是否有指定等级的下级V
+     * @dev 检查是否有指定等级的下级V（需要多个）
      */
     function _hasSubordinateV(address user, uint256 requiredV) private view returns (bool) {
         if (requiredV == 0) return true;
         
+        uint256 count = 0;
+        uint256 requiredCount = requiredV <= 2 ? 2 : 3; // V1-V3需要2个，V4-V6需要3个
+        
         for (uint256 i = 0; i < directReferrals[user].length; i++) {
             if (teamLevel[directReferrals[user][i]] >= requiredV) {
-                return true;
+                count++;
+                if (count >= requiredCount) return true;
             }
         }
         
