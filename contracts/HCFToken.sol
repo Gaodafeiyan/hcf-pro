@@ -54,6 +54,8 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
     
     // ============ 状态变量 ============
     uint256 public totalBurned;
+    uint256 public deployTime;  // 部署时间，用于10年锁仓
+    uint256 public constant LOCK_PERIOD = 10 * 365 days;  // 10年锁仓期
     mapping(address => bool) public isExcludedFromTax;
     mapping(address => bool) public isDEXPair;
     
@@ -85,6 +87,7 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         lpPool = _lpPool;
         bridgeAddress = _bridgeAddress;
         reserveWallet = address(this); // 初始储备在合约内
+        deployTime = block.timestamp;  // 记录部署时间
         
         // 铸造首发1000万给owner
         _mint(msg.sender, INITIAL_RELEASE);
@@ -301,10 +304,16 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 提取资金（仅多签）
+     * @dev 提取资金（仅多签，10年锁仓期后才能提取底池）
      */
     function withdrawFunds(address to, uint256 amount) external onlyMultiSig {
         require(balanceOf(address(this)) >= amount, "Insufficient contract balance");
+        
+        // 10年锁仓期内不能提取储备底池
+        if (block.timestamp < deployTime + LOCK_PERIOD) {
+            revert("Reserve funds locked for 10 years");
+        }
+        
         super._transfer(address(this), to, amount);
         emit FundsWithdrawn(to, amount);
     }

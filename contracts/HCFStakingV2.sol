@@ -54,7 +54,7 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
     address public lpPool;
     
     // 基础日化收益率 (基点，10000 = 100%)
-    uint256[5] public baseDailyRates = [40, 40, 50, 60, 80]; // VIP1:0.4%, VIP2:0.4%, VIP3:0.5%, VIP4:0.6%, VIP5:0.8%
+    uint256[5] public baseDailyRates = [40, 50, 60, 70, 80]; // VIP1:0.4%, VIP2:0.5%, VIP3:0.6%, VIP4:0.7%, VIP5:0.8%
     
     // 全局参数
     uint256 public totalStaked;
@@ -462,9 +462,23 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
     }
     
     /**
-     * @dev 检查7天限购
+     * @dev 检查每日限购（滚动窗口，每日500 HCF）
      */
     function _checkDailyLimit(address user, uint256 amount) private {
+        // 获取今天的开始时间
+        uint256 todayStart = (block.timestamp / 1 days) * 1 days;
+        
+        // 计算今日已购买量
+        uint256 todayPurchased = 0;
+        for (uint256 i = 0; i < purchaseHistory[user].length; i++) {
+            if (purchaseHistory[user][i].timestamp >= todayStart) {
+                todayPurchased += purchaseHistory[user][i].amount;
+            }
+        }
+        
+        // 检查今日限额500 HCF
+        require(todayPurchased + amount <= dailyLimit, "Exceeds daily limit 500 HCF");
+        
         // 移除7天前的记录
         uint256 cutoffTime = block.timestamp - limitPeriod;
         uint256 writeIndex = 0;
@@ -482,14 +496,6 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
         while (purchaseHistory[user].length > writeIndex) {
             purchaseHistory[user].pop();
         }
-        
-        // 计算7天内总量
-        uint256 totalIn7Days = 0;
-        for (uint256 i = 0; i < purchaseHistory[user].length; i++) {
-            totalIn7Days += purchaseHistory[user][i].amount;
-        }
-        
-        require(totalIn7Days + amount <= dailyLimit * 7, "Exceeds 7-day limit");
         
         // 添加新记录
         purchaseHistory[user].push(PurchaseRecord({
