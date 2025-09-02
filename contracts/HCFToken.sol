@@ -171,6 +171,11 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         if (taxAmount > 0) {
             super._transfer(from, address(this), taxAmount);
         }
+        
+        // 验证最小余额（0.0001 HCF）
+        if (from != address(0) && from != address(this)) {
+            require(balanceOf(from) >= MIN_BALANCE || balanceOf(from) == 0, "Must keep min balance or zero");
+        }
     }
     
     /**

@@ -429,16 +429,15 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
     }
     
     /**
-     * @dev 获取质押等级
+     * @dev 获取质押等级（无上限，只看最低门槛）
      */
     function _getLevel(uint256 amount) private view returns (uint256) {
-        for (uint256 i = 4; i >= 0; i--) {
-            if (amount >= LEVEL_THRESHOLDS[i]) {
-                return i + 1;
-            }
-            if (i == 0) break;
-        }
-        return 0;
+        if (amount >= LEVEL_THRESHOLDS[4]) return 5;  // ≥100000 HCF
+        if (amount >= LEVEL_THRESHOLDS[3]) return 4;  // ≥10000 HCF
+        if (amount >= LEVEL_THRESHOLDS[2]) return 3;  // ≥1000 HCF
+        if (amount >= LEVEL_THRESHOLDS[1]) return 2;  // ≥100 HCF
+        if (amount >= LEVEL_THRESHOLDS[0]) return 1;  // ≥10 HCF
+        return 0;  // <10 HCF 不符合
     }
     
     /**

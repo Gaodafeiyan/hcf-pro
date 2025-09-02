@@ -45,6 +45,11 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     uint256 public totalUSDTLocked;
     bool public emergencyPause = false;
     
+    // 1:1合成锁定记录
+    mapping(address => uint256) public lockedUSDT;
+    uint256 public totalLockedUSDT;
+    uint256 public totalMinted;
+    
     // 授权交易所
     mapping(address => bool) public authorizedExchanges;
     
@@ -62,6 +67,8 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     event BSDTMinted(address indexed to, uint256 usdtAmount, uint256 bsdtAmount);
     event BSDTBurned(address indexed from, uint256 bsdtAmount, uint256 usdtAmount);
     event UnauthorizedAttempt(address indexed from, address indexed to, string reason);
+    event USDTLocked(address indexed user, uint256 amount);
+    event Minted(address indexed to, uint256 amount);
     event DEXBlacklisted(address indexed dex, bool status);
     event ExchangeAuthorized(address indexed exchange, bool status);
     event MaxSupplyUpdated(uint256 oldSupply, uint256 newSupply);
@@ -132,7 +139,7 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     // ============ 核心功能 ============
     
     /**
-     * @dev 铸造BSDT（需要1:1锁定USDT）
+     * @dev 铸造BSDT（1:1 USDT合成锁定，严格禁止买卖）
      */
     function mint(address to, uint256 amount) external onlyAuthorizedExchange nonReentrant notPaused {
         require(amount > 0, "Amount must be positive");
@@ -141,13 +148,17 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
         // 严格检查固定供应量限制
         require(totalSupply() + amount <= MAX_SUPPLY, "Exceeds max supply");
         
-        // 转入等值USDT（1:1锁定）- 必须先锁定USDT
+        // 1 BSDT = 1 USDT 合成锁定
         uint256 balanceBefore = usdtToken.balanceOf(address(this));
         require(usdtToken.transferFrom(msg.sender, address(this), amount), "USDT transfer failed");
         uint256 balanceAfter = usdtToken.balanceOf(address(this));
         require(balanceAfter - balanceBefore == amount, "USDT amount mismatch");
         
+        // 锁定USDT记录
+        lockedUSDT[to] += amount;
+        totalLockedUSDT += amount;
         totalUSDTLocked += amount;
+        totalMinted += amount;
         
         // 铸造BSDT
         _mint(to, amount);

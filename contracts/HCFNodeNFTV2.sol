@@ -74,6 +74,9 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
         uint256 totalClaimed;       // 总领取
         uint256 level;              // 节点等级
         bool isActive;              // 是否激活
+        uint256 dynamicPower;       // 动态算力 = LP/1000
+        uint256 votingWeight;       // 治理投票权重 = 算力 * 乘数
+        uint256 rankingBonus;       // 排名加分500
     }
     
     // 映射
@@ -88,6 +91,12 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
         string source;    // 来源：tax/withdrawal/deposit/slippage
     }
     
+    // 4种分红池
+    uint256 public taxDividendPool;        // 税费分红池
+    uint256 public withdrawalDividendPool; // 赎回费分红池
+    uint256 public depositDividendPool;    // 充值费分红池
+    uint256 public slippageDividendPool;   // 滑点分红池
+    
     DividendRecord[] public dividendHistory;
     
     // ============ 事件 ============
@@ -96,6 +105,9 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
     event ComputingPowerUpdated(uint256 indexed tokenId, uint256 oldPower, uint256 newPower);
     event DividendDistributed(uint256 amount, string source);
     event DividendClaimed(uint256 indexed tokenId, uint256 amount);
+    event DynamicPowerCalculated(uint256 indexed tokenId, uint256 lpAmount, uint256 dynamicPower);
+    event VotingWeightUpdated(uint256 indexed tokenId, uint256 weight);
+    event FourTypeDividendsDistributed(uint256 tax, uint256 withdrawal, uint256 deposit, uint256 slippage);
     event ExtraYieldAdded(address indexed owner, uint256 amount);
     event NodeLevelUpdated(uint256 indexed tokenId, uint256 oldLevel, uint256 newLevel);
     event OnlineRateUpdated(uint256 indexed tokenId, uint256 rate);
@@ -229,19 +241,31 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
         
         uint256 oldPower = node.computingPower;
         
-        // 算力 = LP / maxLP * 100%
-        uint256 powerFromLP = (node.lpAmount * PRECISION) / maxLPPerNode;
-        if (powerFromLP > PRECISION) {
-            powerFromLP = PRECISION;
+        // 动态算力 = LP / 1000（100%多签调满值）
+        uint256 dynamicPower = (node.lpAmount * PRECISION) / (1000 * 10**18);
+        if (dynamicPower > PRECISION) dynamicPower = PRECISION;
+        
+        // 低于1000不增产
+        if (node.lpAmount < 1000 * 10**18) {
+            dynamicPower = 0;
         }
         
         // 在线率影响
         if (node.onlineRate < minOnlineRate) {
             // 低于最小在线率，算力为0
             node.computingPower = 0;
+            node.dynamicPower = 0;
         } else {
-            node.computingPower = powerFromLP;
+            node.computingPower = dynamicPower;
+            node.dynamicPower = dynamicPower;
         }
+        
+        // 治理投票权重 = 算力 * 等级乘数
+        uint256 multiplier = node.level == 2 ? 200 : 100;  // 超级节点2倍权重
+        node.votingWeight = (node.computingPower * multiplier) / 100;
+        
+        // 排名加分500
+        node.rankingBonus = 500;
         
         // 如果LP超过最大值，增加质押产出
         if (node.lpAmount > maxLPPerNode) {
@@ -251,6 +275,8 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
         }
         
         emit ComputingPowerUpdated(tokenId, oldPower, node.computingPower);
+        emit DynamicPowerCalculated(tokenId, node.lpAmount, node.dynamicPower);
+        emit VotingWeightUpdated(tokenId, node.votingWeight);
     }
     
     /**
@@ -287,7 +313,7 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
     // ============ 分红机制 ============
     
     /**
-     * @dev 添加分红（从税费、提现费等）
+     * @dev 添加分红（4种类型：税费/提现费/充值费/滑点）
      */
     function addDividend(uint256 amount, string memory source) external {
         require(
@@ -296,6 +322,17 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
             msg.sender == multiSigWallet,
             "Unauthorized"
         );
+        
+        // 根据来源分配到不同分红池
+        if (keccak256(bytes(source)) == keccak256(bytes("tax"))) {
+            taxDividendPool += amount;
+        } else if (keccak256(bytes(source)) == keccak256(bytes("withdrawal"))) {
+            withdrawalDividendPool += amount;
+        } else if (keccak256(bytes(source)) == keccak256(bytes("deposit"))) {
+            depositDividendPool += amount;
+        } else if (keccak256(bytes(source)) == keccak256(bytes("slippage"))) {
+            slippageDividendPool += amount;
+        }
         
         totalDividendPool += amount;
         
