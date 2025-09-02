@@ -30,11 +30,11 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
     uint256 public constant MAX_REFERRAL_LEVELS = 20;
     uint256 public constant MAX_RANKING = 2000;
     
-    // 20代奖励比例（基点）
-    uint256[20] public REFERRAL_RATES = [
-        500,  // 1代: 5%
-        300,  // 2代: 3%
-        500,  // 3-8代: 5% (需要V3+)
+    // 20代静态奖励比例（基点）
+    uint256[20] public STATIC_RATES = [
+        2000, // 1代: 20%
+        1000, // 2代: 10%
+        500,  // 3-8代: 5% (无需V等级)
         500,  // 4代: 5%
         500,  // 5代: 5%
         500,  // 6代: 5%
@@ -52,6 +52,12 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
         200,  // 18代: 2%
         200,  // 19代: 2%
         200   // 20代: 2%
+    ];
+    
+    // 入金奖励比例
+    uint256[2] public DEPOSIT_RATES = [
+        500,  // 一代: 5%
+        300   // 二代: 3%
     ];
     
     // 团队V级要求
@@ -103,11 +109,20 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
     
     // 销毁率
     uint256 public depositBurnRate = 0;                 // 入金销毁率（销毁限）
-    uint256 public staticBurnRate = 1000;               // 静态产出销毁10%
-    uint256 public teamBurnRate = 500;                  // 团队奖励销毁5%
-    uint256 public variableBurnRate = 500;              // 变动销毁5%
+    uint256 public staticBurnRate = 1000;               // 推荐焼伤10%
+    uint256 public teamBurnRate = 500;                  // 团队焼伤5%
+    uint256 public variableBurnRate = 500;              // 波动销毁5%
     uint256 public transactionBurnRate = 100;           // 交易销毁1%
     uint256 public scheduledBurnRate = 100;             // 定时销毁1%
+    
+    // 直推解锁（直推几个拿几代）
+    mapping(address => uint256) public directReferralCount;
+    mapping(address => uint256) public unlockedLevels;      // 解锁的代数
+    
+    // 全局封顶
+    uint256 public dailyProductionCap;                      // 日产出封顶
+    uint256 public todayBurned;                            // 今日已销毁
+    uint256 public lastBurnDay;                            // 上次销毁日
     
     // ============ 事件 ============
     event ReferralSet(address indexed user, address indexed referrer);
@@ -140,13 +155,13 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
         hcfToken = IERC20(_hcfToken);
         stakingContract = IHCFStaking(_stakingContract);
         
-        // 初始化团队V级要求（正确的下级V要求）
-        teamRequirements[0] = TeamRequirement(2000 * 10**18, 0, 600);          // V1: 2000 HCF, 6%
-        teamRequirements[1] = TeamRequirement(20000 * 10**18, 2, 1200);        // V2: 2万 HCF, 需要2个V1, 12%
-        teamRequirements[2] = TeamRequirement(100000 * 10**18, 2, 1800);       // V3: 10万 HCF, 需要2个V2, 18%
-        teamRequirements[3] = TeamRequirement(500000 * 10**18, 3, 2400);       // V4: 50万 HCF, 需要3个V3, 24%
-        teamRequirements[4] = TeamRequirement(3000000 * 10**18, 3, 3000);      // V5: 300万 HCF, 需要3个V4, 30%
-        teamRequirements[5] = TeamRequirement(20000000 * 10**18, 3, 3600);     // V6: 2000万 HCF, 需要3个V5, 36%
+        // 初始化团队V级要求（修正版）
+        teamRequirements[0] = TeamRequirement(2000 * 10**18, 0, 600);          // V1: 小区2000, 6%焼5%
+        teamRequirements[1] = TeamRequirement(20000 * 10**18, 2, 1200);        // V2: 2万+2个V1, 12%焼5%
+        teamRequirements[2] = TeamRequirement(100000 * 10**18, 2, 1800);       // V3: 10万+2个V2, 18%焼5%
+        teamRequirements[3] = TeamRequirement(500000 * 10**18, 3, 2400);       // V4: 50万+3个V3, 24%焼5%
+        teamRequirements[4] = TeamRequirement(3000000 * 10**18, 3, 3000);      // V5: 300万+3个V4, 30%焼5%
+        teamRequirements[5] = TeamRequirement(20000000 * 10**18, 3, 3600);     // V6: 2000万+3个V5, 36%焼5%
     }
     
     // ============ 推荐功能 ============
@@ -160,6 +175,10 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
         
         referrer[msg.sender] = _referrer;
         directReferrals[_referrer].push(msg.sender);
+        
+        // 更新直推数量（用于解锁代数）
+        directReferralCount[_referrer]++;
+        unlockedLevels[_referrer] = directReferralCount[_referrer]; // 直推几个拿几代
         
         // 更新团队人数
         address current = _referrer;
@@ -180,9 +199,9 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
         address firstGen = referrer[user];
         address secondGen = firstGen != address(0) ? referrer[firstGen] : address(0);
         
-        // 一代5%
+        // 一代5%（使用DEPOSIT_RATES）
         if (firstGen != address(0)) {
-            uint256 reward = depositAmount * 500 / PRECISION;
+            uint256 reward = depositAmount * DEPOSIT_RATES[0] / PRECISION;
             
             // 检查销毁封顶
             uint256 actualReward = _applyBurnCap(firstGen, reward);
@@ -196,9 +215,9 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
             emit DepositRewarded(user, firstGen, actualReward, 1);
         }
         
-        // 二代3%
+        // 二代3%（使用DEPOSIT_RATES）
         if (secondGen != address(0)) {
-            uint256 reward = depositAmount * 300 / PRECISION;
+            uint256 reward = depositAmount * DEPOSIT_RATES[1] / PRECISION;
             
             // 检查销毁封顶
             uint256 actualReward = _applyBurnCap(secondGen, reward);
@@ -232,8 +251,8 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
                 continue;
             }
             
-            // 计算奖励
-            uint256 rate = REFERRAL_RATES[level];
+            // 计算奖励（使用静态奖励率）
+            uint256 rate = STATIC_RATES[level];
             uint256 reward = adjustedYield * rate / PRECISION;
             
             // 扣除10%销毁
@@ -482,6 +501,109 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
     // ============ 销毁机制 ============
     
     /**
+     * @dev 检查代数解锁（直推几个拿几代）
+     */
+    function _isLevelUnlocked(address user, uint256 level, uint256 directCount) private view returns (bool) {
+        // 前2代无条件
+        if (level < 2) return true;
+        
+        // 3-8代: 5%（无需V等级）
+        if (level >= 2 && level <= 7) {
+            return directReferralCount[user] >= (level + 1); // 需要3-8个直推
+        }
+        
+        // 9-15代: 3%（需要V3+）
+        if (level >= 8 && level <= 14) {
+            return teamLevel[user] >= 3 && directReferralCount[user] >= (level + 1);
+        }
+        
+        // 16-20代: 2%（需要V4+）
+        if (level >= 15 && level <= 19) {
+            return teamLevel[user] >= 4 && directReferralCount[user] >= (level + 1);
+        }
+        
+        return false;
+    }
+    
+    /**
+     * @dev 计算动态奖金（50%-100%）
+     */
+    function calculateDynamicBonus(address user, uint256 baseReward) public view returns (uint256) {
+        // 动态收益 = 基础奖励 * (50%-100%)
+        uint256 dynamicReward = baseReward * dynamicYieldRatio / PRECISION;
+        
+        // 应用到静态20代
+        return dynamicReward;
+    }
+    
+    /**
+     * @dev 获取动态显示（前端）
+     */
+    function getDynamicDisplay(address user) external view returns (string memory) {
+        uint256 ratio = dynamicYieldRatio;
+        uint256 percentage = ratio / 100;
+        
+        // 返回格式化的百分比字符串
+        return string(abi.encodePacked(
+            "Dynamic Yield: ",
+            uint2str(percentage),
+            "% (", 
+            uint2str(ratio),
+            "/10000)"
+        ));
+    }
+    
+    /**
+     * @dev 应用特定销毁（波动/交易/定时/投票）
+     */
+    function applySpecificBurn(uint256 amount, string memory burnType) external nonReentrant {
+        require(msg.sender == multiSigWallet || msg.sender == address(stakingContract), "Unauthorized");
+        
+        uint256 burnAmount = 0;
+        
+        if (keccak256(bytes(burnType)) == keccak256(bytes("fluctuation"))) {
+            // 波动销毁5%
+            burnAmount = amount * variableBurnRate / PRECISION;
+        } else if (keccak256(bytes(burnType)) == keccak256(bytes("transaction"))) {
+            // 交易销毁1%
+            burnAmount = amount * transactionBurnRate / PRECISION;
+        } else if (keccak256(bytes(burnType)) == keccak256(bytes("scheduled"))) {
+            // 定时销毁1%
+            burnAmount = amount * scheduledBurnRate / PRECISION;
+        } else if (keccak256(bytes(burnType)) == keccak256(bytes("vote"))) {
+            // 投票调整（多签）
+            require(msg.sender == multiSigWallet, "Only multisig for vote");
+            burnAmount = amount; // 多签决定的数量
+        }
+        
+        // 检查全局封顶
+        if (_checkGlobalBurnCap(burnAmount)) {
+            _burn(burnAmount, burnType);
+        }
+    }
+    
+    /**
+     * @dev 检查全局销毁封顶（日产出%）
+     */
+    function _checkGlobalBurnCap(uint256 amount) private returns (bool) {
+        // 新的一天重置
+        if (block.timestamp / 1 days > lastBurnDay) {
+            todayBurned = 0;
+            lastBurnDay = block.timestamp / 1 days;
+        }
+        
+        // 检查是否超过日产出封顶
+        if (dailyProductionCap > 0) {
+            if (todayBurned + amount > dailyProductionCap) {
+                return false;
+            }
+        }
+        
+        todayBurned += amount;
+        return true;
+    }
+    
+    /**
      * @dev 应用销毁封顶
      */
     function _applyBurnCap(address user, uint256 reward) private view returns (uint256) {
@@ -634,5 +756,32 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
         } else {
             IERC20(token).transfer(multiSigWallet, amount);
         }
+    }
+    
+    // ============ 辅助函数 ============
+    
+    /**
+     * @dev uint转字符串
+     */
+    function uint2str(uint256 _i) internal pure returns (string memory) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint256 j = _i;
+        uint256 len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint256 k = len;
+        while (_i != 0) {
+            k = k - 1;
+            uint8 temp = (48 + uint8(_i - _i / 10 * 10));
+            bytes1 b1 = bytes1(temp);
+            bstr[k] = b1;
+            _i /= 10;
+        }
+        return string(bstr);
     }
 }
