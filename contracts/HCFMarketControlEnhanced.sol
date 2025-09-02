@@ -64,8 +64,8 @@ contract HCFMarketControlEnhanced is HCFMarketControlV2 {
     function applyAntiDumpMeasuresEnhanced(uint256 levelIndex, int256 priceChange) external {
         AntiDumpLevel memory level = antiDumpLevels[levelIndex];
         
-        // 应用原有措施
-        _applyAntiDumpMeasures(levelIndex, priceChange);
+        // 应用防暴跌措施（调用父合约的方法）
+        super.applyAntiDumpMeasures(levelIndex, priceChange);
         
         // 启动恢复机制
         lastDumpTime = block.timestamp;

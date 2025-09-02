@@ -5,8 +5,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 interface IHCFNodeNFT {
-    function hasNode(address user) returns (bool);
-    function getNodeInfo(uint256 nodeId) returns (
+    function hasNode(address user) external view returns (bool);
+    function getNodeInfo(uint256 nodeId) external view returns (
         address owner,
         uint256 lpHCFAmount,
         uint256 lpBSDTAmount,
@@ -15,9 +15,9 @@ interface IHCFNodeNFT {
         uint256 level,
         bool isActive
     );
-    function calculatePower(uint256 nodeId) returns (uint256);
-    function getLevelMultiplier(uint256 nodeId) returns (uint256);
-    function tokenOfOwnerByIndex(address owner, uint256 index) returns (uint256);
+    function calculatePower(uint256 nodeId) external view returns (uint256);
+    function getLevelMultiplier(uint256 nodeId) external view returns (uint256);
+    function tokenOfOwnerByIndex(address owner, uint256 index) external view returns (uint256);
 }
 
 interface IMultiSigWallet {
