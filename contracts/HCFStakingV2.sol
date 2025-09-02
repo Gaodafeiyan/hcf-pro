@@ -20,14 +20,22 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
     uint256 public constant DAY = 86400;
     uint256 public constant WEEK = 604800;
     
-    // 5个质押级别的门槛
+    // 5个质押级别的门槛（前期只开放L3）
     uint256[5] public LEVEL_THRESHOLDS = [
-        10 * 10**18,      // VIP1: 10 HCF
-        100 * 10**18,     // VIP2: 100 HCF  
-        1000 * 10**18,    // VIP3: 1000 HCF
+        10 * 10**18,      // VIP1: 10 HCF（前期关闭）
+        100 * 10**18,     // VIP2: 100 HCF（前期关闭）
+        1000 * 10**18,    // VIP3: 1000 HCF（前期开放）
         10000 * 10**18,   // VIP4: 10000 HCF
         100000 * 10**18   // VIP5: 100000 HCF
     ];
+    
+    // 前期配置
+    uint256 public constant MIN_STAKE_AMOUNT = 1000 * 10**18;  // 前期最低1000 HCF
+    bool public l1Enabled = false;  // L1级别开关（前期关闭）
+    bool public l2Enabled = false;  // L2级别开关（前期关闭）
+    bool public l3Enabled = true;   // L3级别开关（前期开放）
+    bool public l4Enabled = true;   // L4级别开关
+    bool public l5Enabled = true;   // L5级别开关
     
     // 固定复投金额
     uint256[5] public COMPOUND_AMOUNTS = [
@@ -102,6 +110,8 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
     event RatesUpdated(uint256[5] newRates);
     event DecayApplied(uint256 totalStaked, uint256 decayPercent);
     event BonusApplied(address indexed user, uint256 bonusType, uint256 bonusAmount);
+    event LevelStatusChanged(uint256 level, bool enabled);
+    event AllLevelsUpdated(bool l1, bool l2, bool l3, bool l4, bool l5);
     
     // ============ 修饰符 ============
     modifier onlyMultiSig() {
@@ -134,10 +144,11 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
     // ============ 质押功能 ============
     
     /**
-     * @dev 质押HCF
+     * @dev 质押HCF（前期最低1000 HCF）
      */
     function stake(uint256 amount) external nonReentrant updateReward(msg.sender) {
         require(amount > 0, "Cannot stake 0");
+        require(amount >= MIN_STAKE_AMOUNT, "Minimum 1000 HCF required");
         
         // 检查7天限购
         _checkDailyLimit(msg.sender, amount);
@@ -429,15 +440,25 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
     }
     
     /**
-     * @dev 获取质押等级（无上限，只看最低门槛）
+     * @dev 获取质押等级（前期L1、L2关闭）
      */
     function _getLevel(uint256 amount) private view returns (uint256) {
-        if (amount >= LEVEL_THRESHOLDS[4]) return 5;  // ≥100000 HCF
-        if (amount >= LEVEL_THRESHOLDS[3]) return 4;  // ≥10000 HCF
-        if (amount >= LEVEL_THRESHOLDS[2]) return 3;  // ≥1000 HCF
-        if (amount >= LEVEL_THRESHOLDS[1]) return 2;  // ≥100 HCF
-        if (amount >= LEVEL_THRESHOLDS[0]) return 1;  // ≥10 HCF
-        return 0;  // <10 HCF 不符合
+        // L5级别
+        if (amount >= LEVEL_THRESHOLDS[4] && l5Enabled) return 5;  // ≥100000 HCF
+        
+        // L4级别
+        if (amount >= LEVEL_THRESHOLDS[3] && l4Enabled) return 4;  // ≥10000 HCF
+        
+        // L3级别（前期主要开放）
+        if (amount >= LEVEL_THRESHOLDS[2] && l3Enabled) return 3;  // ≥1000 HCF
+        
+        // L2级别（前期关闭）
+        if (amount >= LEVEL_THRESHOLDS[1] && l2Enabled) return 2;  // ≥100 HCF
+        
+        // L1级别（前期关闭）
+        if (amount >= LEVEL_THRESHOLDS[0] && l1Enabled) return 1;  // ≥10 HCF
+        
+        return 0;  // 不符合或级别未开放
     }
     
     /**
@@ -504,6 +525,40 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
      */
     function setMultiSigWallet(address _multiSig) external onlyOwner {
         multiSigWallet = _multiSig;
+    }
+    
+    /**
+     * @dev 启用/禁用质押级别（多签）
+     */
+    function setLevelEnabled(uint256 level, bool enabled) external onlyMultiSig {
+        require(level >= 1 && level <= 5, "Invalid level");
+        
+        if (level == 1) l1Enabled = enabled;
+        else if (level == 2) l2Enabled = enabled;
+        else if (level == 3) l3Enabled = enabled;
+        else if (level == 4) l4Enabled = enabled;
+        else if (level == 5) l5Enabled = enabled;
+        
+        emit LevelStatusChanged(level, enabled);
+    }
+    
+    /**
+     * @dev 批量设置级别状态（多签）
+     */
+    function setMultipleLevels(
+        bool _l1,
+        bool _l2,
+        bool _l3,
+        bool _l4,
+        bool _l5
+    ) external onlyMultiSig {
+        l1Enabled = _l1;
+        l2Enabled = _l2;
+        l3Enabled = _l3;
+        l4Enabled = _l4;
+        l5Enabled = _l5;
+        
+        emit AllLevelsUpdated(_l1, _l2, _l3, _l4, _l5);
     }
     
     /**
