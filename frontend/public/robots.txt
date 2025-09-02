@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# HCF Finance - Legitimate DeFi Platform
+# Contact: admin@hcf-finance.xyz
+Sitemap: https://hcf-finance.xyz/sitemap.xml

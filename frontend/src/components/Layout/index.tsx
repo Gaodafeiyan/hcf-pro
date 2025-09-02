@@ -41,6 +41,7 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
     { key: '/ranking', icon: <TrophyOutlined />, label: t('menu.ranking') },
     { key: '/exchange', icon: <SwapOutlined />, label: t('menu.exchange') },
     { key: '/governance', icon: <SettingOutlined />, label: t('menu.governance') },
+    { key: '/test', icon: <BulbOutlined />, label: '测试页面' },
   ];
   
   const changeLanguage = (lng: string) => {
@@ -230,7 +231,10 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
           overflow: 'auto',
           boxShadow: isDark ? 'none' : '0 1px 2px 0 rgba(0,0,0,0.03)'
         }}>
-          {isConnected ? (
+          {/* 测试页面不需要钱包连接 */}
+          {location.pathname === '/test' ? (
+            children
+          ) : isConnected ? (
             children
           ) : (
             <div style={{ 

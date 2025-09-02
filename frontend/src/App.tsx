@@ -39,6 +39,8 @@ function App() {
                     <Route path="/exchange" element={<Exchange />} />
                     <Route path="/governance" element={<Governance />} />
                     <Route path="/test" element={<Test />} />
+                    {/* 添加通配符路由，确保所有路径都能正确渲染 */}
+                    <Route path="*" element={<Dashboard />} />
                   </Routes>
                 </Layout>
               </Router>
