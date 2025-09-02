@@ -6,7 +6,8 @@ async function main() {
   // 获取部署账户
   const [deployer] = await ethers.getSigners();
   console.log("📝 部署账户:", deployer.address);
-  console.log("💰 账户余额:", ethers.utils.formatEther(await deployer.getBalance()), "BNB");
+  const balance = await deployer.getBalance();
+  console.log("💰 账户余额:", ethers.utils.formatEther(balance), "BNB");
 
   // ============ 第一步：部署基础合约 ============
   console.log("\n🔧 第一步：部署基础合约...");

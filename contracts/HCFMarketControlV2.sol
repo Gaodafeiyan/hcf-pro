@@ -234,7 +234,7 @@ contract HCFMarketControlV2 is Ownable, ReentrancyGuard {
         currentProductionMultiplier = PRECISION - reductionRate;
         
         // 计算新的日化收益率
-        uint256[5] memory currentRates = [40, 50, 60, 70, 80];  // 基础0.4%-0.8%
+        uint256[5] memory currentRates = [uint256(40), 50, 60, 70, 80];  // 基础0.4%-0.8%
         uint256[5] memory newRates;
         
         for (uint256 i = 0; i < 5; i++) {
@@ -327,7 +327,7 @@ contract HCFMarketControlV2 is Ownable, ReentrancyGuard {
         uint256 decayPercent = decayUnits * decayRate;  // 每亿减0.1%
         
         // 应用衰减到质押收益率
-        uint256[5] memory currentRates = [40, 50, 60, 70, 80];
+        uint256[5] memory currentRates = [uint256(40), 50, 60, 70, 80];
         uint256[5] memory newRates;
         
         for (uint256 i = 0; i < 5; i++) {
@@ -500,7 +500,7 @@ contract HCFMarketControlV2 is Ownable, ReentrancyGuard {
         currentTaxMultiplier = PRECISION;
         
         // 恢复正常产出
-        uint256[5] memory normalRates = [40, 50, 60, 70, 80];
+        uint256[5] memory normalRates = [uint256(40), 50, 60, 70, 80];
         stakingContract.setBaseDailyRates(normalRates);
         currentProductionMultiplier = PRECISION;
         

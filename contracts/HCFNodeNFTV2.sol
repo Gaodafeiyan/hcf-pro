@@ -185,7 +185,10 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
             pendingDividends: 0,
             totalClaimed: 0,
             level: 0,
-            isActive: false
+            isActive: false,
+            dynamicPower: 0,
+            votingWeight: 0,
+            rankingBonus: 0
         });
         
         userNodes[msg.sender].push(newTokenId);
