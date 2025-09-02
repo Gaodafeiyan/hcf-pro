@@ -613,18 +613,14 @@ contract HCFNodeNFTV2 is ERC721, ReentrancyGuard, Ownable {
     /**
      * @dev 检查tokenId是否存在
      */
-    function _exists(uint256 tokenId) internal view returns (bool) {
-        return _ownerOf(tokenId) != address(0);
+    function _exists(uint256 tokenId) internal view override returns (bool) {
+        return super._exists(tokenId);
     }
     
     /**
      * @dev 获取token所有者
      */
-    function _ownerOf(uint256 tokenId) internal view returns (address) {
-        try this.ownerOf(tokenId) returns (address owner) {
-            return owner;
-        } catch {
-            return address(0);
-        }
+    function _ownerOf(uint256 tokenId) internal view override returns (address) {
+        return super._ownerOf(tokenId);
     }
 }

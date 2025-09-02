@@ -446,26 +446,6 @@ contract HCFReferralV2 is ReentrancyGuard, Ownable {
         return false;
     }
     
-    /**
-     * @dev 检查代数解锁
-     */
-    function _isLevelUnlocked(address user, uint256 level, uint256 directCount) private view returns (bool) {
-        // 1-2代：无条件
-        if (level < 2) return true;
-        
-        // 3-8代：需要V3+
-        if (level < 8) {
-            return teamLevel[user] >= 3;
-        }
-        
-        // 9-15代：需要V3+
-        if (level < 15) {
-            return teamLevel[user] >= 3;
-        }
-        
-        // 16-20代：需要V4+
-        return teamLevel[user] >= 4;
-    }
     
     // ============ 排名系统 ============
     
