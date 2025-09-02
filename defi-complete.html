@@ -1,0 +1,1415 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCF DeFi Platform - 完整版</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 16px;
+            padding: 20px 30px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .nav-tabs {
+            display: flex;
+            gap: 15px;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        .nav-tab {
+            padding: 10px 20px;
+            background: none;
+            border: none;
+            color: #666;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 8px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .page-content {
+            display: none;
+        }
+        .page-content.active {
+            display: block;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+        }
+        .card-title {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 8px;
+        }
+        .card-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+        .card-suffix {
+            font-size: 14px;
+            color: #667eea;
+            margin-left: 5px;
+        }
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin: 5px;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ff4757 100%);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #26de81 0%, #20bf6b 100%);
+        }
+        .btn-warning {
+            background: linear-gradient(135deg, #ffa502 0%, #ff6348 100%);
+        }
+        .input-group {
+            margin: 20px 0;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        .input-group input, .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .input-group input:focus, .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .progress {
+            width: 100%;
+            height: 20px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            margin: 0 5px;
+        }
+        .badge-success {
+            background: #e8f5e9;
+            color: #4caf50;
+        }
+        .badge-warning {
+            background: #fff3e0;
+            color: #ff9800;
+        }
+        .badge-danger {
+            background: #ffebee;
+            color: #f44336;
+        }
+        .badge-info {
+            background: #e3f2fd;
+            color: #2196f3;
+        }
+        .badge-purple {
+            background: #f3e5f5;
+            color: #9c27b0;
+        }
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .table th, .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        .info-box {
+            background: #f0f8ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .warning-box {
+            background: #fff3e0;
+            border-left: 4px solid #ff9800;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .error-box {
+            background: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .success-box {
+            background: #e8f5e9;
+            border-left: 4px solid #4caf50;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .stat-label {
+            color: #666;
+        }
+        .stat-value {
+            font-weight: bold;
+            color: #333;
+        }
+        .node-level-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .node-level-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .node-level-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px);
+        }
+        .node-level-card.active {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .dividend-pool {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        .dividend-pool-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .dividend-pool-name {
+            font-weight: bold;
+            color: #333;
+        }
+        .dividend-pool-amount {
+            color: #667eea;
+            font-weight: bold;
+        }
+        .team-member-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        .team-member-rank {
+            background: #667eea;
+            color: white;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+        .team-member-info {
+            flex: 1;
+            margin: 0 15px;
+        }
+        .team-member-address {
+            font-family: monospace;
+            font-size: 14px;
+            color: #666;
+        }
+        .team-member-performance {
+            font-size: 12px;
+            color: #999;
+            margin-top: 5px;
+        }
+        .team-member-reward {
+            text-align: right;
+        }
+        .team-member-reward-amount {
+            color: #4caf50;
+            font-weight: bold;
+        }
+        .team-level-table {
+            width: 100%;
+            margin: 20px 0;
+        }
+        .team-level-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin: 10px 0;
+            transition: all 0.3s;
+        }
+        .team-level-row:hover {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+        .team-level-row.achieved {
+            background: #e8f5e9;
+            border-color: #4caf50;
+        }
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .online-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        .online-indicator.online {
+            background: #4caf50;
+            animation: pulse 2s infinite;
+        }
+        .online-indicator.offline {
+            background: #f44336;
+        }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🚀 HCF DeFi Platform</div>
+            <div id="wallet-status">
+                <button class="btn" onclick="connectWallet()">连接钱包</button>
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="switchPage('dashboard')">📊 仪表盘</button>
+            <button class="nav-tab" onclick="switchPage('staking')">💰 质押池</button>
+            <button class="nav-tab" onclick="switchPage('nodenft')">🎨 节点NFT</button>
+            <button class="nav-tab" onclick="switchPage('referral')">👥 推荐系统</button>
+            <button class="nav-tab" onclick="switchPage('exchange')">💱 兑换</button>
+            <button class="nav-tab" onclick="switchPage('ranking')">🏆 排名</button>
+            <button class="nav-tab" onclick="switchPage('governance')">🗳️ 治理</button>
+        </div>
+
+        <!-- 仪表盘页面（简化版） -->
+        <div id="dashboard-page" class="page-content active">
+            <h2 style="color: white; margin-bottom: 20px;">仪表盘</h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">HCF 余额</div>
+                    <div class="card-value">
+                        <span id="hcf-balance">0.00</span>
+                        <span class="card-suffix">HCF</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">BSDT 余额</div>
+                    <div class="card-value">
+                        <span id="bsdt-balance">0.00</span>
+                        <span class="card-suffix">BSDT</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">节点数量</div>
+                    <div class="card-value">
+                        <span id="node-count">45</span> / 99
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">团队等级</div>
+                    <div class="card-value">
+                        <span id="team-level">V0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 质押池页面（简化版） -->
+        <div id="staking-page" class="page-content">
+            <h2 style="color: white; margin-bottom: 20px;">质押池</h2>
+            <div class="card">
+                <h3>质押功能</h3>
+                <p>质押功能已在 defi-platform.html 中实现</p>
+                <a href="/defi-platform.html" class="btn">访问完整质押页面</a>
+            </div>
+        </div>
+
+        <!-- 节点NFT页面 -->
+        <div id="nodenft-page" class="page-content">
+            <h2 style="color: white; margin-bottom: 20px;">节点NFT系统</h2>
+            
+            <!-- 节点概览 -->
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">节点数量</div>
+                    <div class="card-value">
+                        <span id="total-nodes">45</span> / 99
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 45.5%;"></div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">申请费用</div>
+                    <div class="card-value">
+                        <span id="apply-fee">5000</span>
+                        <span class="card-suffix" id="apply-currency">BSDT</span>
+                    </div>
+                    <small>价格 < 1.3 用BSDT, 否则用HCF</small>
+                </div>
+                <div class="card">
+                    <div class="card-title">激活费用</div>
+                    <div class="card-value">
+                        2000 <span class="card-suffix">HCF</span>
+                    </div>
+                    <small>1000 HCF + 1000 HCF/BSDT LP</small>
+                </div>
+            </div>
+
+            <!-- 我的节点信息 -->
+            <div class="card">
+                <h3>我的节点信息</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">节点ID</span>
+                        <span class="stat-value" id="my-node-id">#未持有</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">节点等级</span>
+                        <span class="stat-value" id="my-node-level">无</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">算力</span>
+                        <span class="stat-value" id="my-node-power">0%</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">在线率</span>
+                        <span class="stat-value" id="my-online-rate">
+                            <span class="online-indicator offline"></span>
+                            0%
+                        </span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">持币量</span>
+                        <span class="stat-value" id="my-holding">0 HCF</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">满值</span>
+                        <span class="stat-value" id="max-value">1000 HCF</span>
+                    </div>
+                </div>
+                
+                <div class="info-box">
+                    <strong>算力规则：</strong><br>
+                    • 基础算力: 99.9%<br>
+                    • 持币量 < 1000 HCF: 不增加算力<br>
+                    • 持币量 > 1000 HCF: 每1000 HCF增加1%算力<br>
+                    • 在线率 > 90%: 获得分红权
+                </div>
+            </div>
+
+            <!-- 节点等级 -->
+            <div class="card">
+                <h3>节点等级系统</h3>
+                <div class="node-level-grid">
+                    <div class="node-level-card">
+                        <h4>轻量节点</h4>
+                        <div class="badge badge-success">10,000 HCF</div>
+                        <ul style="text-align: left; margin-top: 10px; font-size: 14px;">
+                            <li>+20% 收益加成</li>
+                            <li>治理权重 x1</li>
+                            <li>排名 +500分</li>
+                            <li>优先新功能</li>
+                        </ul>
+                    </div>
+                    <div class="node-level-card">
+                        <h4>标准节点</h4>
+                        <div class="badge badge-info">50,000 HCF</div>
+                        <ul style="text-align: left; margin-top: 10px; font-size: 14px;">
+                            <li>+30% 收益加成</li>
+                            <li>治理权重 x2</li>
+                            <li>排名 +1000分</li>
+                            <li>优先新功能</li>
+                        </ul>
+                    </div>
+                    <div class="node-level-card">
+                        <h4>高级节点</h4>
+                        <div class="badge badge-warning">200,000 HCF</div>
+                        <ul style="text-align: left; margin-top: 10px; font-size: 14px;">
+                            <li>+40% 收益加成</li>
+                            <li>治理权重 x3</li>
+                            <li>排名 +2000分</li>
+                            <li>优先新功能</li>
+                        </ul>
+                    </div>
+                    <div class="node-level-card">
+                        <h4>超级节点</h4>
+                        <div class="badge badge-danger">500,000 HCF</div>
+                        <ul style="text-align: left; margin-top: 10px; font-size: 14px;">
+                            <li>+50% 收益加成</li>
+                            <li>治理权重 x5</li>
+                            <li>排名 +5000分</li>
+                            <li>优先新功能</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 分红池 -->
+            <div class="card">
+                <h3>分红池（按算力分配）</h3>
+                <div class="dividend-pool">
+                    <div class="dividend-pool-header">
+                        <span class="dividend-pool-name">🔄 滑点分红池</span>
+                        <span class="dividend-pool-amount">10,000 HCF</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 70%;"></div>
+                    </div>
+                    <small>来源：交易滑点收益</small>
+                </div>
+                <div class="dividend-pool">
+                    <div class="dividend-pool-header">
+                        <span class="dividend-pool-name">💸 提现手续费池</span>
+                        <span class="dividend-pool-amount">5,000 HCF</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 50%;"></div>
+                    </div>
+                    <small>来源：提现手续费</small>
+                </div>
+                <div class="dividend-pool">
+                    <div class="dividend-pool-header">
+                        <span class="dividend-pool-name">💰 入金手续费池</span>
+                        <span class="dividend-pool-amount">8,000 HCF</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 60%;"></div>
+                    </div>
+                    <small>来源：入金手续费</small>
+                </div>
+                <div class="dividend-pool">
+                    <div class="dividend-pool-header">
+                        <span class="dividend-pool-name">🛡️ 防砸盘保护池</span>
+                        <span class="dividend-pool-amount">3,000 HCF</span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" style="width: 30%;"></div>
+                    </div>
+                    <small>来源：大额卖出惩罚</small>
+                </div>
+                
+                <div class="success-box" style="margin-top: 20px;">
+                    <strong>待领取分红：</strong>
+                    <span id="pending-dividends" style="font-size: 20px; font-weight: bold;">1,234.56 HCF</span>
+                </div>
+            </div>
+
+            <!-- 无常损失补偿 -->
+            <div class="card">
+                <h3>无常损失补偿</h3>
+                <div class="warning-box">
+                    当前无常损失: <strong>-500 HCF</strong><br>
+                    最小补偿额: <strong>500 HCF</strong><br>
+                    优先级加成: <strong>+20%</strong>
+                </div>
+                <button class="btn btn-success" onclick="claimNodeCompensation()">
+                    申请补偿 (恢复优先+20%)
+                </button>
+            </div>
+
+            <!-- 满值调整（多签） -->
+            <div class="card">
+                <h3>满值调整（需要多签）</h3>
+                <div class="info-box">
+                    当前满值: <strong>1000 HCF</strong><br>
+                    建议调整: <strong>500 HCF</strong><br>
+                    状态: 全网统一调整
+                </div>
+                <div class="input-group">
+                    <label>新满值设定</label>
+                    <input type="number" id="new-max-value" placeholder="输入新的满值">
+                </div>
+                <button class="btn btn-warning" onclick="proposeMaxValueChange()">
+                    提议满值调整（需3/5多签）
+                </button>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="card">
+                <h3>节点操作</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <button class="btn" onclick="applyForNode()">申请节点</button>
+                    <button class="btn btn-success" onclick="activateNode()">激活节点</button>
+                    <button class="btn btn-secondary" onclick="updateNodePower()">更新算力</button>
+                    <button class="btn btn-warning" onclick="claimDividends()">领取分红</button>
+                    <button class="btn" onclick="showVoteModal()">治理投票</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 推荐系统页面 -->
+        <div id="referral-page" class="page-content">
+            <h2 style="color: white; margin-bottom: 20px;">推荐系统</h2>
+            
+            <!-- 推荐概览 -->
+            <div class="grid">
+                <div class="card">
+                    <div class="card-title">直推人数</div>
+                    <div class="card-value">
+                        <span id="direct-referrals">0</span>
+                        <span class="card-suffix">人</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">团队等级</div>
+                    <div class="card-value">
+                        <span id="team-level-display">V0</span>
+                        <span class="badge badge-info" id="team-badge">未激活</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">总业绩</div>
+                    <div class="card-value">
+                        <span id="total-performance">0</span>
+                        <span class="card-suffix">HCF</span>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">总收益</div>
+                    <div class="card-value" style="color: #4caf50;">
+                        <span id="total-referral-income">0</span>
+                        <span class="card-suffix">HCF</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 推荐链接 -->
+            <div class="card">
+                <h3>我的推荐链接</h3>
+                <div class="input-group">
+                    <input type="text" id="referral-link" readonly value="https://hcf-finance.xyz?ref=0x0000" style="font-family: monospace;">
+                    <button class="btn btn-secondary" onclick="copyReferralLink()" style="margin-top: 10px;">
+                        复制链接
+                    </button>
+                </div>
+                <div class="success-box">
+                    分享此链接，新用户注册并质押后，您将获得推荐奖励！
+                </div>
+            </div>
+
+            <!-- 团队等级系统 -->
+            <div class="card">
+                <h3>团队等级要求</h3>
+                <div class="team-level-table">
+                    <div class="team-level-row" id="level-v1">
+                        <div>
+                            <strong>V1</strong>
+                            <div style="font-size: 14px; color: #666;">
+                                小区业绩: 2,000 HCF<br>
+                                奖励比例: 6%
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge badge-danger">未达成</span>
+                        </div>
+                    </div>
+                    <div class="team-level-row" id="level-v2">
+                        <div>
+                            <strong>V2</strong>
+                            <div style="font-size: 14px; color: #666;">
+                                小区业绩: 20,000 HCF<br>
+                                奖励比例: 12%<br>
+                                需要: 1个V1
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge badge-danger">未达成</span>
+                        </div>
+                    </div>
+                    <div class="team-level-row" id="level-v3">
+                        <div>
+                            <strong>V3</strong>
+                            <div style="font-size: 14px; color: #666;">
+                                小区业绩: 200,000 HCF<br>
+                                奖励比例: 18%<br>
+                                需要: 2个V2
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge badge-danger">未达成</span>
+                        </div>
+                    </div>
+                    <div class="team-level-row" id="level-v4">
+                        <div>
+                            <strong>V4</strong>
+                            <div style="font-size: 14px; color: #666;">
+                                小区业绩: 2,000,000 HCF<br>
+                                奖励比例: 24%<br>
+                                需要: 2个V3
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge badge-danger">未达成</span>
+                        </div>
+                    </div>
+                    <div class="team-level-row" id="level-v5">
+                        <div>
+                            <strong>V5</strong>
+                            <div style="font-size: 14px; color: #666;">
+                                小区业绩: 5,000,000 HCF<br>
+                                奖励比例: 30%<br>
+                                需要: 2个V4
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge badge-danger">未达成</span>
+                        </div>
+                    </div>
+                    <div class="team-level-row" id="level-v6">
+                        <div>
+                            <strong>V6</strong>
+                            <div style="font-size: 14px; color: #666;">
+                                小区业绩: 20,000,000 HCF<br>
+                                奖励比例: 36%<br>
+                                需要: 3个V5
+                            </div>
+                        </div>
+                        <div>
+                            <span class="badge badge-danger">未达成</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 团队成员列表 -->
+            <div class="card">
+                <h3>团队成员</h3>
+                <div id="team-members-list">
+                    <div class="team-member-item">
+                        <div class="team-member-rank">1</div>
+                        <div class="team-member-info">
+                            <div class="team-member-address">0x1234...5678</div>
+                            <div class="team-member-performance">业绩: 10,000 HCF</div>
+                        </div>
+                        <div class="team-member-reward">
+                            <div class="team-member-reward-amount">+500 HCF</div>
+                            <div style="font-size: 12px; color: #999;">奖励</div>
+                        </div>
+                    </div>
+                    <div class="team-member-item">
+                        <div class="team-member-rank">2</div>
+                        <div class="team-member-info">
+                            <div class="team-member-address">0xabcd...efgh</div>
+                            <div class="team-member-performance">业绩: 8,000 HCF</div>
+                        </div>
+                        <div class="team-member-reward">
+                            <div class="team-member-reward-amount">+400 HCF</div>
+                            <div style="font-size: 12px; color: #999;">奖励</div>
+                        </div>
+                    </div>
+                </div>
+                <button class="btn btn-secondary" onclick="loadMoreMembers()" style="width: 100%; margin-top: 10px;">
+                    查看更多
+                </button>
+            </div>
+
+            <!-- 最新推荐 -->
+            <div class="card">
+                <h3>最新推荐</h3>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>时间</th>
+                            <th>用户</th>
+                            <th>金额</th>
+                            <th>状态</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-referrals">
+                        <tr>
+                            <td>2分钟前</td>
+                            <td>0x9876...5432</td>
+                            <td>1,000 HCF</td>
+                            <td><span class="badge badge-success">已激活</span></td>
+                        </tr>
+                        <tr>
+                            <td>1小时前</td>
+                            <td>0x5555...6666</td>
+                            <td>5,000 HCF</td>
+                            <td><span class="badge badge-success">已激活</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 动态收益和销毁 -->
+            <div class="grid">
+                <div class="card">
+                    <h3>动态收益比</h3>
+                    <div style="text-align: center;">
+                        <div style="font-size: 36px; font-weight: bold; color: #667eea;">70%</div>
+                        <div style="margin-top: 10px;">
+                            <div>基础: 1000 HCF</div>
+                            <div>实际: 700 HCF</div>
+                            <div style="font-size: 12px; color: #999;">应用于20代级差</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <h3>销毁提示</h3>
+                    <div class="error-box">
+                        推荐奖励销毁: <strong>10%</strong><br>
+                        团队奖励销毁: <strong>5%</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 操作按钮 -->
+            <div class="card">
+                <h3>推荐操作</h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+                    <button class="btn" onclick="registerReferral()">登记推荐人</button>
+                    <button class="btn btn-secondary" onclick="generateNewLink()">生成新链接</button>
+                    <button class="btn btn-success" onclick="upgradeTeamLevel()">升级团队等级</button>
+                    <button class="btn btn-warning" onclick="claimReferralReward()">领取推荐奖励</button>
+                </div>
+                
+                <div class="info-box" style="margin-top: 20px;">
+                    <strong>待领取奖励：</strong>
+                    <span id="pending-referral-reward" style="font-size: 20px; font-weight: bold; color: #4caf50;">
+                        888.88 HCF
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 其他页面占位 -->
+        <div id="exchange-page" class="page-content">
+            <div class="card">
+                <h2>兑换</h2>
+                <p>兑换功能开发中...</p>
+            </div>
+        </div>
+
+        <div id="ranking-page" class="page-content">
+            <div class="card">
+                <h2>排名</h2>
+                <p>排名功能开发中...</p>
+            </div>
+        </div>
+
+        <div id="governance-page" class="page-content">
+            <div class="card">
+                <h2>治理</h2>
+                <p>治理功能开发中...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载Ethers.js -->
+    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    
+    <script>
+        // 合约地址
+        const CONTRACTS = {
+            HCF: '0x09F320b75e6A74994713a0e4Be54eF8f09fbaEcc',
+            BSDT: '0x622e568976f6cC2eaE4cfd3836d92F111000E787',
+            NodeNFT: '0xFCd9c088f387C2C5a4ef87b87bde979a6EaAbA15',
+            Referral: '0x4DBDcfC87D528F616e5B11b9bc84e7C00F0Fc674',
+            Staking: '0x6E4e682Cc90124Ef66a8cfC8Fc875CF5Ee8E8a74',
+            Governance: '0xEe96926C972d55dD5577cB6C5db04BcdC8Eb1629'
+        };
+
+        // ABI定义
+        const HCF_ABI = [
+            "function balanceOf(address) view returns (uint256)",
+            "function totalSupply() view returns (uint256)",
+            "function approve(address spender, uint256 amount) returns (bool)",
+            "function transfer(address to, uint256 amount) returns (bool)"
+        ];
+
+        const BSDT_ABI = [
+            "function balanceOf(address) view returns (uint256)",
+            "function approve(address spender, uint256 amount) returns (bool)"
+        ];
+
+        const NODE_NFT_ABI = [
+            "function mintNode() returns (uint256)",
+            "function activateNode(uint256 tokenId) returns (bool)",
+            "function updateNodePower(uint256 tokenId) returns (bool)",
+            "function claimDividends() returns (bool)",
+            "function balanceOf(address) view returns (uint256)",
+            "function totalSupply() view returns (uint256)",
+            "function getNodeInfo(uint256 tokenId) view returns (tuple(uint256 power, uint256 level, bool isActive, uint256 rewards, uint256 lastClaim))",
+            "function NODE_PRICE() view returns (uint256)"
+        ];
+
+        const REFERRAL_ABI = [
+            "function register(address referrer) returns (bool)",
+            "function claimReferralReward() returns (bool)",
+            "function getUserData(address user) view returns (tuple(address referrer, uint256 directCount, uint256 teamLevel, uint256 personalVolume, uint256 teamVolume, uint256 totalReferralReward, uint256 totalTeamReward, uint256 claimableReferralReward, uint256 claimableTeamReward))",
+            "function updateTeamLevel() returns (bool)"
+        ];
+
+        // 全局变量
+        let provider = null;
+        let signer = null;
+        let account = null;
+        let connected = false;
+        let currentPrice = 1.0;
+
+        // 页面切换
+        function switchPage(page) {
+            document.querySelectorAll('.page-content').forEach(p => {
+                p.classList.remove('active');
+            });
+            document.getElementById(`${page}-page`).classList.add('active');
+            
+            document.querySelectorAll('.nav-tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // 加载对应页面数据
+            if (connected) {
+                if (page === 'nodenft') {
+                    loadNodeData();
+                } else if (page === 'referral') {
+                    loadReferralData();
+                }
+            }
+        }
+
+        // 连接钱包
+        async function connectWallet() {
+            try {
+                if (typeof window.ethereum === 'undefined') {
+                    alert('请安装 MetaMask 钱包');
+                    return;
+                }
+
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                const accounts = await provider.send("eth_requestAccounts", []);
+                
+                if (accounts.length === 0) {
+                    throw new Error('没有找到账户');
+                }
+                
+                account = accounts[0];
+                signer = provider.getSigner();
+                connected = true;
+                
+                // 检查网络
+                const network = await provider.getNetwork();
+                if (network.chainId !== 97) {
+                    await switchToBSCTestnet();
+                }
+                
+                // 更新UI
+                document.getElementById('wallet-status').innerHTML = `
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: #4caf50;">●</span>
+                        <span>${account.substring(0, 6)}...${account.substring(38)}</span>
+                        <button class="btn btn-secondary" onclick="disconnect()">断开</button>
+                    </div>
+                `;
+                
+                // 生成推荐链接
+                document.getElementById('referral-link').value = `https://hcf-finance.xyz?ref=${account}`;
+                
+                // 加载数据
+                await loadAllData();
+                
+                // 订阅事件
+                subscribeToEvents();
+                
+            } catch (error) {
+                console.error('连接失败:', error);
+                alert('连接失败: ' + error.message);
+            }
+        }
+
+        // 切换到BSC测试网
+        async function switchToBSCTestnet() {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x61' }],
+                });
+            } catch (switchError) {
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x61',
+                            chainName: 'BSC Testnet',
+                            nativeCurrency: {
+                                name: 'BNB',
+                                symbol: 'BNB',
+                                decimals: 18
+                            },
+                            rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+                            blockExplorerUrls: ['https://testnet.bscscan.com/']
+                        }]
+                    });
+                }
+            }
+        }
+
+        // 加载所有数据
+        async function loadAllData() {
+            if (!connected) return;
+            
+            try {
+                const hcfContract = new ethers.Contract(CONTRACTS.HCF, HCF_ABI, provider);
+                const bsdtContract = new ethers.Contract(CONTRACTS.BSDT, BSDT_ABI, provider);
+                
+                const [hcfBalance, bsdtBalance] = await Promise.all([
+                    hcfContract.balanceOf(account),
+                    bsdtContract.balanceOf(account)
+                ]);
+                
+                document.getElementById('hcf-balance').textContent = ethers.utils.formatUnits(hcfBalance, 18).slice(0, 10);
+                document.getElementById('bsdt-balance').textContent = ethers.utils.formatUnits(bsdtBalance, 18).slice(0, 10);
+                
+                await loadNodeData();
+                await loadReferralData();
+                
+            } catch (error) {
+                console.error('加载数据失败:', error);
+            }
+        }
+
+        // 加载节点数据
+        async function loadNodeData() {
+            if (!connected) return;
+            
+            try {
+                const nodeContract = new ethers.Contract(CONTRACTS.NODE_NFT_ABI, NODE_NFT_ABI, provider);
+                
+                const [nodeBalance, totalNodes] = await Promise.all([
+                    nodeContract.balanceOf(account),
+                    nodeContract.totalSupply()
+                ]);
+                
+                document.getElementById('total-nodes').textContent = totalNodes.toString();
+                document.getElementById('node-count').textContent = totalNodes.toString();
+                
+                if (nodeBalance > 0) {
+                    // 获取第一个节点的信息
+                    const nodeInfo = await nodeContract.getNodeInfo(0);
+                    document.getElementById('my-node-id').textContent = '#1';
+                    document.getElementById('my-node-power').textContent = (nodeInfo.power || 100) + '%';
+                    
+                    // 根据power判断等级
+                    const power = nodeInfo.power || 100;
+                    let level = '轻量节点';
+                    if (power >= 500) level = '超级节点';
+                    else if (power >= 300) level = '高级节点';
+                    else if (power >= 200) level = '标准节点';
+                    document.getElementById('my-node-level').textContent = level;
+                    
+                    // 更新在线状态
+                    const onlineRate = 95; // 模拟在线率
+                    document.getElementById('my-online-rate').innerHTML = `
+                        <span class="online-indicator ${onlineRate > 90 ? 'online' : 'offline'}"></span>
+                        ${onlineRate}%
+                    `;
+                }
+                
+                // 更新价格决定使用的货币
+                currentPrice = 1.0; // 从Oracle获取
+                if (currentPrice < 1.3) {
+                    document.getElementById('apply-currency').textContent = 'BSDT';
+                } else {
+                    document.getElementById('apply-currency').textContent = 'HCF';
+                }
+                
+            } catch (error) {
+                console.error('加载节点数据失败:', error);
+            }
+        }
+
+        // 加载推荐数据
+        async function loadReferralData() {
+            if (!connected) return;
+            
+            try {
+                const referralContract = new ethers.Contract(CONTRACTS.Referral, REFERRAL_ABI, provider);
+                const userData = await referralContract.getUserData(account);
+                
+                document.getElementById('direct-referrals').textContent = userData.directCount || '0';
+                document.getElementById('team-level-display').textContent = `V${userData.teamLevel || 0}`;
+                document.getElementById('team-level').textContent = `V${userData.teamLevel || 0}`;
+                document.getElementById('total-performance').textContent = ethers.utils.formatUnits(userData.personalVolume || 0, 18).slice(0, 10);
+                document.getElementById('total-referral-income').textContent = ethers.utils.formatUnits(userData.totalReferralReward || 0, 18).slice(0, 10);
+                document.getElementById('pending-referral-reward').textContent = ethers.utils.formatUnits(userData.claimableReferralReward || 0, 18).slice(0, 10) + ' HCF';
+                
+                // 更新团队等级达成状态
+                const teamLevel = Number(userData.teamLevel || 0);
+                for (let i = 1; i <= 6; i++) {
+                    const levelRow = document.getElementById(`level-v${i}`);
+                    if (levelRow) {
+                        if (i <= teamLevel) {
+                            levelRow.classList.add('achieved');
+                            levelRow.querySelector('.badge').textContent = '已达成';
+                            levelRow.querySelector('.badge').className = 'badge badge-success';
+                        }
+                    }
+                }
+                
+            } catch (error) {
+                console.error('加载推荐数据失败:', error);
+            }
+        }
+
+        // 节点NFT功能
+        async function applyForNode() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            try {
+                const nodeContract = new ethers.Contract(CONTRACTS.NodeNFT, NODE_NFT_ABI, signer);
+                const price = await nodeContract.NODE_PRICE();
+                
+                if (currentPrice < 1.3) {
+                    // 使用BSDT支付
+                    const bsdtContract = new ethers.Contract(CONTRACTS.BSDT, BSDT_ABI, signer);
+                    const approveTx = await bsdtContract.approve(CONTRACTS.NodeNFT, price);
+                    await approveTx.wait();
+                } else {
+                    // 使用HCF支付
+                    const hcfContract = new ethers.Contract(CONTRACTS.HCF, HCF_ABI, signer);
+                    const approveTx = await hcfContract.approve(CONTRACTS.NodeNFT, price);
+                    await approveTx.wait();
+                }
+                
+                const mintTx = await nodeContract.mintNode();
+                await mintTx.wait();
+                
+                alert('节点申请成功！');
+                await loadNodeData();
+                
+            } catch (error) {
+                console.error('申请节点失败:', error);
+                alert('申请失败: ' + error.message);
+            }
+        }
+
+        async function activateNode() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            alert('需要1000 HCF + 1000 HCF/BSDT LP，激活功能开发中...');
+        }
+
+        async function updateNodePower() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            try {
+                const nodeContract = new ethers.Contract(CONTRACTS.NodeNFT, NODE_NFT_ABI, signer);
+                const tx = await nodeContract.updateNodePower(0); // 更新第一个节点
+                await tx.wait();
+                
+                alert('算力更新成功！');
+                await loadNodeData();
+                
+            } catch (error) {
+                console.error('更新算力失败:', error);
+                alert('更新失败: ' + error.message);
+            }
+        }
+
+        async function claimDividends() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            try {
+                const nodeContract = new ethers.Contract(CONTRACTS.NodeNFT, NODE_NFT_ABI, signer);
+                const tx = await nodeContract.claimDividends();
+                await tx.wait();
+                
+                alert('分红领取成功！');
+                document.getElementById('pending-dividends').textContent = '0 HCF';
+                
+            } catch (error) {
+                console.error('领取分红失败:', error);
+                alert('领取失败: ' + error.message);
+            }
+        }
+
+        function showVoteModal() {
+            alert('治理投票功能开发中...');
+        }
+
+        function claimNodeCompensation() {
+            alert('无常损失补偿功能开发中...');
+        }
+
+        function proposeMaxValueChange() {
+            const newValue = document.getElementById('new-max-value').value;
+            if (!newValue) {
+                alert('请输入新的满值');
+                return;
+            }
+            alert(`提议将满值调整为 ${newValue} HCF，需要3/5多签批准`);
+        }
+
+        // 推荐系统功能
+        async function registerReferral() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            const referrer = prompt('请输入推荐人地址:');
+            if (!referrer) return;
+            
+            try {
+                const referralContract = new ethers.Contract(CONTRACTS.Referral, REFERRAL_ABI, signer);
+                const tx = await referralContract.register(referrer);
+                await tx.wait();
+                
+                alert('推荐人登记成功！');
+                
+            } catch (error) {
+                console.error('登记失败:', error);
+                alert('登记失败: ' + error.message);
+            }
+        }
+
+        function generateNewLink() {
+            const timestamp = Date.now();
+            const newLink = `https://hcf-finance.xyz?ref=${account}&t=${timestamp}`;
+            document.getElementById('referral-link').value = newLink;
+            alert('新链接已生成！');
+        }
+
+        async function upgradeTeamLevel() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            try {
+                const referralContract = new ethers.Contract(CONTRACTS.Referral, REFERRAL_ABI, signer);
+                const tx = await referralContract.updateTeamLevel();
+                await tx.wait();
+                
+                alert('团队等级升级成功！');
+                await loadReferralData();
+                
+            } catch (error) {
+                console.error('升级失败:', error);
+                alert('升级失败: ' + error.message);
+            }
+        }
+
+        async function claimReferralReward() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            try {
+                const referralContract = new ethers.Contract(CONTRACTS.Referral, REFERRAL_ABI, signer);
+                const tx = await referralContract.claimReferralReward();
+                await tx.wait();
+                
+                alert('推荐奖励领取成功！(已扣除10%销毁)');
+                await loadReferralData();
+                
+            } catch (error) {
+                console.error('领取失败:', error);
+                alert('领取失败: ' + error.message);
+            }
+        }
+
+        function copyReferralLink() {
+            const link = document.getElementById('referral-link');
+            link.select();
+            document.execCommand('copy');
+            alert('链接已复制！');
+        }
+
+        function loadMoreMembers() {
+            alert('加载更多团队成员...');
+        }
+
+        // 断开连接
+        function disconnect() {
+            account = null;
+            connected = false;
+            provider = null;
+            signer = null;
+            
+            document.getElementById('wallet-status').innerHTML = `
+                <button class="btn" onclick="connectWallet()">连接钱包</button>
+            `;
+        }
+
+        // 订阅事件
+        function subscribeToEvents() {
+            if (!connected) return;
+            
+            const nodeContract = new ethers.Contract(CONTRACTS.NodeNFT, NODE_NFT_ABI, provider);
+            const referralContract = new ethers.Contract(CONTRACTS.Referral, REFERRAL_ABI, provider);
+            
+            // 监听节点激活事件
+            nodeContract.on('NodeActivated', (owner, tokenId) => {
+                if (owner === account) {
+                    loadNodeData();
+                }
+            });
+            
+            // 监听分红领取事件
+            nodeContract.on('DividendsClaimed', (owner, amount) => {
+                if (owner === account) {
+                    loadNodeData();
+                }
+            });
+            
+            // 监听推荐奖励事件
+            referralContract.on('RewardDistributed', (user, amount) => {
+                if (user === account) {
+                    loadReferralData();
+                }
+            });
+        }
+
+        // 监听账户变化
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    disconnect();
+                } else if (account !== accounts[0]) {
+                    account = accounts[0];
+                    connectWallet();
+                }
+            });
+        }
+    </script>
+</body>
+</html>

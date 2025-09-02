@@ -33,6 +33,7 @@ interface IDEXRouter {
 contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     
     // ============ 常量 ============
+    uint256 public constant MAX_SUPPLY = 1000_000_000_000 * 10**18; // 1000亿枚固定发行
     uint256 public constant PRICE_RATIO = 10000; // 1:1锚定（基点）
     
     // ============ 接口 ============
@@ -41,7 +42,6 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     address public multiSigWallet;
     
     // ============ 状态变量 ============
-    uint256 public maxSupplyFromOracle;
     uint256 public totalUSDTLocked;
     bool public emergencyPause = false;
     
@@ -118,8 +118,7 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
             blacklistedDEX[knownDEXFactories[i]] = true;
         }
         
-        // 获取初始Oracle供应量
-        _updateMaxSupplyFromOracle();
+        // 无需Oracle供应量，使用固定总量
         
         // 铸造10万BSDT到底池（无需USDT锁定，初始流动性）
         if (_lpPool != address(0)) {
@@ -139,11 +138,8 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
         require(amount > 0, "Amount must be positive");
         require(to != address(0), "Mint to zero address");
         
-        // 更新Oracle供应量
-        _updateMaxSupplyFromOracle();
-        
-        // 严格检查Oracle供应量限制
-        require(totalSupply() + amount <= maxSupplyFromOracle, "Exceeds max supply from Oracle");
+        // 严格检查固定供应量限制
+        require(totalSupply() + amount <= MAX_SUPPLY, "Exceeds max supply");
         
         // 转入等值USDT（1:1锁定）- 必须先锁定USDT
         uint256 balanceBefore = usdtToken.balanceOf(address(this));
@@ -257,7 +253,7 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
             uint256 increaseAmount = currentUSDTBalance - lastUSDTBalance[wallet];
             
             // 检查是否可以铸造
-            if (totalSupply() + increaseAmount <= maxSupplyFromOracle) {
+            if (totalSupply() + increaseAmount <= MAX_SUPPLY) {
                 // 从钱包转入USDT
                 require(usdtToken.transferFrom(wallet, address(this), increaseAmount), "USDT transfer failed");
                 totalUSDTLocked += increaseAmount;
@@ -362,17 +358,6 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
         return false;
     }
     
-    /**
-     * @dev 更新Oracle最大供应量
-     */
-    function _updateMaxSupplyFromOracle() private {
-        uint256 oldSupply = maxSupplyFromOracle;
-        maxSupplyFromOracle = usdtOracle.getTotalSupply();
-        
-        if (oldSupply != maxSupplyFromOracle) {
-            emit MaxSupplyUpdated(oldSupply, maxSupplyFromOracle);
-        }
-    }
     
     // ============ 管理功能 ============
     
@@ -391,10 +376,10 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 更新最大供应量（仅多签）
+     * @dev 获取剩余可铸造量
      */
-    function updateMaxSupply() external onlyMultiSig {
-        _updateMaxSupplyFromOracle();
+    function getRemainingSupply() external view returns (uint256) {
+        return MAX_SUPPLY - totalSupply();
     }
     
     /**
@@ -440,11 +425,10 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
     }
     
     /**
-     * @dev 设置Oracle地址
+     * @dev 设置Oracle地址（仅用于价格读取）
      */
     function setOracle(address _oracle) external onlyMultiSig {
         usdtOracle = IUSDTOracle(_oracle);
-        _updateMaxSupplyFromOracle();
     }
     
     /**
