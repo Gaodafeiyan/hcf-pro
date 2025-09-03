@@ -312,7 +312,7 @@
                 <div class="card-title">🔥 智能质押（自动等级）</div>
                 
                 <div class="info-box">
-                    <p>💡 最低10 HCF起步，必须10的倍数</p>
+                    <p>💡 最低1000 HCF起步，必须10的倍数</p>
                     <p>📈 系统自动匹配最优等级（L3-L5开放）</p>
                     <p>⏰ 无锁定期，随时可解除质押</p>
                 </div>
@@ -320,8 +320,8 @@
                 <div class="form-group">
                     <label class="form-label">质押数量</label>
                     <input type="number" class="form-input" id="stakeAmount" 
-                           placeholder="输入HCF数量（最低10）" 
-                           min="10" step="10" onchange="updateStakeInfo()">
+                           placeholder="输入HCF数量（最低1000）" 
+                           min="1000" step="10" onchange="updateStakeInfo()">
                     <div class="error-message" id="stakeError" style="display:none;"></div>
                 </div>
 
@@ -507,10 +507,7 @@
                                 <span>待领取收益</span>
                                 <span id="userPendingReward">0 HCF</span>
                             </div>
-                            <div class="level-info">
-                                <span>质押时间</span>
-                                <span id="userStakingTime">0天</span>
-                            </div>
+
                         </div>
 
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
@@ -586,7 +583,6 @@
                 document.getElementById('userTotalRate').textContent = `${userStakingData.totalRate}%`;
                 document.getElementById('userDailyReward').textContent = `${userStakingData.dailyReward.toFixed(2)} HCF`;
                 document.getElementById('userPendingReward').textContent = `${userStakingData.pendingReward.toFixed(2)} HCF`;
-                document.getElementById('userStakingTime').textContent = `${userStakingData.stakingDays}天`;
                 
                 // 显示LP信息（如果有）
                 if (userStakingData.hasLP) {
@@ -609,11 +605,11 @@
                 // 无质押
                 { stakeAmount: 0, level: 0, baseRate: 0, totalRate: 0, dailyReward: 0, pendingReward: 0, stakingDays: 0, hasLP: false },
                 // Level 3 无LP
-                { stakeAmount: 1000, level: 3, baseRate: 0.6, totalRate: 0.6, dailyReward: 6, pendingReward: 12.5, stakingDays: 15, hasLP: false },
+                { stakeAmount: 1000, level: 3, baseRate: 0.6, totalRate: 0.6, dailyReward: 6, pendingReward: 12.5, hasLP: false },
                 // Level 3 有LP
-                { stakeAmount: 1000, level: 3, baseRate: 0.6, totalRate: 1.2, dailyReward: 12, pendingReward: 25.8, stakingDays: 15, hasLP: true, lpHCF: 200, lpBSDT: 20 },
+                { stakeAmount: 1000, level: 3, baseRate: 0.6, totalRate: 1.2, dailyReward: 12, pendingReward: 25.8, hasLP: true, lpHCF: 200, lpBSDT: 20 },
                 // Level 4 有LP
-                { stakeAmount: 10000, level: 4, baseRate: 0.7, totalRate: 1.4, dailyReward: 140, pendingReward: 420, stakingDays: 30, hasLP: true, lpHCF: 2000, lpBSDT: 200 }
+                { stakeAmount: 10000, level: 4, baseRate: 0.7, totalRate: 1.4, dailyReward: 140, pendingReward: 420, hasLP: true, lpHCF: 2000, lpBSDT: 200 }
             ];
             
             // 随机选择一个场景，实际应用中从合约读取真实数据
@@ -643,9 +639,9 @@
             document.getElementById('stakeError').style.display = 'none';
             amountInput.classList.remove('error');
             
-            // 验证最低金额（L1-L5不同的最低要求）
-            if (amount < 10) {
-                document.getElementById('stakeError').textContent = '最低质押10 HCF';
+            // 验证最低金额（L3-L5开放，最低1000）
+            if (amount < 1000) {
+                document.getElementById('stakeError').textContent = '最低质押1000 HCF（L3等级）';
                 document.getElementById('stakeError').style.display = 'block';
                 amountInput.classList.add('error');
                 document.getElementById('levelDisplay').style.display = 'none';
