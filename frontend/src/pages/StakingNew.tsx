@@ -32,7 +32,8 @@ const StakingNew = () => {
   const [bsdtBalance, setBsdtBalance] = useState(0);
   const [totalStaked, setTotalStaked] = useState(0);
   const [pendingRewards, setPendingRewards] = useState(0);
-  const [hcfPrice] = useState(0.1); // 默认价格0.1 USDT
+  const [userStakedAmount, setUserStakedAmount] = useState(0); // 用户已质押的HCF数量
+  const [userIsLP, setUserIsLP] = useState(false); // 用户当前是否是LP质押
   
   // 计算当前等级
   const getCurrentLevel = (amount: number) => {
@@ -54,9 +55,9 @@ const StakingNew = () => {
     return amount >= STAKING_CONFIG.minStakeAmount;
   };
 
-  // 计算等值BSDT
+  // 计算等值BSDT（LP质押是1:1的比例）
   const calculateBSDTAmount = (hcfAmount: number) => {
-    return hcfAmount * hcfPrice;
+    return hcfAmount; // LP质押需要等额的BSDT，1 HCF = 1 BSDT
   };
 
   // 加载用户数据
@@ -84,7 +85,9 @@ const StakingNew = () => {
       
       // 获取用户质押信息
       const userInfo = await stakingContract.getUserInfo(address);
-      const [, , pending] = userInfo;
+      const [amount, , pending, , isLP] = userInfo;
+      setUserStakedAmount(Number(ethers.formatUnits(amount, 18)));
+      setUserIsLP(isLP);
       setPendingRewards(Number(ethers.formatUnits(pending, 18)));
       
     } catch (error) {
@@ -116,6 +119,12 @@ const StakingNew = () => {
       return;
     }
 
+    // LP质押前提条件检查
+    if (isLPStake && userStakedAmount < 1000) {
+      message.error('需要先质押至少1000 HCF才能进行LP质押');
+      return;
+    }
+
     try {
       setStaking(true);
       const provider = new ethers.BrowserProvider(window.ethereum);
@@ -139,6 +148,7 @@ const StakingNew = () => {
           return;
         }
 
+        message.info('正在授权BSDT...');
         // LP质押需要同时授权HCF和BSDT
         const bsdtToken = getBSDTTokenContract(signer);
         const bsdtAmountWei = parseNumber(bsdtAmount.toString());
@@ -146,17 +156,21 @@ const StakingNew = () => {
         // 授权BSDT
         const bsdtApproveTx = await bsdtToken.approve(stakingContract.target, bsdtAmountWei);
         await waitForTransaction(bsdtApproveTx);
+        message.success('BSDT授权成功');
       }
       
+      message.info('正在授权HCF...');
       // 授权HCF
       const approveTx = await hcfToken.approve(stakingContract.target, amount);
       await waitForTransaction(approveTx);
+      message.success('HCF授权成功');
       
+      message.info(`正在执行${isLPStake ? 'LP' : '普通'}质押...`);
       // 执行质押
       const stakeTx = await stakingContract.stake(amount, isLPStake, false);
       await waitForTransaction(stakeTx);
       
-      message.success('质押成功！');
+      message.success(`${isLPStake ? 'LP' : '普通'}质押成功！${isLPStake ? '您将享受双倍收益率' : ''}`);
       loadUserData();
       
     } catch (error: any) {
@@ -220,6 +234,24 @@ const StakingNew = () => {
         </Title>
       </Card>
 
+      {/* 用户质押状态 */}
+      {userStakedAmount > 0 && (
+        <Card style={{ marginBottom: 20, background: '#f0f5ff', borderColor: '#1890ff' }}>
+          <Space direction="vertical" style={{ width: '100%' }}>
+            <Text strong>您的质押状态:</Text>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+              <Text>已质押数量: <Text strong>{userStakedAmount.toFixed(2)} HCF</Text></Text>
+              <Text>质押类型: <Text strong style={{ color: userIsLP ? '#52c41a' : '#1890ff' }}>
+                {userIsLP ? 'LP质押（双倍收益）' : '普通质押'}
+              </Text></Text>
+            </div>
+            {!userIsLP && userStakedAmount >= 1000 && (
+              <Text type="success">✅ 已满足LP质押条件，可以进行LP质押获得双倍收益</Text>
+            )}
+          </Space>
+        </Card>
+      )}
+
       {/* 质押操作 */}
       <Card 
         title={
@@ -272,14 +304,24 @@ const StakingNew = () => {
             <Checkbox 
               checked={isLPStake}
               onChange={(e) => setIsLPStake(e.target.checked)}
+              disabled={userStakedAmount < 1000} // 必须先质押1000 HCF才能选择LP质押
             >
-              LP质押 (HCF+BSDT等额)
+              LP质押 (HCF+BSDT等额质押)
             </Checkbox>
-            {isLPStake && (
+            {userStakedAmount < 1000 && (
+              <div style={{ marginTop: 8 }}>
+                <Text type="warning" style={{ fontSize: 12 }}>
+                  ⚠️ 需要先质押至少1000 HCF才能进行LP质押（当前已质押: {userStakedAmount.toFixed(2)} HCF）
+                </Text>
+              </div>
+            )}
+            {isLPStake && userStakedAmount >= 1000 && (
               <div style={{ marginTop: 8, padding: 12, background: '#f6ffed', borderRadius: 6 }}>
                 <Text>需要等额BSDT: <Text strong>{bsdtRequired.toFixed(2)} BSDT</Text></Text>
                 <br />
-                <Text type="secondary">基于当前价格: {hcfPrice} USDT/HCF</Text>
+                <Text type="secondary">LP质押比例 1:1（{stakeAmount} HCF : {bsdtRequired} BSDT）</Text>
+                <br />
+                <Text type="success">LP质押享受双倍收益率</Text>
               </div>
             )}
           </div>
@@ -297,11 +339,15 @@ const StakingNew = () => {
             type="primary"
             size="large"
             loading={staking}
-            disabled={!isValidStake || (isLPStake && bsdtBalance < bsdtRequired)}
+            disabled={!isValidStake || (isLPStake && (bsdtBalance < bsdtRequired || userStakedAmount < 1000))}
             onClick={handleStake}
             style={{ width: '100%' }}
           >
-            {!isValidStake ? '请输入有效金额' : `确认质押 ${stakeAmount} HCF`}
+            {!isValidStake ? '请输入有效金额' : 
+             isLPStake && userStakedAmount < 1000 ? '需要先质押1000 HCF' :
+             isLPStake && bsdtBalance < bsdtRequired ? `BSDT余额不足(需要${bsdtRequired} BSDT)` :
+             isLPStake ? `确认LP质押 ${stakeAmount} HCF + ${bsdtRequired} BSDT` :
+             `确认普通质押 ${stakeAmount} HCF`}
           </Button>
         </Space>
       </Card>
