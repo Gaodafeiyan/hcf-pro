@@ -470,30 +470,55 @@
             <div class="card">
                 <div class="card-title">💰 我的质押</div>
                 
-                <div class="level-display">
-                    <div class="level-info">
-                        <span>质押总额</span>
-                        <span>10,000 HCF</span>
+                <div id="myStakingInfo">
+                    <!-- 未连接钱包时显示 -->
+                    <div id="noStaking" style="text-align: center; padding: 40px; color: #666;">
+                        <p>请先连接钱包查看质押信息</p>
                     </div>
-                    <div class="level-info">
-                        <span>LP质押</span>
-                        <span>5,000 HCF + 5,000 BSDT</span>
-                    </div>
-                    <div class="level-info">
-                        <span>当前等级</span>
-                        <span>Level 4</span>
-                    </div>
-                    <div class="level-info">
-                        <span>综合日化</span>
-                        <span>1.4%</span>
-                    </div>
-                    <div class="level-info">
-                        <span>质押时间</span>
-                        <span>30天</span>
+                    
+                    <!-- 有质押时显示 -->
+                    <div id="stakingDetails" style="display: none;">
+                        <div class="level-display">
+                            <div class="level-info">
+                                <span>质押总额</span>
+                                <span id="userStakeAmount">0 HCF</span>
+                            </div>
+                            <div class="level-info">
+                                <span>当前等级</span>
+                                <span id="userLevel">-</span>
+                            </div>
+                            <div class="level-info">
+                                <span>基础日化</span>
+                                <span id="userBaseRate">0%</span>
+                            </div>
+                            <div class="level-info" id="userLPInfo" style="display: none;">
+                                <span>LP投入</span>
+                                <span id="userLPAmount">0 HCF + 0 BSDT</span>
+                            </div>
+                            <div class="level-info">
+                                <span>综合日化</span>
+                                <span id="userTotalRate">0%</span>
+                            </div>
+                            <div class="level-info">
+                                <span>预计日收益</span>
+                                <span id="userDailyReward">0 HCF</span>
+                            </div>
+                            <div class="level-info">
+                                <span>待领取收益</span>
+                                <span id="userPendingReward">0 HCF</span>
+                            </div>
+                            <div class="level-info">
+                                <span>质押时间</span>
+                                <span id="userStakingTime">0天</span>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                            <button class="btn" style="background: #4caf50;" onclick="claimRewards()">领取收益</button>
+                            <button class="btn" style="background: #ff5252;" onclick="unstake()">解除质押（无锁定期）</button>
+                        </div>
                     </div>
                 </div>
-
-                <button class="btn" style="background: #ff5252;" onclick="unstake()">解除质押（无锁定期）</button>
             </div>
         </div>
     </div>
@@ -534,6 +559,79 @@
             document.getElementById('connectedAddress').textContent = 
                 userAddress.substr(0, 6) + '...' + userAddress.substr(-4);
             document.querySelector('.wallet-btn').textContent = '已连接';
+            
+            // 连接钱包后更新用户质押信息
+            updateUserStakingInfo();
+        }
+
+        function updateUserStakingInfo() {
+            if (!connected) {
+                document.getElementById('noStaking').style.display = 'block';
+                document.getElementById('stakingDetails').style.display = 'none';
+                return;
+            }
+
+            // 模拟从合约读取用户质押数据
+            // 实际应用中这里会调用合约的 getUserStakingInfo() 函数
+            const userStakingData = simulateUserStakingData();
+            
+            if (userStakingData.stakeAmount > 0) {
+                document.getElementById('noStaking').style.display = 'none';
+                document.getElementById('stakingDetails').style.display = 'block';
+                
+                // 更新质押信息
+                document.getElementById('userStakeAmount').textContent = `${userStakingData.stakeAmount.toLocaleString()} HCF`;
+                document.getElementById('userLevel').textContent = `Level ${userStakingData.level}`;
+                document.getElementById('userBaseRate').textContent = `${userStakingData.baseRate}%`;
+                document.getElementById('userTotalRate').textContent = `${userStakingData.totalRate}%`;
+                document.getElementById('userDailyReward').textContent = `${userStakingData.dailyReward.toFixed(2)} HCF`;
+                document.getElementById('userPendingReward').textContent = `${userStakingData.pendingReward.toFixed(2)} HCF`;
+                document.getElementById('userStakingTime').textContent = `${userStakingData.stakingDays}天`;
+                
+                // 显示LP信息（如果有）
+                if (userStakingData.hasLP) {
+                    document.getElementById('userLPInfo').style.display = 'flex';
+                    document.getElementById('userLPAmount').textContent = 
+                        `${userStakingData.lpHCF.toLocaleString()} HCF + ${userStakingData.lpBSDT.toLocaleString()} BSDT`;
+                } else {
+                    document.getElementById('userLPInfo').style.display = 'none';
+                }
+            } else {
+                document.getElementById('noStaking').style.display = 'block';
+                document.getElementById('stakingDetails').style.display = 'none';
+                document.getElementById('noStaking').innerHTML = '<p>您还没有质押，<a href="#" onclick="scrollToStaking()">立即开始质押</a></p>';
+            }
+        }
+
+        function simulateUserStakingData() {
+            // 模拟用户质押数据，实际应用中从合约读取
+            const scenarios = [
+                // 无质押
+                { stakeAmount: 0, level: 0, baseRate: 0, totalRate: 0, dailyReward: 0, pendingReward: 0, stakingDays: 0, hasLP: false },
+                // Level 3 无LP
+                { stakeAmount: 1000, level: 3, baseRate: 0.6, totalRate: 0.6, dailyReward: 6, pendingReward: 12.5, stakingDays: 15, hasLP: false },
+                // Level 3 有LP
+                { stakeAmount: 1000, level: 3, baseRate: 0.6, totalRate: 1.2, dailyReward: 12, pendingReward: 25.8, stakingDays: 15, hasLP: true, lpHCF: 200, lpBSDT: 20 },
+                // Level 4 有LP
+                { stakeAmount: 10000, level: 4, baseRate: 0.7, totalRate: 1.4, dailyReward: 140, pendingReward: 420, stakingDays: 30, hasLP: true, lpHCF: 2000, lpBSDT: 200 }
+            ];
+            
+            // 随机选择一个场景，实际应用中从合约读取真实数据
+            return scenarios[Math.floor(Math.random() * scenarios.length)];
+        }
+
+        function scrollToStaking() {
+            document.querySelector('.card:nth-child(3)').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function claimRewards() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            alert('领取收益成功！（演示模式）');
+            // 实际应用中调用合约的 claimRewards() 函数
+            updateUserStakingInfo(); // 更新显示
         }
 
         function updateStakeInfo() {
