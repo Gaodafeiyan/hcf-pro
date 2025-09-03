@@ -345,10 +345,6 @@
                 <!-- 收益分解显示 -->
                 <div id="rewardBreakdown" class="reward-breakdown" style="margin: 15px 0; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 14px;"></div>
 
-                <div class="checkbox-group">
-                    <input type="checkbox" id="lpStake" onchange="updateStakeInfo()">
-                    <label for="lpStake">普通LP质押（投入20%本金作为流动性，获得双倍收益）</label>
-                </div>
 
                 <div class="form-group" id="lpRequired" style="display:none;">
                     <label class="form-label">LP需要投入</label>
@@ -396,6 +392,57 @@
                     <p>💡 复投：将收益再次投入质押，获得复利效果</p>
                     <p>📊 可自由输入任意金额进行复投</p>
                 </div>
+            </div>
+
+            <!-- 独立的普通LP质押卡片 -->
+            <div class="card" id="lpStakeCard" style="display:none;">
+                <div class="card-title">💎 普通LP质押（享受双倍收益）</div>
+                
+                <div class="info-box" style="margin-bottom: 15px; background: #f6ffed; border-color: #52c41a;">
+                    <p><strong>💡 LP质押说明：</strong></p>
+                    <p>• 投入质押量20%的HCF作为流动性</p>
+                    <p>• 同时需要等值的BSDT（按0.1美元价格）</p>
+                    <p>• 获得双倍收益率（基础 + LP加成）</p>
+                    <p style="color: #52c41a;">• ✅ 您已满足条件，可以进行LP质押</p>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">选择基础质押量</label>
+                    <input type="number" class="form-input" id="lpBaseAmount" value="1000" min="1000" step="1000" onchange="updateLPRequirement()">
+                </div>
+                
+                <div class="stats-grid" style="margin: 15px 0;">
+                    <div class="stat-box">
+                        <div class="stat-label">需要HCF数量</div>
+                        <div class="stat-value" id="lpHCFRequired">200 HCF</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">需要BSDT数量</div>
+                        <div class="stat-value" id="lpBSDTRequired">20 BSDT</div>
+                    </div>
+                </div>
+                
+                <div class="info-box" style="background: #fff7e6;">
+                    <p><strong>📈 预期日收益：</strong></p>
+                    <p>基础收益：<span id="lpBaseReward">6</span> HCF（0.6%）</p>
+                    <p style="color: #52c41a;">LP加成：+<span id="lpBonusReward">6</span> HCF（0.6%）</p>
+                    <p><strong style="color: #52c41a;">综合收益：<span id="lpTotalReward">12</span> HCF/天（1.2%）</strong></p>
+                </div>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span>HCF余额：<span id="lpHCFBalance">0</span></span>
+                        <span id="lpHCFStatus" style="color: #52c41a;">✓ 充足</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>BSDT余额：<span id="lpBSDTBalance">0</span></span>
+                        <span id="lpBSDTStatus" style="color: #52c41a;">✓ 充足</span>
+                    </div>
+                </div>
+                
+                <button class="btn" id="lpStakeBtn" onclick="executeLPStake()">
+                    确认LP质押 200 HCF + 20 BSDT
+                </button>
             </div>
 
             <!-- 添加流动性（任何人都可以） -->
@@ -945,6 +992,7 @@
             if (!connected) {
                 document.getElementById('noStaking').style.display = 'block';
                 document.getElementById('stakingDetails').style.display = 'none';
+                document.getElementById('lpStakeCard').style.display = 'none';
                 return;
             }
 
@@ -973,6 +1021,14 @@
             if (userStakingData.stakeAmount > 0) {
                 document.getElementById('noStaking').style.display = 'none';
                 document.getElementById('stakingDetails').style.display = 'block';
+                
+                // 显示LP质押卡片（如果质押量>=1000且不是LP）
+                if (userStakingData.stakeAmount >= 1000 && !userStakingData.isLP) {
+                    document.getElementById('lpStakeCard').style.display = 'block';
+                    updateLPRequirement(); // 更新LP质押需求显示
+                } else {
+                    document.getElementById('lpStakeCard').style.display = 'none';
+                }
                 
                 // 更新质押信息
                 document.getElementById('userStakeAmount').textContent = `${userStakingData.stakeAmount.toLocaleString()} HCF`;
@@ -1036,7 +1092,7 @@
         function updateStakeInfo() {
             const amountInput = document.getElementById('stakeAmount');
             const amount = parseFloat(amountInput.value) || 0;
-            const lpChecked = document.getElementById('lpStake').checked;
+            const lpChecked = false; // 移除勾选框，LP质押现在是独立的
             
             // 清除之前的错误
             document.getElementById('stakeError').style.display = 'none';
@@ -1438,6 +1494,61 @@
             }
             if (confirm('解除质押将扣除手续费，确定继续？')) {
                 alert('解除质押成功！（演示模式）');
+            }
+        }
+        
+        // LP质押相关函数
+        function updateLPRequirement() {
+            const baseAmount = parseFloat(document.getElementById('lpBaseAmount')?.value || 1000);
+            const hcfRequired = baseAmount * 0.2; // 20%
+            const bsdtRequired = hcfRequired * 0.1; // 按0.1美元价格
+            
+            // 更新显示
+            if (document.getElementById('lpHCFRequired')) {
+                document.getElementById('lpHCFRequired').textContent = `${hcfRequired.toFixed(2)} HCF`;
+                document.getElementById('lpBSDTRequired').textContent = `${bsdtRequired.toFixed(2)} BSDT`;
+                
+                // 更新预期收益
+                const baseReward = baseAmount * 0.006; // 0.6%日化
+                document.getElementById('lpBaseReward').textContent = baseReward.toFixed(2);
+                document.getElementById('lpBonusReward').textContent = baseReward.toFixed(2);
+                document.getElementById('lpTotalReward').textContent = (baseReward * 2).toFixed(2);
+                
+                // 更新按钮文字
+                document.getElementById('lpStakeBtn').textContent = 
+                    `确认LP质押 ${hcfRequired.toFixed(2)} HCF + ${bsdtRequired.toFixed(2)} BSDT`;
+            }
+        }
+        
+        async function executeLPStake() {
+            const baseAmount = parseFloat(document.getElementById('lpBaseAmount').value || 1000);
+            const hcfRequired = baseAmount * 0.2;
+            const bsdtRequired = hcfRequired * 0.1;
+            
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            try {
+                document.getElementById('lpStakeBtn').disabled = true;
+                document.getElementById('lpStakeBtn').textContent = '正在执行LP质押...';
+                
+                // 这里应该调用智能合约的LP质押函数
+                // 暂时使用模拟
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                alert(`LP质押成功！\n投入：${hcfRequired.toFixed(2)} HCF + ${bsdtRequired.toFixed(2)} BSDT\n您现在享受双倍收益率！`);
+                
+                // 刷新数据
+                await updateUserStakingInfo();
+                
+            } catch (error) {
+                console.error('LP质押失败:', error);
+                alert(`LP质押失败: ${error.message}`);
+            } finally {
+                document.getElementById('lpStakeBtn').disabled = false;
+                updateLPRequirement();
             }
         }
     </script>
