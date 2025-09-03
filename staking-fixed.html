@@ -347,7 +347,7 @@
 
                 <div class="checkbox-group">
                     <input type="checkbox" id="lpStake" onchange="updateStakeInfo()">
-                    <label for="lpStake">LP质押（投入20%本金作为流动性，收益增加2倍）</label>
+                    <label for="lpStake">普通LP质押（投入20%本金作为流动性，获得双倍收益）</label>
                 </div>
 
                 <div class="form-group" id="lpRequired" style="display:none;">
@@ -1154,9 +1154,10 @@
                 const cappedEquity100Rate = cappedEquity100 / amount * 100;
                 const cappedEquity300Rate = cappedEquity300 / amount * 100;
                 
-                html += `<p>股权LP（100天）+20%：综合收益${cappedEquity100.toFixed(0)}枚/天（${cappedEquity100Rate.toFixed(2)}%）</p>`;
-                html += `<p>股权LP（300天）+40%：综合收益${cappedEquity300.toFixed(0)}枚/天（${cappedEquity300Rate.toFixed(2)}%）</p>`;
+                html += `<p style="color: #3498db;">💡 如果你有股权LP（100天）+20%：综合收益${cappedEquity100.toFixed(0)}枚/天（${cappedEquity100Rate.toFixed(2)}%）</p>`;
+                html += `<p style="color: #3498db;">💡 如果你有股权LP（300天）+40%：综合收益${cappedEquity300.toFixed(0)}枚/天（${cappedEquity300Rate.toFixed(2)}%）</p>`;
                 html += `<p style="color: #f39c12;">封顶：${(amount * currentLevel.cap / 100).toFixed(0)}枚（${currentLevel.cap}%）</p>`;
+                html += `<p style="color: #95a5a6; font-size: 12px;">📝 股权LP需要在"添加流动性"页面单独操作</p>`;
             }
             
             html += `</div>`;
