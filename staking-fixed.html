@@ -341,12 +341,16 @@
 
                 <div class="checkbox-group">
                     <input type="checkbox" id="lpStake" onchange="updateStakeInfo()">
-                    <label for="lpStake">LP质押（需等额BSDT，收益翻倍）</label>
+                    <label for="lpStake">LP质押（投入20%本金作为流动性，收益增加2倍）</label>
                 </div>
 
-                <div class="form-group" id="bsdtRequired" style="display:none;">
-                    <label class="form-label">需要BSDT</label>
-                    <input type="text" class="form-input" id="bsdtAmount" readonly>
+                <div class="form-group" id="lpRequired" style="display:none;">
+                    <label class="form-label">LP需要投入</label>
+                    <div class="info-box" style="margin-top: 10px;">
+                        <p id="lpHCFAmount">HCF: 计算中...</p>
+                        <p id="lpBSDTAmount">BSDT: 计算中...</p>
+                        <p style="color: #666; font-size: 12px;">LP投入 = 质押量20% + 等值BSDT（按当前价格）</p>
+                    </div>
                 </div>
 
                 <button class="btn" id="stakeBtn" onclick="stake()" disabled>确认质押</button>
@@ -570,18 +574,34 @@
             document.getElementById('currentLevel').textContent = `Level ${currentLevel.level}`;
             
             const baseRate = currentLevel.rate;
-            const actualRate = lpChecked ? baseRate * 2 : baseRate;
-            document.getElementById('dailyRate').textContent = `${baseRate}%` + (lpChecked ? ` → ${actualRate}%` : '');
+            // LP增产是基础的2倍，总计3倍
+            const lpBonus = lpChecked ? baseRate * 2 : 0;
+            const totalRate = baseRate + lpBonus;
             
-            const dailyReward = amount * actualRate / 100;
+            if (lpChecked) {
+                document.getElementById('dailyRate').textContent = 
+                    `${baseRate}% + LP增产${lpBonus.toFixed(1)}% = ${totalRate.toFixed(1)}%`;
+            } else {
+                document.getElementById('dailyRate').textContent = `${baseRate}%`;
+            }
+            
+            const dailyReward = amount * totalRate / 100;
             document.getElementById('dailyReward').textContent = `${dailyReward.toFixed(2)} HCF`;
             
-            // LP相关
+            // LP相关 - 20%质押量 + 按当前价格的BSDT
             if (lpChecked) {
-                document.getElementById('bsdtRequired').style.display = 'block';
-                document.getElementById('bsdtAmount').value = `${amount} BSDT`;
+                document.getElementById('lpRequired').style.display = 'block';
+                
+                // LP需要质押量的20%
+                const lpHCF = amount * 0.2;
+                // 获取当前HCF价格（演示用0.1）
+                const hcfPrice = 0.1; // 实际应从合约获取
+                const lpBSDT = lpHCF * hcfPrice;
+                
+                document.getElementById('lpHCFAmount').textContent = `HCF: ${lpHCF.toFixed(2)} HCF`;
+                document.getElementById('lpBSDTAmount').textContent = `BSDT: ${lpBSDT.toFixed(2)} BSDT`;
             } else {
-                document.getElementById('bsdtRequired').style.display = 'none';
+                document.getElementById('lpRequired').style.display = 'none';
             }
             
             // 更新按钮
