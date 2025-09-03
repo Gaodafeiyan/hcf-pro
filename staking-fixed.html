@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: wss: ws:;">
     <title>HCF Finance - 智能质押平台</title>
     <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
     <style>
@@ -1132,6 +1133,9 @@
                 document.getElementById('stakeBtn').textContent = '处理中...';
 
                 const stakeAmountWei = web3.utils.toWei(stakeAmount.toString(), 'ether');
+                
+                // 创建MetaMask Web3实例用于交易
+                const metamaskWeb3 = new Web3(window.ethereum);
 
                 // 检查用户余额
                 const balance = await contracts.HCFToken.methods.balanceOf(userAddress).call();
@@ -1147,18 +1151,26 @@
                 ).call();
 
                 if (web3.utils.toBN(allowance).lt(web3.utils.toBN(stakeAmountWei))) {
-                    // 需要授权
+                    // 需要授权 - 使用MetaMask provider进行交易
                     console.log('需要授权HCF代币');
-                    const approveTx = await contracts.HCFToken.methods.approve(
+                    const metamaskContract = new metamaskWeb3.eth.Contract(
+                        contracts.HCFToken.options.jsonInterface, 
+                        CONTRACT_CONFIG.contracts.HCFToken
+                    );
+                    const approveTx = await metamaskContract.methods.approve(
                         CONTRACT_CONFIG.contracts.HCFStaking,
                         stakeAmountWei
                     ).send({ from: userAddress });
                     console.log('授权交易:', approveTx.transactionHash);
                 }
 
-                // 执行质押
+                // 执行质押 - 使用MetaMask provider进行交易
                 console.log('开始质押:', stakeAmountWei);
-                const stakeTx = await contracts.HCFStaking.methods.stake(stakeAmountWei)
+                const metamaskStakingContract = new metamaskWeb3.eth.Contract(
+                    contracts.HCFStaking.options.jsonInterface, 
+                    CONTRACT_CONFIG.contracts.HCFStaking
+                );
+                const stakeTx = await metamaskStakingContract.methods.stake(stakeAmountWei)
                     .send({ from: userAddress });
 
                 console.log('质押成功:', stakeTx.transactionHash);
