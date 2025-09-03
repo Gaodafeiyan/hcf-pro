@@ -385,31 +385,67 @@
                 </div>
             </div>
 
-            <!-- 底池管理（仅多签显示） -->
-            <div class="card" id="poolManagement" style="display:none;">
-                <div class="card-title">🏦 底池管理（多签权限）</div>
+            <!-- 添加流动性（任何人都可以） -->
+            <div class="card">
+                <div class="card-title">💧 添加流动性</div>
                 
                 <div class="stats-grid">
                     <div class="stat-box">
-                        <div class="stat-label">底池HCF</div>
+                        <div class="stat-label">当前底池HCF</div>
                         <div class="stat-value">1,000,000 HCF</div>
                     </div>
                     <div class="stat-box">
-                        <div class="stat-label">底池BSDT</div>
+                        <div class="stat-label">当前底池BSDT</div>
                         <div class="stat-value">100,000 BSDT</div>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">添加HCF到底池（稳定价格）</label>
+                    <label class="form-label">HCF数量</label>
+                    <input type="number" class="form-input" id="liquidityHCF" 
+                           placeholder="输入HCF数量" onchange="updateLiquidityInfo()">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">BSDT数量</label>
+                    <input type="number" class="form-input" id="liquidityBSDT" 
+                           placeholder="输入BSDT数量" onchange="updateLiquidityInfo()">
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="isEquityLP">
+                    <label for="isEquityLP">股权LP（自动归集，增加产出）</label>
+                </div>
+
+                <div class="info-box" id="liquidityInfo" style="display:none; margin-bottom: 15px;">
+                    <p id="liquidityRatio"></p>
+                    <p id="liquidityImpact"></p>
+                </div>
+
+                <button class="btn" onclick="addLiquidity()">添加流动性</button>
+                
+                <div class="info-box" style="margin-top: 15px;">
+                    <p>💡 任何人都可以添加流动性到交易池</p>
+                    <p>📊 股权LP将自动归集并增加质押产出</p>
+                    <p>⚠️ 添加流动性有5%滑点保护</p>
+                </div>
+            </div>
+
+            <!-- 底池管理（仅多签显示） -->
+            <div class="card" id="poolManagement" style="display:none;">
+                <div class="card-title">🏦 底池管理（多签权限）</div>
+                
+                <div class="form-group">
+                    <label class="form-label">添加HCF稳定价格（仅多签）</label>
                     <input type="number" class="form-input" id="addPoolAmount" placeholder="输入HCF数量">
                 </div>
 
-                <button class="btn" onclick="addToPool()">添加到底池</button>
+                <button class="btn" onclick="addToPool()">添加HCF到底池</button>
                 
                 <div class="info-box" style="margin-top: 15px;">
                     <p>⚠️ 仅多签钱包可操作</p>
                     <p>🔒 底池资金锁仓10年</p>
+                    <p>📍 合约: HCFToken.addFunds()</p>
                 </div>
             </div>
 
@@ -581,6 +617,48 @@
                 return;
             }
             alert('领取收益成功！（演示模式）');
+        }
+
+        function updateLiquidityInfo() {
+            const hcfAmount = parseFloat(document.getElementById('liquidityHCF').value) || 0;
+            const bsdtAmount = parseFloat(document.getElementById('liquidityBSDT').value) || 0;
+            const infoDiv = document.getElementById('liquidityInfo');
+            
+            if (hcfAmount > 0 && bsdtAmount > 0) {
+                const ratio = bsdtAmount / hcfAmount;
+                document.getElementById('liquidityRatio').textContent = 
+                    `当前比例: 1 HCF = ${ratio.toFixed(4)} BSDT`;
+                
+                // 计算对池子的影响
+                const currentHCF = 1000000; // 演示数据
+                const currentBSDT = 100000;
+                const impact = ((hcfAmount / currentHCF) * 100).toFixed(2);
+                document.getElementById('liquidityImpact').textContent = 
+                    `池子影响: +${impact}%`;
+                
+                infoDiv.style.display = 'block';
+            } else {
+                infoDiv.style.display = 'none';
+            }
+        }
+
+        function addLiquidity() {
+            const hcfAmount = parseFloat(document.getElementById('liquidityHCF').value) || 0;
+            const bsdtAmount = parseFloat(document.getElementById('liquidityBSDT').value) || 0;
+            const isEquity = document.getElementById('isEquityLP').checked;
+            
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            if (hcfAmount <= 0 || bsdtAmount <= 0) {
+                alert('请输入有效的HCF和BSDT数量');
+                return;
+            }
+            
+            const lpType = isEquity ? '股权LP（自动归集）' : '普通LP';
+            alert(`成功添加流动性！\nHCF: ${hcfAmount}\nBSDT: ${bsdtAmount}\n类型: ${lpType}\n（演示模式）`);
         }
 
         function addToPool() {
