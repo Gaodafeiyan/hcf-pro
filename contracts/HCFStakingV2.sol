@@ -69,8 +69,8 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
     uint256 public compoundBonus = 2000;  // 复合加成20%
     
     // 限购参数
-    uint256 public dailyLimit = 10000 * 10**18; // 每日限购10000 HCF (合理配置)
-    uint256 public limitPeriod = 7 days;        // 7天限购期
+    uint256 public dailyLimit = 1000 * 10**18; // 每日限购1000 HCF (与最低质押匹配)
+    uint256 public limitPeriod = 7 days;       // 7天限购期
     
     // 赎回费率（基点）
     uint256 public stakingRedeemBNBFee = 1000;     // 质押赎回10% BNB
@@ -476,8 +476,8 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
             }
         }
         
-        // 检查今日限额10000 HCF
-        require(todayPurchased + amount <= dailyLimit, "Exceeds daily limit 10000 HCF");
+        // 检查今日限额1000 HCF
+        require(todayPurchased + amount <= dailyLimit, "Exceeds daily limit 1000 HCF");
         
         // 移除7天前的记录
         uint256 cutoffTime = block.timestamp - limitPeriod;
