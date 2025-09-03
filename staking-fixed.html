@@ -342,6 +342,9 @@
                     </div>
                 </div>
 
+                <!-- 收益分解显示 -->
+                <div id="rewardBreakdown" class="reward-breakdown" style="margin: 15px 0; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 14px;"></div>
+
                 <div class="checkbox-group">
                     <input type="checkbox" id="lpStake" onchange="updateStakeInfo()">
                     <label for="lpStake">LP质押（投入20%本金作为流动性，收益增加2倍）</label>
@@ -548,14 +551,20 @@
             }
         };
 
-        // 等级配置（新收益机制）
+        // 等级配置（完整收益机制）
         const STAKING_LEVELS = [
-            { level: 1, min: 10, max: 100, rate: 0.3, enabled: false },
-            { level: 2, min: 100, max: 1000, rate: 0.4, enabled: false },
-            { level: 3, min: 1000, max: 10000, rate: 0.6, enabled: true },      // 1000 HCF: 0.6%
-            { level: 4, min: 10000, max: 100000, rate: 0.7, enabled: true },    // 10000 HCF: 0.7%
-            { level: 5, min: 100000, max: Infinity, rate: 0.8, enabled: true }  // 100000 HCF: 0.8%
+            { level: 1, min: 10, max: 100, rate: 0.3, enabled: false, cap: 0.3 },
+            { level: 2, min: 100, max: 1000, rate: 0.4, enabled: false, cap: 0.4 },
+            { level: 3, min: 1000, max: 10000, rate: 0.6, enabled: true, cap: 1.68 },      // 1000 HCF: 0.6%, 封顶1.68%
+            { level: 4, min: 10000, max: 100000, rate: 0.7, enabled: true, cap: 1.96 },    // 10000 HCF: 0.7%, 封顶1.96%
+            { level: 5, min: 100000, max: Infinity, rate: 0.8, enabled: true, cap: 2.24 }  // 100000 HCF: 0.8%, 封顶2.24%
         ];
+        
+        // 股权LP配置
+        const EQUITY_LP_CONFIG = {
+            100: { days: 100, bonus: 0.2 },  // 100天+20%
+            300: { days: 300, bonus: 0.4 }   // 300天+40%
+        };
 
         let connected = false;
         let userAddress = '';
@@ -1075,17 +1084,24 @@
             document.getElementById('currentLevel').textContent = `Level ${currentLevel.level}`;
             
             const baseRate = currentLevel.rate;
-            const baseReward = amount * baseRate / 100; // 基础收益
+            const baseReward = amount * baseRate / 100; // 基础日收益
+            let lpReward = 0;
             let totalReward = baseReward;
             
+            // LP增产机制：增加与基础收益相同的数量
             if (lpChecked) {
-                totalReward = baseReward * 2; // LP后收益翻倍
+                lpReward = baseReward; // LP增产 = 基础收益
+                totalReward = baseReward + lpReward; // 总收益 = 基础 + LP增产
+                
                 const totalRate = totalReward / amount * 100;
                 document.getElementById('dailyRate').textContent = 
-                    `${baseRate}% + LP翻倍 = ${totalRate.toFixed(1)}%`;
+                    `基础: ${baseRate}% + LP增产: ${baseRate}% = 综合: ${totalRate.toFixed(1)}%`;
             } else {
-                document.getElementById('dailyRate').textContent = `${baseRate}%`;
+                document.getElementById('dailyRate').textContent = `基础: ${baseRate}%`;
             }
+            
+            // 显示详细收益分解
+            updateRewardBredown(amount, baseReward, lpReward, currentLevel);
             
             document.getElementById('dailyReward').textContent = `${totalReward.toFixed(1)} HCF`;
             
@@ -1108,6 +1124,43 @@
             // 更新按钮
             document.getElementById('stakeBtn').disabled = false;
             document.getElementById('stakeBtn').textContent = `确认质押 ${amount} HCF`;
+        }
+
+        // 更新收益分解显示
+        function updateRewardBredown(amount, baseReward, lpReward, currentLevel) {
+            const breakdown = document.getElementById('rewardBreakdown');
+            if (!breakdown) return;
+            
+            let html = `
+                <div class="reward-detail">
+                    <h4>收益分解：</h4>
+                    <p>质押 ${amount.toLocaleString()} 枚</p>
+                    <p>日：${baseReward.toFixed(0)}枚（${currentLevel.rate}%）</p>`;
+            
+            if (lpReward > 0) {
+                html += `<p>普通LP：+${lpReward.toFixed(0)}枚（${currentLevel.rate}%）</p>`;
+                const totalRate = (baseReward + lpReward) / amount * 100;
+                html += `<p>综合收益：${totalRate.toFixed(1)}%</p>`;
+                
+                // 股权LP计算
+                const equity100Reward = (baseReward + lpReward) * (1 + EQUITY_LP_CONFIG[100].bonus);
+                const equity300Reward = (baseReward + lpReward) * (1 + EQUITY_LP_CONFIG[300].bonus);
+                const equity100Rate = equity100Reward / amount * 100;
+                const equity300Rate = equity300Reward / amount * 100;
+                
+                // 应用封顶
+                const cappedEquity100 = Math.min(equity100Reward, amount * currentLevel.cap / 100);
+                const cappedEquity300 = Math.min(equity300Reward, amount * currentLevel.cap / 100);
+                const cappedEquity100Rate = cappedEquity100 / amount * 100;
+                const cappedEquity300Rate = cappedEquity300 / amount * 100;
+                
+                html += `<p>股权LP（100天）+20%：综合收益${cappedEquity100.toFixed(0)}枚/天（${cappedEquity100Rate.toFixed(2)}%）</p>`;
+                html += `<p>股权LP（300天）+40%：综合收益${cappedEquity300.toFixed(0)}枚/天（${cappedEquity300Rate.toFixed(2)}%）</p>`;
+                html += `<p style="color: #f39c12;">封顶：${(amount * currentLevel.cap / 100).toFixed(0)}枚（${currentLevel.cap}%）</p>`;
+            }
+            
+            html += `</div>`;
+            breakdown.innerHTML = html;
         }
 
         async function stake() {
