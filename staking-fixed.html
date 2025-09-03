@@ -403,13 +403,13 @@
                 <div class="form-group">
                     <label class="form-label">HCF数量</label>
                     <input type="number" class="form-input" id="liquidityHCF" 
-                           placeholder="输入HCF数量" onchange="updateLiquidityInfo()">
+                           placeholder="输入HCF数量" onchange="calculateBSDTAmount()">
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">BSDT数量</label>
+                    <label class="form-label">BSDT数量（自动计算）</label>
                     <input type="number" class="form-input" id="liquidityBSDT" 
-                           placeholder="输入BSDT数量" onchange="updateLiquidityInfo()">
+                           placeholder="根据当前价格自动计算" readonly style="background: #f5f5f5;">
                 </div>
 
                 <div class="checkbox-group">
@@ -417,8 +417,8 @@
                     <label for="isEquityLP">股权LP（自动归集，增加产出）</label>
                 </div>
 
-                <div class="info-box" id="liquidityInfo" style="display:none; margin-bottom: 15px;">
-                    <p id="liquidityRatio"></p>
+                <div class="info-box" id="liquidityInfo" style="margin-bottom: 15px;">
+                    <p id="currentPrice">当前价格: 1 HCF = 0.1 BSDT</p>
                     <p id="liquidityImpact"></p>
                 </div>
 
@@ -493,6 +493,21 @@
 
         let connected = false;
         let userAddress = '';
+        
+        // 初始化显示当前价格
+        window.onload = function() {
+            updatePriceDisplay();
+        };
+        
+        function updatePriceDisplay() {
+            // 根据您的制度：初始价格 0.1 USD (100万HCF + 10万BSDT)
+            const currentHCFReserve = 1000000;
+            const currentBSDTReserve = 100000;
+            const currentPrice = currentBSDTReserve / currentHCFReserve;
+            
+            document.getElementById('currentPrice').textContent = 
+                `当前价格: 1 HCF = ${currentPrice.toFixed(4)} BSDT ($${currentPrice.toFixed(2)} USD)`;
+        }
 
         function connectWallet() {
             // 模拟钱包连接
@@ -619,26 +634,34 @@
             alert('领取收益成功！（演示模式）');
         }
 
-        function updateLiquidityInfo() {
+        function calculateBSDTAmount() {
             const hcfAmount = parseFloat(document.getElementById('liquidityHCF').value) || 0;
-            const bsdtAmount = parseFloat(document.getElementById('liquidityBSDT').value) || 0;
-            const infoDiv = document.getElementById('liquidityInfo');
             
-            if (hcfAmount > 0 && bsdtAmount > 0) {
-                const ratio = bsdtAmount / hcfAmount;
-                document.getElementById('liquidityRatio').textContent = 
-                    `当前比例: 1 HCF = ${ratio.toFixed(4)} BSDT`;
+            if (hcfAmount > 0) {
+                // 获取当前池子价格（演示数据）
+                const currentHCFReserve = 1000000;  // 当前池子HCF储备
+                const currentBSDTReserve = 100000;  // 当前池子BSDT储备
+                
+                // 计算当前价格: BSDT/HCF
+                const currentPrice = currentBSDTReserve / currentHCFReserve;
+                
+                // 根据当前价格计算需要的BSDT数量
+                const requiredBSDT = (hcfAmount * currentPrice).toFixed(2);
+                
+                // 自动填充BSDT输入框
+                document.getElementById('liquidityBSDT').value = requiredBSDT;
+                
+                // 更新显示信息
+                document.getElementById('currentPrice').textContent = 
+                    `当前价格: 1 HCF = ${currentPrice.toFixed(4)} BSDT`;
                 
                 // 计算对池子的影响
-                const currentHCF = 1000000; // 演示数据
-                const currentBSDT = 100000;
-                const impact = ((hcfAmount / currentHCF) * 100).toFixed(2);
+                const impact = ((hcfAmount / currentHCFReserve) * 100).toFixed(2);
                 document.getElementById('liquidityImpact').textContent = 
-                    `池子影响: +${impact}%`;
-                
-                infoDiv.style.display = 'block';
+                    `池子影响: +${impact}% (添加后池子增大)`;
             } else {
-                infoDiv.style.display = 'none';
+                document.getElementById('liquidityBSDT').value = '';
+                document.getElementById('liquidityImpact').textContent = '';
             }
         }
 
