@@ -17,7 +17,7 @@ import {
   waitForTransaction,
   handleContractError
 } from '../utils/contracts';
-import { STAKING_LEVELS } from '../config/contracts';
+import { STAKING_LEVELS, COMPOUND_AMOUNTS } from '../config/contracts';
 
 const { Title, Text } = Typography;
 
@@ -145,7 +145,7 @@ const Staking = () => {
         
         // 如果有复投，显示复投收益
         if (Number(compoundCount) > 0) {
-          const compoundMultiple = levelNum > 0 ? STAKING_LEVELS[levelNum - 1].compoundMultiple : 1;
+          const compoundMultiple = levelNum > 0 ? COMPOUND_AMOUNTS[levelNum - 1] || 10 : 1;
           positions.push({
             amount: Number(compoundCount) * compoundMultiple,
             rate: dailyRate / 100,
@@ -377,7 +377,7 @@ const Staking = () => {
                     {stakingInfo.compoundCount} 次
                     {stakingInfo.currentLevel > 0 && stakingInfo.compoundCount > 0 && (
                       <Text type="secondary" style={{ fontSize: 14, marginLeft: 8 }}>
-                        (×{STAKING_LEVELS[stakingInfo.currentLevel - 1]?.compoundMultiple}倍)
+                        (固定{COMPOUND_AMOUNTS[stakingInfo.currentLevel - 1] || 10}枚)
                       </Text>
                     )}
                   </Title>
@@ -639,7 +639,7 @@ const Staking = () => {
               <div>
                 <Text>复投倍数</Text>
                 <Title level={4} style={{ color: '#fa8c16' }}>
-                  ×{STAKING_LEVELS[getLevelForAmount(stakeAmount)]?.compoundMultiple}
+                  固定{COMPOUND_AMOUNTS[getLevelForAmount(stakeAmount)] || 10}枚
                 </Title>
               </div>
             )}

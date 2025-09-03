@@ -8,7 +8,6 @@ import {
   getBSDTTokenContract,
   getStakingContract,
   parseNumber,
-  formatNumber,
   waitForTransaction,
   handleContractError
 } from '../utils/contracts';
@@ -33,8 +32,7 @@ const StakingNew = () => {
   const [bsdtBalance, setBsdtBalance] = useState(0);
   const [totalStaked, setTotalStaked] = useState(0);
   const [pendingRewards, setPendingRewards] = useState(0);
-  const [currentLevel, setCurrentLevel] = useState(0);
-  const [hcfPrice, setHcfPrice] = useState(0.1); // 默认价格0.1 USDT
+  const [hcfPrice] = useState(0.1); // 默认价格0.1 USDT
   
   // 计算当前等级
   const getCurrentLevel = (amount: number) => {
@@ -86,9 +84,8 @@ const StakingNew = () => {
       
       // 获取用户质押信息
       const userInfo = await stakingContract.getUserInfo(address);
-      const [amount, level, pending] = userInfo;
+      const [, , pending] = userInfo;
       setPendingRewards(Number(ethers.formatUnits(pending, 18)));
-      setCurrentLevel(Number(level));
       
     } catch (error) {
       console.error('加载数据失败:', error);
