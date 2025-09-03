@@ -1701,6 +1701,24 @@
                 const hcfRequiredWei = metamaskWeb3.utils.toWei(hcfRequired.toString(), 'ether');
                 const bsdtRequiredWei = metamaskWeb3.utils.toWei(bsdtRequired.toString(), 'ether');
                 
+                // 定义ERC20 ABI（用于代币approve和transfer）
+                const ERC20_ABI = [
+                    {
+                        "inputs": [{"name": "spender", "type": "address"}, {"name": "amount", "type": "uint256"}],
+                        "name": "approve",
+                        "outputs": [{"name": "", "type": "bool"}],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                    },
+                    {
+                        "inputs": [{"name": "account", "type": "address"}],
+                        "name": "balanceOf",
+                        "outputs": [{"name": "", "type": "uint256"}],
+                        "stateMutability": "view",
+                        "type": "function"
+                    }
+                ];
+                
                 // 创建合约实例
                 const hcfTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, contractAddresses.HCFToken);
                 const bsdtTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, contractAddresses.BSDT);
