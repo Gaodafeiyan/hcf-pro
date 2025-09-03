@@ -1116,6 +1116,23 @@
                 return;
             }
 
+            // 重新获取当前连接的账户
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_accounts' 
+                });
+                if (accounts.length === 0) {
+                    alert('请先连接MetaMask钱包');
+                    return;
+                }
+                userAddress = accounts[0];
+                console.log('当前连接账户:', userAddress);
+            } catch (error) {
+                console.error('获取账户失败:', error);
+                alert('无法获取钱包账户，请重新连接');
+                return;
+            }
+
             const stakeAmount = parseFloat(document.getElementById('stakeAmount').value);
             if (!stakeAmount || stakeAmount < 1000) {
                 alert('质押金额不能少于1000 HCF');
@@ -1136,6 +1153,13 @@
                 
                 // 创建MetaMask Web3实例用于交易
                 const metamaskWeb3 = new Web3(window.ethereum);
+                
+                // 验证网络连接
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                if (parseInt(chainId, 16) !== CONTRACT_CONFIG.chainId) {
+                    alert('请切换到BSC测试网');
+                    return;
+                }
 
                 // 检查用户余额
                 const balance = await contracts.HCFToken.methods.balanceOf(userAddress).call();
@@ -1151,30 +1175,53 @@
                 ).call();
 
                 if (web3.utils.toBN(allowance).lt(web3.utils.toBN(stakeAmountWei))) {
-                    // 需要授权 - 使用MetaMask provider进行交易
+                    // 需要授权 - 使用最简单的方法
                     console.log('需要授权HCF代币');
-                    const metamaskContract = new metamaskWeb3.eth.Contract(
-                        contracts.HCFToken.options.jsonInterface, 
-                        CONTRACT_CONFIG.contracts.HCFToken
-                    );
-                    const approveTx = await metamaskContract.methods.approve(
-                        CONTRACT_CONFIG.contracts.HCFStaking,
-                        stakeAmountWei
-                    ).send({ from: userAddress });
-                    console.log('授权交易:', approveTx.transactionHash);
+                    
+                    // 构建授权交易数据
+                    const approveData = metamaskWeb3.eth.abi.encodeFunctionCall({
+                        name: 'approve',
+                        type: 'function',
+                        inputs: [
+                            { type: 'address', name: 'spender' },
+                            { type: 'uint256', name: 'amount' }
+                        ]
+                    }, [CONTRACT_CONFIG.contracts.HCFStaking, stakeAmountWei]);
+                    
+                    const approveTx = await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [{
+                            from: userAddress,
+                            to: CONTRACT_CONFIG.contracts.HCFToken,
+                            data: approveData
+                        }]
+                    });
+                    console.log('授权交易:', approveTx);
                 }
 
-                // 执行质押 - 使用MetaMask provider进行交易
+                // 执行质押 - 使用最简单的方法
                 console.log('开始质押:', stakeAmountWei);
-                const metamaskStakingContract = new metamaskWeb3.eth.Contract(
-                    contracts.HCFStaking.options.jsonInterface, 
-                    CONTRACT_CONFIG.contracts.HCFStaking
-                );
-                const stakeTx = await metamaskStakingContract.methods.stake(stakeAmountWei)
-                    .send({ from: userAddress });
+                
+                // 构建质押交易数据
+                const stakeData = metamaskWeb3.eth.abi.encodeFunctionCall({
+                    name: 'stake',
+                    type: 'function',
+                    inputs: [
+                        { type: 'uint256', name: 'amount' }
+                    ]
+                }, [stakeAmountWei]);
+                
+                const stakeTx = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: userAddress,
+                        to: CONTRACT_CONFIG.contracts.HCFStaking,
+                        data: stakeData
+                    }]
+                });
 
-                console.log('质押成功:', stakeTx.transactionHash);
-                alert(`质押成功！\n交易哈希: ${stakeTx.transactionHash}`);
+                console.log('质押成功:', stakeTx);
+                alert(`质押成功！\n交易哈希: ${stakeTx}`);
 
                 // 刷新用户数据
                 await updateUserStakingInfo();
