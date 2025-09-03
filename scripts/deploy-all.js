@@ -16,10 +16,10 @@ async function main() {
         console.log("1. 部署MultiSigWallet...");
         const signers = [
             deployer.address,
-            deployer.address, // 临时使用部署者地址
-            deployer.address,
-            deployer.address,
-            deployer.address
+            "0x1000000000000000000000000000000000000001", // 临时测试地址1
+            "0x1000000000000000000000000000000000000002", // 临时测试地址2
+            "0x1000000000000000000000000000000000000003", // 临时测试地址3
+            "0x1000000000000000000000000000000000000004"  // 临时测试地址4
         ];
         
         const MultiSigWallet = await ethers.getContractFactory("MultiSigWallet");
