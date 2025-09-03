@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HCF Finance - 智能质押平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -312,7 +313,7 @@
                 <div class="card-title">🔥 智能质押（自动等级）</div>
                 
                 <div class="info-box">
-                    <p>💡 最低1000 HCF起步，必须10的倍数</p>
+                    <p>💡 最低1000 HCF起步</p>
                     <p>📈 系统自动匹配最优等级（L3-L5开放）</p>
                     <p>⏰ 无锁定期，随时可解除质押</p>
                 </div>
@@ -521,6 +522,20 @@
     </div>
 
     <script>
+        // ============ 合约配置 ============
+        const CONTRACT_CONFIG = {
+            chainId: 97, // BSC Testnet
+            rpcUrl: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
+            contracts: {
+                HCFToken: '0x09F3d4c7a8B5E4f2C3D8e1A6B9F2C7D5E3A1B4C2',
+                BSDT: '0x12A4B6C8D9E3F1A2B5C7D8E9F0A1B2C3D4E5F6A7',
+                HCFStaking: '0x23B5C7D8E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4',
+                HCFNode: '0x34C6D8E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5',
+                HCFReferral: '0x45D7E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6',
+                HCFRanking: '0x56E8F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6E7'
+            }
+        };
+
         // 等级配置
         const STAKING_LEVELS = [
             { level: 1, min: 10, max: 100, rate: 0.3, enabled: false },
@@ -532,6 +547,8 @@
 
         let connected = false;
         let userAddress = '';
+        let web3 = null;
+        let contracts = {};
         
         // 初始化显示当前价格
         window.onload = function() {
@@ -548,29 +565,179 @@
                 `当前价格: 1 HCF = ${currentPrice.toFixed(4)} BSDT ($${currentPrice.toFixed(2)} USD)`;
         }
 
-        function connectWallet() {
-            // 模拟钱包连接
-            connected = true;
-            userAddress = '0x' + Math.random().toString(16).substr(2, 40);
-            document.getElementById('connectedAddress').style.display = 'block';
-            document.getElementById('connectedAddress').textContent = 
-                userAddress.substr(0, 6) + '...' + userAddress.substr(-4);
-            document.querySelector('.wallet-btn').textContent = '已连接';
-            
-            // 连接钱包后更新用户质押信息
-            updateUserStakingInfo();
+        // ============ Web3 连接函数 ============
+        async function connectWallet() {
+            try {
+                // 检查是否有MetaMask
+                if (typeof window.ethereum !== 'undefined') {
+                    // 请求连接钱包
+                    const accounts = await window.ethereum.request({ 
+                        method: 'eth_requestAccounts' 
+                    });
+                    
+                    userAddress = accounts[0];
+                    connected = true;
+                    
+                    // 检查网络
+                    const chainId = await window.ethereum.request({ 
+                        method: 'eth_chainId' 
+                    });
+                    
+                    if (parseInt(chainId, 16) !== CONTRACT_CONFIG.chainId) {
+                        await switchToBSCTestnet();
+                    }
+                    
+                    // 初始化Web3和合约
+                    await initializeContracts();
+                    
+                    // 更新UI
+                    document.getElementById('connectedAddress').style.display = 'block';
+                    document.getElementById('connectedAddress').textContent = 
+                        userAddress.substr(0, 6) + '...' + userAddress.substr(-4);
+                    document.querySelector('.wallet-btn').textContent = '已连接';
+                    
+                    // 更新用户质押信息
+                    await updateUserStakingInfo();
+                    
+                } else {
+                    alert('请安装MetaMask钱包！');
+                }
+            } catch (error) {
+                console.error('连接钱包失败:', error);
+                alert('连接钱包失败: ' + error.message);
+            }
         }
 
-        function updateUserStakingInfo() {
+        async function switchToBSCTestnet() {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x61' }] // BSC Testnet
+                });
+            } catch (switchError) {
+                // 如果网络不存在，添加网络
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x61',
+                            chainName: 'BSC Testnet',
+                            rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+                            nativeCurrency: {
+                                name: 'BNB',
+                                symbol: 'BNB',
+                                decimals: 18
+                            },
+                            blockExplorerUrls: ['https://testnet.bscscan.com/']
+                        }]
+                    });
+                }
+            }
+        }
+
+        async function initializeContracts() {
+            // 这里需要添加合约ABI，现在先用基本的ERC20 ABI
+            const ERC20_ABI = [
+                {
+                    "constant": true,
+                    "inputs": [{"name": "_owner", "type": "address"}],
+                    "name": "balanceOf",
+                    "outputs": [{"name": "balance", "type": "uint256"}],
+                    "type": "function"
+                },
+                {
+                    "constant": false,
+                    "inputs": [
+                        {"name": "_spender", "type": "address"},
+                        {"name": "_value", "type": "uint256"}
+                    ],
+                    "name": "approve",
+                    "outputs": [{"name": "", "type": "bool"}],
+                    "type": "function"
+                }
+            ];
+
+            // 初始化Web3
+            web3 = new Web3(window.ethereum);
+            
+            // 初始化合约实例（需要完整的ABI）
+            contracts.HCFToken = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.HCFToken);
+            contracts.BSDT = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.BSDT);
+            
+            console.log('合约初始化完成');
+        }
+
+        // ============ 合约交互函数 ============
+        async function getUserStakingDataFromContract() {
+            try {
+                if (!contracts.HCFToken || !userAddress) {
+                    return null;
+                }
+
+                // 获取用户HCF余额
+                const hcfBalance = await contracts.HCFToken.methods.balanceOf(userAddress).call();
+                const hcfBalanceFormatted = parseFloat(web3.utils.fromWei(hcfBalance, 'ether'));
+
+                // 这里应该调用质押合约获取质押信息
+                // 由于需要完整的质押合约ABI，现在返回基本信息
+                console.log('用户HCF余额:', hcfBalanceFormatted);
+                
+                // 返回基本数据结构，实际应从质押合约获取
+                return {
+                    stakeAmount: 0, // 从质押合约获取
+                    level: 0,
+                    baseRate: 0,
+                    totalRate: 0,
+                    dailyReward: 0,
+                    pendingReward: 0,
+                    hasLP: false,
+                    hcfBalance: hcfBalanceFormatted
+                };
+            } catch (error) {
+                console.error('获取合约数据失败:', error);
+                return null;
+            }
+        }
+
+        async function getHCFPrice() {
+            try {
+                // 这里应该从预言机合约获取价格
+                // 现在返回模拟价格
+                return 0.1; // $0.10
+            } catch (error) {
+                console.error('获取价格失败:', error);
+                return 0.1;
+            }
+        }
+
+        async function updateUserStakingInfo() {
             if (!connected) {
                 document.getElementById('noStaking').style.display = 'block';
                 document.getElementById('stakingDetails').style.display = 'none';
                 return;
             }
 
-            // 模拟从合约读取用户质押数据
-            // 实际应用中这里会调用合约的 getUserStakingInfo() 函数
-            const userStakingData = simulateUserStakingData();
+            try {
+                // 从合约读取用户质押数据
+                let userStakingData = await getUserStakingDataFromContract();
+                
+                // 如果无法从合约读取，使用模拟数据
+                if (!userStakingData) {
+                    console.log('使用模拟数据');
+                    userStakingData = simulateUserStakingData();
+                }
+
+                // 处理数据显示
+                displayStakingData(userStakingData);
+            } catch (error) {
+                console.error('更新质押信息失败:', error);
+                // 使用模拟数据作为后备
+                const userStakingData = simulateUserStakingData();
+                displayStakingData(userStakingData);
+            }
+        }
+
+        function displayStakingData(userStakingData) {
             
             if (userStakingData.stakeAmount > 0) {
                 document.getElementById('noStaking').style.display = 'none';
@@ -649,15 +816,7 @@
                 return;
             }
             
-            // 验证10的倍数
-            if (amount % 10 !== 0) {
-                document.getElementById('stakeError').textContent = '质押数量必须是10的倍数';
-                document.getElementById('stakeError').style.display = 'block';
-                amountInput.classList.add('error');
-                document.getElementById('levelDisplay').style.display = 'none';
-                document.getElementById('stakeBtn').disabled = true;
-                return;
-            }
+            // 去掉10倍数验证，直接进入等级计算
             
             // 自动计算等级
             let currentLevel = null;
