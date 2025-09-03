@@ -28,54 +28,64 @@ export const NETWORK_CONFIG = {
   blockExplorerUrls: ['https://testnet.bscscan.com/'],
 };
 
-// 质押等级配置（前期限制：最低1000 HCF，只开放L3级别）
+// 质押等级配置（自动等级，起步1000 HCF）
 export const STAKING_LEVELS = [
   { 
     level: 1, 
     minAmount: 10, 
+    maxAmount: 99,
     dailyRate: 0.4, // 基础日化 0.4%
     lpRate: 0.8,    // LP日化 0.8%
-    compoundMultiple: 10, // 复投倍数 10倍
-    color: '#52c41a',
-    enabled: false  // 前期关闭
+    totalRate: 0.8, // LP总收益 0.8%
+    color: '#52c41a'
   },
   { 
     level: 2, 
     minAmount: 100, 
+    maxAmount: 999,
     dailyRate: 0.5, // 基础日化 0.5%
     lpRate: 1.0,    // LP日化 1.0%
-    compoundMultiple: 20, // 复投倍数 20倍
-    color: '#1890ff',
-    enabled: false  // 前期关闭
+    totalRate: 1.0, // LP总收益 1.0%
+    color: '#1890ff'
   },
   { 
     level: 3, 
     minAmount: 1000, 
+    maxAmount: 9999,
     dailyRate: 0.6, // 基础日化 0.6%
     lpRate: 1.2,    // LP日化 1.2%
-    compoundMultiple: 200, // 复投倍数 200倍
-    color: '#722ed1',
-    enabled: true   // 前期开放
+    totalRate: 1.2, // LP总收益 1.2%
+    color: '#722ed1'
   },
   { 
     level: 4, 
     minAmount: 10000, 
+    maxAmount: 99999,
     dailyRate: 0.7, // 基础日化 0.7%
     lpRate: 1.4,    // LP日化 1.4%
-    compoundMultiple: 2000, // 复投倍数 2000倍
-    color: '#fa8c16',
-    enabled: true
+    totalRate: 1.4, // LP总收益 1.4%
+    color: '#fa8c16'
   },
   { 
     level: 5, 
     minAmount: 100000, 
+    maxAmount: Infinity,
     dailyRate: 0.8, // 基础日化 0.8%
     lpRate: 1.6,    // LP日化 1.6%
-    compoundMultiple: 20000, // 复投倍数 20000倍
-    color: '#f5222d',
-    enabled: true
+    totalRate: 1.6, // LP总收益 1.6%
+    color: '#f5222d'
   },
 ];
+
+// 复投固定金额选项
+export const COMPOUND_AMOUNTS = [10, 20, 200, 2000, 20000];
+
+// 质押配置
+export const STAKING_CONFIG = {
+  minStakeAmount: 1000, // 起步1000 HCF
+  multipleRequired: 10, // 必须10倍数
+  dailyLimit: 500,      // 每日限购500 HCF
+};
 
 // 前期限制配置
 export const EARLY_PHASE_CONFIG = {

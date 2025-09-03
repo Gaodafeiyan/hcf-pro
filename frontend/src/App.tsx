@@ -11,7 +11,7 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
 import Layout from './components/Layout/index';
 import Dashboard from './pages/Dashboard';
-import Staking from './pages/Staking';
+import StakingNew from './pages/StakingNew';
 import NodeNFT from './pages/NodeNFT';
 import Referral from './pages/Referral';
 import Ranking from './pages/Ranking';
@@ -32,7 +32,7 @@ function App() {
                 <Layout>
                   <Routes>
                     <Route path="/" element={<Dashboard />} />
-                    <Route path="/staking" element={<Staking />} />
+                    <Route path="/staking" element={<StakingNew />} />
                     <Route path="/node" element={<NodeNFT />} />
                     <Route path="/referral" element={<Referral />} />
                     <Route path="/ranking" element={<Ranking />} />

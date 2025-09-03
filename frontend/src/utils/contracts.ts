@@ -34,10 +34,12 @@ const STAKING_ABI = [
   'function getUserInfo(address user) view returns (uint256 amount, uint256 level, uint256 pending, uint256 totalClaimed, bool isLP, uint256 compoundCount, bool isEquityLP, uint256 lpHCFAmount, uint256 lpBSDTAmount)',
   'function stake(uint256 amount, bool isLP, bool isEquity)',
   'function withdraw(uint256 amount)',
-  'function claim()',
+  'function claimRewards()',
   'function compound()',
+  'function compoundFixed(uint256 amount)',
   'function getTotalStaked() view returns (uint256)',
   'function levels(uint256) view returns (uint256 minAmount, uint256 baseRate, uint256 lpRate, uint256 maxPositions, uint256 compoundUnit)',
+  'function getHCFPrice() view returns (uint256)',
 ];
 
 const NODE_NFT_ABI = [
