@@ -528,7 +528,14 @@
         // ============ 合约配置 ============
         const CONTRACT_CONFIG = {
             chainId: 97, // BSC Testnet
-            rpcUrl: 'https://bsc-testnet.public.blastapi.io/',
+            rpcUrls: [
+                'https://bsc-testnet.publicnode.com',
+                'https://bsc-testnet-rpc.publicnode.com',
+                'https://endpoints.omniatech.io/v1/bsc/testnet/public',
+                'https://bsc-testnet.public.blastapi.io',
+                'https://data-seed-prebsc-1-s1.binance.org:8545'
+            ],
+            currentRpcIndex: 0,
             contracts: {
                 // 最新的BSC测试网合约地址（包含股权LP续签功能）
                 HCFToken: '0xbA43eC196259AA0380E775b19B0e92522964c1A4',
@@ -626,7 +633,7 @@
                         params: [{
                             chainId: '0x61',
                             chainName: 'BSC Testnet',
-                            rpcUrls: ['https://bsc-testnet.public.blastapi.io/'],
+                            rpcUrls: CONTRACT_CONFIG.rpcUrls,
                             nativeCurrency: {
                                 name: 'BNB',
                                 symbol: 'BNB',
@@ -639,9 +646,38 @@
             }
         }
 
-        async function initializeContracts() {
-            // 初始化Web3
+        // ============ RPC自动切换功能 ============
+        async function initializeWeb3WithFallback() {
+            for (let i = 0; i < CONTRACT_CONFIG.rpcUrls.length; i++) {
+                try {
+                    const rpcUrl = CONTRACT_CONFIG.rpcUrls[i];
+                    console.log(`尝试RPC端点 ${i + 1}: ${rpcUrl}`);
+                    
+                    // 创建Web3实例
+                    const testWeb3 = new Web3(rpcUrl);
+                    
+                    // 测试连接
+                    await testWeb3.eth.getBlockNumber();
+                    
+                    // 如果成功，使用这个RPC
+                    web3 = testWeb3;
+                    CONTRACT_CONFIG.currentRpcIndex = i;
+                    console.log(`✅ 成功连接到RPC端点: ${rpcUrl}`);
+                    return;
+                } catch (error) {
+                    console.warn(`❌ RPC端点 ${i + 1} 连接失败:`, error.message);
+                    continue;
+                }
+            }
+            
+            // 如果所有RPC都失败，回退到MetaMask
+            console.log('⚠️ 所有RPC端点都失败，使用MetaMask provider');
             web3 = new Web3(window.ethereum);
+        }
+
+        async function initializeContracts() {
+            // 尝试使用不同的RPC端点初始化Web3
+            await initializeWeb3WithFallback();
             
             // 检查是否有真实合约地址
             if (!CONTRACT_CONFIG.contracts.HCFToken) {
@@ -754,6 +790,75 @@
                 console.log('Staking Contract:', CONTRACT_CONFIG.contracts.HCFStaking);
             } catch (error) {
                 console.error('合约初始化失败:', error);
+            }
+        }
+
+        // ============ 合约调用重试机制 ============
+        async function callContractWithRetry(contractCall, maxRetries = 3) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    return await contractCall();
+                } catch (error) {
+                    console.warn(`合约调用失败 (尝试 ${attempt}/${maxRetries}):`, error.message);
+                    
+                    if (attempt === maxRetries) {
+                        throw error;
+                    }
+                    
+                    // 如果是RPC错误，尝试切换到下一个RPC端点
+                    if (error.message.includes('missing trie node') || 
+                        error.message.includes('Internal JSON-RPC error')) {
+                        console.log('检测到RPC错误，尝试切换端点...');
+                        await switchToNextRPC();
+                    }
+                    
+                    // 等待一段时间后重试
+                    await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                }
+            }
+        }
+
+        async function switchToNextRPC() {
+            const nextIndex = (CONTRACT_CONFIG.currentRpcIndex + 1) % CONTRACT_CONFIG.rpcUrls.length;
+            try {
+                const rpcUrl = CONTRACT_CONFIG.rpcUrls[nextIndex];
+                console.log(`切换到RPC端点: ${rpcUrl}`);
+                
+                web3 = new Web3(rpcUrl);
+                await web3.eth.getBlockNumber(); // 测试连接
+                
+                CONTRACT_CONFIG.currentRpcIndex = nextIndex;
+                
+                // 重新初始化合约实例
+                await reinitializeContracts();
+                
+                console.log('✅ 成功切换RPC端点');
+            } catch (error) {
+                console.warn('❌ RPC切换失败:', error.message);
+            }
+        }
+
+        async function reinitializeContracts() {
+            if (!CONTRACT_CONFIG.contracts.HCFToken) return;
+            
+            try {
+                const ERC20_ABI = [
+                    {"constant": true, "inputs": [{"name": "_owner", "type": "address"}], "name": "balanceOf", "outputs": [{"name": "balance", "type": "uint256"}], "type": "function"},
+                    {"constant": false, "inputs": [{"name": "_spender", "type": "address"}, {"name": "_value", "type": "uint256"}], "name": "approve", "outputs": [{"name": "", "type": "bool"}], "type": "function"},
+                    {"constant": true, "inputs": [{"name": "_owner", "type": "address"}, {"name": "_spender", "type": "address"}], "name": "allowance", "outputs": [{"name": "", "type": "uint256"}], "type": "function"}
+                ];
+                
+                const STAKING_ABI = [
+                    {"inputs": [{"name": "amount", "type": "uint256"}], "name": "stake", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+                    {"inputs": [{"name": "account", "type": "address"}], "name": "earned", "outputs": [{"name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+                    {"inputs": [{"name": "user", "type": "address"}], "name": "getUserInfo", "outputs": [{"name": "stakedAmount", "type": "uint256"}, {"name": "lpAmount", "type": "uint256"}, {"name": "lastUpdateTime", "type": "uint256"}, {"name": "rewardPerTokenPaid", "type": "uint256"}], "stateMutability": "view", "type": "function"}
+                ];
+                
+                contracts.HCFToken = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.HCFToken);
+                contracts.BSDT = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.BSDT);
+                contracts.HCFStaking = new web3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
+            } catch (error) {
+                console.error('重新初始化合约失败:', error);
             }
         }
 
