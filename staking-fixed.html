@@ -312,15 +312,16 @@
                 <div class="card-title">🔥 智能质押（自动等级）</div>
                 
                 <div class="info-box">
-                    <p>💡 起步1000 HCF，必须10的倍数</p>
-                    <p>📈 系统自动匹配最优等级</p>
+                    <p>💡 最低10 HCF起步，必须10的倍数</p>
+                    <p>📈 系统自动匹配最优等级（L3-L5开放）</p>
+                    <p>⏰ 无锁定期，随时可解除质押</p>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label">质押数量</label>
                     <input type="number" class="form-input" id="stakeAmount" 
-                           placeholder="输入HCF数量（最低1000）" 
-                           min="1000" step="10" onchange="updateStakeInfo()">
+                           placeholder="输入HCF数量（最低10）" 
+                           min="10" step="10" onchange="updateStakeInfo()">
                     <div class="error-message" id="stakeError" style="display:none;"></div>
                 </div>
 
@@ -418,7 +419,7 @@
 
                 <div class="checkbox-group">
                     <input type="checkbox" id="isEquityLP">
-                    <label for="isEquityLP">股权LP（自动归集，增加产出）</label>
+                    <label for="isEquityLP">股权LP（永久锁定流动性，持续获得挖矿收益）</label>
                 </div>
 
                 <div class="info-box" id="liquidityInfo" style="margin-bottom: 15px;">
@@ -430,7 +431,8 @@
                 
                 <div class="info-box" style="margin-top: 15px;">
                     <p>💡 任何人都可以添加流动性到交易池</p>
-                    <p>📊 股权LP将自动归集并增加质押产出</p>
+                    <p>🔒 股权LP：永久锁定，不可赎回，持续产出挖矿收益</p>
+                    <p>💰 普通LP：可随时赎回，获得LP代币</p>
                     <p>⚠️ 添加流动性有5%滑点保护</p>
                 </div>
             </div>
@@ -480,7 +482,7 @@
                     </div>
                 </div>
 
-                <button class="btn" style="background: #ff5252;" onclick="unstake()">解除质押</button>
+                <button class="btn" style="background: #ff5252;" onclick="unstake()">解除质押（无锁定期）</button>
             </div>
         </div>
     </div>
@@ -532,9 +534,9 @@
             document.getElementById('stakeError').style.display = 'none';
             amountInput.classList.remove('error');
             
-            // 验证最低金额
-            if (amount < 1000) {
-                document.getElementById('stakeError').textContent = '最低质押1000 HCF';
+            // 验证最低金额（L1-L5不同的最低要求）
+            if (amount < 10) {
+                document.getElementById('stakeError').textContent = '最低质押10 HCF';
                 document.getElementById('stakeError').style.display = 'block';
                 amountInput.classList.add('error');
                 document.getElementById('levelDisplay').style.display = 'none';
@@ -555,18 +557,26 @@
             // 自动计算等级
             let currentLevel = null;
             for (const level of STAKING_LEVELS) {
-                if (amount >= level.min && amount < level.max && level.enabled) {
+                if (amount >= level.min && amount < level.max) {
+                    if (!level.enabled) {
+                        // L1和L2暂未开放，但给出提示
+                        document.getElementById('stakeError').textContent = 
+                            `Level ${level.level} 暂未开放，请质押1000 HCF以上进入L3`;
+                        document.getElementById('stakeError').style.display = 'block';
+                        document.getElementById('levelDisplay').style.display = 'none';
+                        document.getElementById('stakeBtn').disabled = true;
+                        return;
+                    }
                     currentLevel = level;
                     break;
                 }
             }
             
             if (!currentLevel) {
-                document.getElementById('stakeError').textContent = '该等级暂未开放';
-                document.getElementById('stakeError').style.display = 'block';
-                document.getElementById('levelDisplay').style.display = 'none';
-                document.getElementById('stakeBtn').disabled = true;
-                return;
+                // 如果金额超过所有范围，使用L5
+                if (amount >= 100000) {
+                    currentLevel = STAKING_LEVELS[4]; // L5
+                }
             }
             
             // 显示等级信息
