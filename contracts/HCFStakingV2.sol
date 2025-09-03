@@ -96,10 +96,27 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
         uint256 timestamp;
     }
     
+    // 股权LP结构
+    struct EquityLP {
+        uint256 amount;        // LP数量
+        uint256 startTime;     // 开始时间
+        uint256 period;        // 锁定期（100天/300天）
+        uint256 bonus;         // 增产率（20%/40%）
+        bool active;           // 是否激活
+        bool renewable;        // 是否可续签
+    }
+    
     // 用户映射
     mapping(address => StakeInfo) public stakeInfo;
     mapping(address => PurchaseRecord[]) public purchaseHistory;
     mapping(address => bool) public hasShared; // 是否分享
+    mapping(address => EquityLP) public equityLPs; // 股权LP信息
+    
+    // 股权LP参数（可调整）
+    uint256 public equityLP100Bonus = 2000;  // 100天增产20%
+    uint256 public equityLP300Bonus = 4000;  // 300天增产40%
+    uint256 public constant PERIOD_100_DAYS = 100 days;
+    uint256 public constant PERIOD_300_DAYS = 300 days;
     
     // ============ 事件 ============
     event Staked(address indexed user, uint256 amount, bool isLP, uint256 level);
@@ -107,7 +124,11 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
     event RewardsClaimed(address indexed user, uint256 amount);
     event Compounded(address indexed user, uint256 amount, uint256 newLevel);
     event LPAdded(address indexed user, uint256 hcfAmount, uint256 bsdtAmount);
+    event EquityLPAdded(address indexed user, uint256 amount, uint256 period, uint256 bonus);
+    event EquityLPRenewed(address indexed user, uint256 newPeriod, uint256 newBonus);
+    event EquityLPRedeemed(address indexed user, uint256 amount);
     event RatesUpdated(uint256[5] newRates);
+    event EquityBonusUpdated(uint256 bonus100, uint256 bonus300);
     event DecayApplied(uint256 totalStaked, uint256 decayPercent);
     event BonusApplied(address indexed user, uint256 bonusType, uint256 bonusAmount);
     event LevelStatusChanged(uint256 level, bool enabled);
@@ -433,6 +454,12 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
             totalBonus += compoundBonus;
         }
         
+        // 股权LP加成
+        EquityLP memory equity = equityLPs[account];
+        if (equity.active && block.timestamp < equity.startTime + equity.period) {
+            totalBonus += equity.bonus; // 20%或40%增产
+        }
+        
         // 应用加成
         uint256 finalRate = baseRate + (baseRate * totalBonus / PRECISION);
         
@@ -632,6 +659,165 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
         } else {
             IERC20(token).transfer(multiSigWallet, amount);
         }
+    }
+    
+    // ============ 股权LP功能 ============
+    
+    /**
+     * @dev 添加股权LP
+     */
+    function addEquityLP(uint256 hcfAmount, uint256 period) external nonReentrant updateReward(msg.sender) {
+        require(hcfAmount > 0, "Amount must be greater than 0");
+        require(period == PERIOD_100_DAYS || period == PERIOD_300_DAYS, "Invalid period");
+        
+        StakeInfo storage info = stakeInfo[msg.sender];
+        require(info.amount > 0, "Must have active staking");
+        
+        // 计算等值BSDT
+        uint256 bsdtAmount = hcfAmount * getHCFPrice() / 1e18;
+        
+        // 转入代币
+        hcfToken.transferFrom(msg.sender, address(this), hcfAmount);
+        bsdtToken.transferFrom(msg.sender, address(this), bsdtAmount);
+        
+        // 设置股权LP
+        uint256 bonus = period == PERIOD_100_DAYS ? equityLP100Bonus : equityLP300Bonus;
+        equityLPs[msg.sender] = EquityLP({
+            amount: hcfAmount,
+            startTime: block.timestamp,
+            period: period,
+            bonus: bonus,
+            active: true,
+            renewable: true
+        });
+        
+        emit EquityLPAdded(msg.sender, hcfAmount, period, bonus);
+    }
+    
+    /**
+     * @dev 续签股权LP
+     */
+    function renewEquityLP(uint256 newPeriod) external nonReentrant {
+        require(newPeriod == PERIOD_100_DAYS || newPeriod == PERIOD_300_DAYS, "Invalid period");
+        
+        EquityLP storage equity = equityLPs[msg.sender];
+        require(equity.active, "No active equity LP");
+        require(equity.renewable, "Not renewable");
+        require(block.timestamp >= equity.startTime + equity.period, "Not yet expired");
+        
+        // 更新股权LP参数
+        equity.startTime = block.timestamp;
+        equity.period = newPeriod;
+        equity.bonus = newPeriod == PERIOD_100_DAYS ? equityLP100Bonus : equityLP300Bonus;
+        
+        emit EquityLPRenewed(msg.sender, newPeriod, equity.bonus);
+    }
+    
+    /**
+     * @dev 赎回股权LP
+     */
+    function redeemEquityLP() external nonReentrant {
+        EquityLP storage equity = equityLPs[msg.sender];
+        require(equity.active, "No active equity LP");
+        require(block.timestamp >= equity.startTime + equity.period, "Still locked");
+        
+        uint256 hcfAmount = equity.amount;
+        uint256 bsdtAmount = hcfAmount * getHCFPrice() / 1e18;
+        
+        // 清空股权LP
+        delete equityLPs[msg.sender];
+        
+        // 转出代币
+        hcfToken.transfer(msg.sender, hcfAmount);
+        bsdtToken.transfer(msg.sender, bsdtAmount);
+        
+        emit EquityLPRedeemed(msg.sender, hcfAmount);
+    }
+    
+    /**
+     * @dev 检查股权LP是否到期
+     */
+    function isEquityLPExpired(address user) external view returns (bool) {
+        EquityLP storage equity = equityLPs[user];
+        if (!equity.active) return false;
+        return block.timestamp >= equity.startTime + equity.period;
+    }
+    
+    /**
+     * @dev 获取股权LP信息
+     */
+    function getEquityLPInfo(address user) external view returns (
+        uint256 amount,
+        uint256 startTime,
+        uint256 period,
+        uint256 bonus,
+        bool active,
+        bool renewable,
+        uint256 timeLeft
+    ) {
+        EquityLP storage equity = equityLPs[user];
+        uint256 endTime = equity.startTime + equity.period;
+        uint256 timeLeft_ = block.timestamp >= endTime ? 0 : endTime - block.timestamp;
+        
+        return (
+            equity.amount,
+            equity.startTime,
+            equity.period,
+            equity.bonus,
+            equity.active,
+            equity.renewable,
+            timeLeft_
+        );
+    }
+    
+    // ============ 多签参数调整功能 ============
+    
+    /**
+     * @dev 设置基础日化收益率
+     */
+    function setBaseDailyRates(uint256[5] memory rates) external onlyMultiSig {
+        for (uint256 i = 0; i < 5; i++) {
+            require(rates[i] <= 1000, "Rate too high"); // 最高10%
+        }
+        baseDailyRates = rates;
+        emit RatesUpdated(rates);
+    }
+    
+    /**
+     * @dev 设置股权LP增产率
+     */
+    function setEquityLPBonus(uint256 bonus100, uint256 bonus300) external onlyMultiSig {
+        require(bonus100 <= 5000 && bonus300 <= 10000, "Bonus too high"); // 最高50%和100%
+        equityLP100Bonus = bonus100;
+        equityLP300Bonus = bonus300;
+        emit EquityBonusUpdated(bonus100, bonus300);
+    }
+    
+    /**
+     * @dev 设置每日限购金额
+     */
+    function setDailyLimit(uint256 _dailyLimit) external onlyMultiSig {
+        require(_dailyLimit >= MIN_STAKE_AMOUNT, "Limit below minimum stake");
+        dailyLimit = _dailyLimit;
+    }
+    
+    /**
+     * @dev 批量设置等级开关
+     */
+    function setLevelsBatch(bool l1, bool l2, bool l3, bool l4, bool l5) external onlyMultiSig {
+        l1Enabled = l1;
+        l2Enabled = l2;
+        l3Enabled = l3;
+        l4Enabled = l4;
+        l5Enabled = l5;
+        emit AllLevelsUpdated(l1, l2, l3, l4, l5);
+    }
+    
+    /**
+     * @dev 获取HCF价格（模拟，实际应从预言机获取）
+     */
+    function getHCFPrice() public pure returns (uint256) {
+        return 1e17; // 0.1 USDT = 1 HCF
     }
     
     receive() external payable {}
