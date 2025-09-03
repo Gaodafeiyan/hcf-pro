@@ -16,14 +16,14 @@ async function main() {
         console.log("1. 部署MultiSigWallet...");
         const signers = [
             deployer.address,
-            "0x1234567890123456789012345678901234567891", // 替换为实际签名者
-            "0x1234567890123456789012345678901234567892",
-            "0x1234567890123456789012345678901234567893",
-            "0x1234567890123456789012345678901234567894"
+            deployer.address, // 临时使用部署者地址
+            deployer.address,
+            deployer.address,
+            deployer.address
         ];
         
         const MultiSigWallet = await ethers.getContractFactory("MultiSigWallet");
-        const multiSig = await MultiSigWallet.deploy(signers, 3, 48 * 3600); // 3/5签名，48小时时间锁
+        const multiSig = await MultiSigWallet.deploy(signers); // 只传入签名者数组
         await multiSig.deployed();
         deployedContracts.MultiSigWallet = multiSig.address;
         console.log("✅ MultiSigWallet部署于:", multiSig.address);
