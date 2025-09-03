@@ -527,12 +527,13 @@
             chainId: 97, // BSC Testnet
             rpcUrl: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
             contracts: {
-                HCFToken: '0x09F3d4c7a8B5E4f2C3D8e1A6B9F2C7D5E3A1B4C2',
-                BSDT: '0x12A4B6C8D9E3F1A2B5C7D8E9F0A1B2C3D4E5F6A7',
-                HCFStaking: '0x23B5C7D8E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4',
-                HCFNode: '0x34C6D8E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5',
-                HCFReferral: '0x45D7E9F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6',
-                HCFRanking: '0x56E8F0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D6E7'
+                // 暂时使用空地址，需要您提供真实的已部署合约地址
+                HCFToken: '',
+                BSDT: '',
+                HCFStaking: '',
+                HCFNode: '',
+                HCFReferral: '',
+                HCFRanking: ''
             }
         };
 
@@ -636,6 +637,15 @@
         }
 
         async function initializeContracts() {
+            // 初始化Web3
+            web3 = new Web3(window.ethereum);
+            
+            // 检查是否有真实合约地址
+            if (!CONTRACT_CONFIG.contracts.HCFToken) {
+                console.log('合约地址未配置，使用模拟模式');
+                return;
+            }
+            
             // 这里需要添加合约ABI，现在先用基本的ERC20 ABI
             const ERC20_ABI = [
                 {
@@ -657,14 +667,15 @@
                 }
             ];
 
-            // 初始化Web3
-            web3 = new Web3(window.ethereum);
-            
-            // 初始化合约实例（需要完整的ABI）
-            contracts.HCFToken = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.HCFToken);
-            contracts.BSDT = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.BSDT);
-            
-            console.log('合约初始化完成');
+            try {
+                // 初始化合约实例（需要完整的ABI）
+                contracts.HCFToken = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.HCFToken);
+                contracts.BSDT = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.BSDT);
+                
+                console.log('合约初始化完成');
+            } catch (error) {
+                console.error('合约初始化失败:', error);
+            }
         }
 
         // ============ 合约交互函数 ============
