@@ -352,9 +352,9 @@
                 <button class="btn" id="stakeBtn" onclick="stake()" disabled>确认质押</button>
             </div>
 
-            <!-- 复投操作 -->
+            <!-- 收益管理 -->
             <div class="card">
-                <div class="card-title">🎁 智能复投</div>
+                <div class="card-title">💰 收益管理</div>
                 
                 <div class="stats-grid">
                     <div class="stat-box">
@@ -368,20 +368,49 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">选择复投金额（固定选项）</label>
-                    <div class="select-group">
-                        <select class="form-select" id="compoundAmount">
-                            <option value="">请选择复投金额</option>
-                            <option value="10">10 HCF</option>
-                            <option value="20">20 HCF</option>
-                            <option value="200">200 HCF</option>
-                            <option value="2000">2000 HCF</option>
-                            <option value="20000">20000 HCF</option>
-                        </select>
+                    <label class="form-label">复投金额（可自由输入）</label>
+                    <input type="number" class="form-input" id="compoundAmount" 
+                           placeholder="输入要复投的HCF数量" min="1" step="0.01">
+                    <div class="error-message" id="compoundError" style="display:none;"></div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn" onclick="compound()">确认复投</button>
+                    <button class="btn" style="background: #4caf50;" onclick="claim()">领取收益</button>
+                </div>
+
+                <div class="info-box" style="margin-top: 15px;">
+                    <p>💡 复投：将收益再次投入质押，获得复利效果</p>
+                    <p>📊 可自由输入任意金额进行复投</p>
+                </div>
+            </div>
+
+            <!-- 底池管理（仅多签显示） -->
+            <div class="card" id="poolManagement" style="display:none;">
+                <div class="card-title">🏦 底池管理（多签权限）</div>
+                
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">底池HCF</div>
+                        <div class="stat-value">1,000,000 HCF</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">底池BSDT</div>
+                        <div class="stat-value">100,000 BSDT</div>
                     </div>
                 </div>
 
-                <button class="btn" onclick="compound()">确认复投</button>
+                <div class="form-group">
+                    <label class="form-label">添加HCF到底池（稳定价格）</label>
+                    <input type="number" class="form-input" id="addPoolAmount" placeholder="输入HCF数量">
+                </div>
+
+                <button class="btn" onclick="addToPool()">添加到底池</button>
+                
+                <div class="info-box" style="margin-top: 15px;">
+                    <p>⚠️ 仅多签钱包可操作</p>
+                    <p>🔒 底池资金锁仓10年</p>
+                </div>
             </div>
 
             <!-- 我的质押 -->
@@ -518,16 +547,54 @@
         }
 
         function compound() {
-            const amount = document.getElementById('compoundAmount').value;
+            const amount = parseFloat(document.getElementById('compoundAmount').value) || 0;
+            const errorDiv = document.getElementById('compoundError');
+            
+            // 清除之前的错误
+            errorDiv.style.display = 'none';
+            
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            if (amount <= 0) {
+                errorDiv.textContent = '请输入有效的复投金额';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // 检查是否超过待领取收益（实际使用时需要从合约获取）
+            const pendingRewards = 123.45; // 演示数据
+            if (amount > pendingRewards) {
+                errorDiv.textContent = `复投金额不能超过待领取收益 (${pendingRewards} HCF)`;
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            alert(`成功复投 ${amount} HCF！（演示模式）`);
+        }
+
+        function claim() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            alert('领取收益成功！（演示模式）');
+        }
+
+        function addToPool() {
+            const amount = document.getElementById('addPoolAmount').value;
             if (!amount) {
-                alert('请选择复投金额');
+                alert('请输入添加金额');
                 return;
             }
             if (!connected) {
                 alert('请先连接钱包');
                 return;
             }
-            alert(`复投 ${amount} HCF 成功！（演示模式）`);
+            // 检查是否为多签钱包
+            alert(`添加 ${amount} HCF 到底池！需要多签确认（演示模式）`);
         }
 
         function unstake() {
