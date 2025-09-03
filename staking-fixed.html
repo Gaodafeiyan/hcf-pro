@@ -771,11 +771,36 @@
                 }
             ];
 
-            // 质押合约 ABI
+            // 质押合约 ABI（完整版）
             const STAKING_ABI = [
                 {
-                    "inputs": [{"name": "amount", "type": "uint256"}],
+                    "inputs": [
+                        {"name": "amount", "type": "uint256"},
+                        {"name": "isLP", "type": "bool"},
+                        {"name": "isEquity", "type": "bool"}
+                    ],
                     "name": "stake",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "claimRewards",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "amount", "type": "uint256"}],
+                    "name": "compoundFixed",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "amount", "type": "uint256"}],
+                    "name": "withdraw",
                     "outputs": [],
                     "stateMutability": "nonpayable",
                     "type": "function"
@@ -1082,14 +1107,42 @@
             document.querySelector('.card:nth-child(3)').scrollIntoView({ behavior: 'smooth' });
         }
 
-        function claimRewards() {
+        // 领取收益（真实合约调用）
+        async function claimRewards() {
             if (!connected) {
                 alert('请先连接钱包');
                 return;
             }
-            alert('领取收益成功！（演示模式）');
-            // 实际应用中调用合约的 claimRewards() 函数
-            updateUserStakingInfo(); // 更新显示
+            
+            if (!contracts.HCFStaking) {
+                alert('合约未初始化');
+                return;
+            }
+            
+            try {
+                const btn = event.target;
+                btn.disabled = true;
+                btn.textContent = '领取中...';
+                
+                // 调用真实的合约函数
+                const tx = await contracts.HCFStaking.methods.claimRewards().send({
+                    from: userAddress
+                });
+                
+                console.log('领取成功，交易哈希:', tx.transactionHash);
+                alert(`✅ 领取收益成功！\n交易哈希: ${tx.transactionHash}`);
+                
+                // 更新显示
+                await updateUserStakingInfo();
+                
+            } catch (error) {
+                console.error('领取失败:', error);
+                alert(`领取失败: ${error.message}`);
+            } finally {
+                const btn = event.target;
+                btn.disabled = false;
+                btn.textContent = '领取收益';
+            }
         }
 
         function updateStakeInfo() {
@@ -1348,7 +1401,7 @@
             }
         }
 
-        function compound() {
+        async function compound() {
             const amount = parseFloat(document.getElementById('compoundAmount').value) || 0;
             const errorDiv = document.getElementById('compoundError');
             
@@ -1366,15 +1419,55 @@
                 return;
             }
             
-            // 检查是否超过待领取收益（实际使用时需要从合约获取）
-            const pendingRewards = 123.45; // 演示数据
-            if (amount > pendingRewards) {
-                errorDiv.textContent = `复投金额不能超过待领取收益 (${pendingRewards} HCF)`;
-                errorDiv.style.display = 'block';
+            // 重新获取当前连接的账户
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_accounts' 
+                });
+                if (accounts.length === 0) {
+                    alert('请先连接MetaMask钱包');
+                    return;
+                }
+                userAddress = accounts[0];
+            } catch (error) {
+                console.error('获取账户失败:', error);
+                alert('无法获取钱包账户，请重新连接');
                 return;
             }
             
-            alert(`成功复投 ${amount} HCF！（演示模式）`);
+            try {
+                // 创建MetaMask Web3实例用于交易
+                const metamaskWeb3 = new Web3(window.ethereum);
+                
+                // 创建合约实例
+                const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, contractAddresses.HCFStaking);
+                
+                // 先获取用户的待领取收益
+                const pendingRewards = await stakingContract.methods.earned(userAddress).call();
+                const pendingRewardsEther = parseFloat(metamaskWeb3.utils.fromWei(pendingRewards, 'ether'));
+                
+                if (amount > pendingRewardsEther) {
+                    errorDiv.textContent = `复投金额不能超过待领取收益 (${pendingRewardsEther.toFixed(4)} HCF)`;
+                    errorDiv.style.display = 'block';
+                    return;
+                }
+                
+                // 将复投金额转换为wei单位
+                const amountWei = metamaskWeb3.utils.toWei(amount.toString(), 'ether');
+                
+                // 调用合约的compoundFixed函数进行定额复投
+                console.log('正在执行复投...');
+                const tx = await stakingContract.methods.compoundFixed(amountWei).send({ from: userAddress });
+                
+                alert(`✅ 成功复投 ${amount} HCF！\n交易哈希: ${tx.transactionHash}`);
+                
+                // 刷新数据
+                await updateUserStakingInfo();
+                
+            } catch (error) {
+                console.error('复投失败:', error);
+                alert(`复投失败: ${error.message}`);
+            }
         }
 
         function claim() {
@@ -1490,13 +1583,61 @@
             alert(`添加 ${amount} HCF 到底池！需要多签确认（演示模式）`);
         }
 
-        function unstake() {
+        async function unstake() {
             if (!connected) {
                 alert('请先连接钱包');
                 return;
             }
-            if (confirm('解除质押将扣除手续费，确定继续？')) {
-                alert('解除质押成功！（演示模式）');
+            
+            // 重新获取当前连接的账户
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_accounts' 
+                });
+                if (accounts.length === 0) {
+                    alert('请先连接MetaMask钱包');
+                    return;
+                }
+                userAddress = accounts[0];
+            } catch (error) {
+                console.error('获取账户失败:', error);
+                alert('无法获取钱包账户，请重新连接');
+                return;
+            }
+            
+            const unstakeAmount = prompt('请输入要解除质押的HCF数量:');
+            if (!unstakeAmount || parseFloat(unstakeAmount) <= 0) {
+                return;
+            }
+            
+            if (confirm(`确定要解除质押 ${unstakeAmount} HCF吗？\n注意：解除质押将扣除3%手续费`)) {
+                try {
+                    // 创建MetaMask Web3实例用于交易
+                    const metamaskWeb3 = new Web3(window.ethereum);
+                    
+                    // 创建合约实例
+                    const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, contractAddresses.HCFStaking);
+                    
+                    // 将解除质押金额转换为wei单位
+                    const amountWei = metamaskWeb3.utils.toWei(unstakeAmount.toString(), 'ether');
+                    
+                    // 调用合约的unstake函数进行解除质押
+                    console.log('正在执行解除质押...');
+                    const tx = await stakingContract.methods.unstake(amountWei).send({ 
+                        from: userAddress,
+                        value: 0  // unstake函数标记为payable，但不需要发送ETH
+                    });
+                    
+                    const netAmount = parseFloat(unstakeAmount) * 0.97; // 扣除3%手续费
+                    alert(`✅ 解除质押成功！\n解除数量: ${unstakeAmount} HCF\n实际到账: ${netAmount.toFixed(2)} HCF（已扣除3%手续费）\n交易哈希: ${tx.transactionHash}`);
+                    
+                    // 刷新数据
+                    await updateUserStakingInfo();
+                    
+                } catch (error) {
+                    console.error('解除质押失败:', error);
+                    alert(`解除质押失败: ${error.message}`);
+                }
             }
         }
         
@@ -1533,15 +1674,66 @@
                 return;
             }
             
+            // 重新获取当前连接的账户
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_accounts' 
+                });
+                if (accounts.length === 0) {
+                    alert('请先连接MetaMask钱包');
+                    return;
+                }
+                userAddress = accounts[0];
+            } catch (error) {
+                console.error('获取账户失败:', error);
+                alert('无法获取钱包账户，请重新连接');
+                return;
+            }
+            
             try {
                 document.getElementById('lpStakeBtn').disabled = true;
                 document.getElementById('lpStakeBtn').textContent = '正在执行LP质押...';
                 
-                // 这里应该调用智能合约的LP质押函数
-                // 暂时使用模拟
-                await new Promise(resolve => setTimeout(resolve, 2000));
+                // 创建MetaMask Web3实例用于交易
+                const metamaskWeb3 = new Web3(window.ethereum);
                 
-                alert(`🎉 恭喜！成功升级为LP质押！\n\n追加投入：${hcfRequired.toFixed(2)} HCF + ${bsdtRequired.toFixed(2)} BSDT\n\n您的质押已升级：\n• 原质押：${baseAmount} HCF（Level 3）\n• 现在状态：LP质押\n• 日收益率：0.6% → 1.2%（翻倍！）\n\n您现在享受双倍收益率！`);
+                // 将HCF和BSDT数量转换为wei单位
+                const hcfRequiredWei = metamaskWeb3.utils.toWei(hcfRequired.toString(), 'ether');
+                const bsdtRequiredWei = metamaskWeb3.utils.toWei(bsdtRequired.toString(), 'ether');
+                
+                // 创建合约实例
+                const hcfTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, contractAddresses.HCFToken);
+                const bsdtTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, contractAddresses.BSDT);
+                const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, contractAddresses.HCFStaking);
+                
+                // 1. 先授权HCF代币给质押合约
+                console.log('正在授权HCF...');
+                document.getElementById('lpStakeBtn').textContent = '正在授权HCF...';
+                const hcfApprove = await hcfTokenContract.methods.approve(
+                    contractAddresses.HCFStaking,
+                    hcfRequiredWei
+                ).send({ from: userAddress });
+                console.log('HCF授权成功:', hcfApprove.transactionHash);
+                
+                // 2. 授权BSDT代币给质押合约
+                console.log('正在授权BSDT...');
+                document.getElementById('lpStakeBtn').textContent = '正在授权BSDT...';
+                const bsdtApprove = await bsdtTokenContract.methods.approve(
+                    contractAddresses.HCFStaking,
+                    bsdtRequiredWei
+                ).send({ from: userAddress });
+                console.log('BSDT授权成功:', bsdtApprove.transactionHash);
+                
+                // 3. 执行LP质押升级（追加质押，设置isLP=true）
+                console.log('正在执行LP质押升级...');
+                document.getElementById('lpStakeBtn').textContent = '正在执行LP质押升级...';
+                const tx = await stakingContract.methods.stake(
+                    hcfRequiredWei,  // 追加的HCF数量（基础数量的20%）
+                    true,            // isLP = true (LP质押)
+                    false            // isEquity = false
+                ).send({ from: userAddress });
+                
+                alert(`🎉 恭喜！成功升级为LP质押！\n\n追加投入：${hcfRequired.toFixed(2)} HCF + ${bsdtRequired.toFixed(2)} BSDT\n交易哈希: ${tx.transactionHash}\n\n您的质押已升级：\n• 原质押：${baseAmount} HCF\n• 现在状态：LP质押\n• 日收益率已翻倍！\n\n您现在享受双倍收益率！`);
                 
                 // 刷新数据
                 await updateUserStakingInfo();
@@ -1551,6 +1743,7 @@
                 alert(`LP质押失败: ${error.message}`);
             } finally {
                 document.getElementById('lpStakeBtn').disabled = false;
+                document.getElementById('lpStakeBtn').textContent = '确认升级为LP质押';
                 updateLPRequirement();
             }
         }
