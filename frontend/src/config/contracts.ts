@@ -28,31 +28,34 @@ export const NETWORK_CONFIG = {
   blockExplorerUrls: ['https://testnet.bscscan.com/'],
 };
 
-// 质押等级配置
+// 质押等级配置（前期限制：最低1000 HCF，只开放L3级别）
 export const STAKING_LEVELS = [
   { 
     level: 1, 
-    minAmount: 100, 
+    minAmount: 10, 
     dailyRate: 0.4, // 基础日化 0.4%
     lpRate: 0.8,    // LP日化 0.8%
     compoundMultiple: 10, // 复投倍数 10倍
-    color: '#52c41a' 
+    color: '#52c41a',
+    enabled: false  // 前期关闭
   },
   { 
     level: 2, 
-    minAmount: 1000, 
+    minAmount: 100, 
     dailyRate: 0.5, // 基础日化 0.5%
     lpRate: 1.0,    // LP日化 1.0%
     compoundMultiple: 20, // 复投倍数 20倍
-    color: '#1890ff' 
+    color: '#1890ff',
+    enabled: false  // 前期关闭
   },
   { 
     level: 3, 
-    minAmount: 5000, 
+    minAmount: 1000, 
     dailyRate: 0.6, // 基础日化 0.6%
     lpRate: 1.2,    // LP日化 1.2%
     compoundMultiple: 200, // 复投倍数 200倍
-    color: '#722ed1' 
+    color: '#722ed1',
+    enabled: true   // 前期开放
   },
   { 
     level: 4, 
@@ -60,24 +63,53 @@ export const STAKING_LEVELS = [
     dailyRate: 0.7, // 基础日化 0.7%
     lpRate: 1.4,    // LP日化 1.4%
     compoundMultiple: 2000, // 复投倍数 2000倍
-    color: '#fa8c16' 
+    color: '#fa8c16',
+    enabled: true
   },
   { 
     level: 5, 
-    minAmount: 50000, 
+    minAmount: 100000, 
     dailyRate: 0.8, // 基础日化 0.8%
     lpRate: 1.6,    // LP日化 1.6%
     compoundMultiple: 20000, // 复投倍数 20000倍
-    color: '#f5222d' 
+    color: '#f5222d',
+    enabled: true
   },
 ];
 
-// 团队等级配置
+// 前期限制配置
+export const EARLY_PHASE_CONFIG = {
+  minStakeAmount: 1000,  // 前期最低1000 HCF
+  enabledLevels: [3, 4, 5],  // 只开放L3、L4、L5
+  dailyLimit: 500,  // 每日限购500 HCF
+};
+
+// 节点NFT配置
+export const NODE_NFT_CONFIG = {
+  maxNodes: 99,
+  applicationFee: 5000, // 5000 BSDT/HCF
+  priceThreshold: 1.3, // 1.3U价格阈值
+  activationFeeHCF: 1000, // 激活费1000 HCF
+  activationFeeBSDT: 1000, // 激活费1000 BSDT
+  powerFormula: 'LP/1000*100%', // 算力公式
+};
+
+// 团队等级配置（20级推荐体系）
 export const TEAM_LEVELS = [
-  { level: 'V1', requirement: '直推5人', color: '#52c41a' },
-  { level: 'V2', requirement: '直推10人 + 3个V1', color: '#1890ff' },
-  { level: 'V3', requirement: '直推15人 + 3个V2', color: '#722ed1' },
-  { level: 'V4', requirement: '直推20人 + 3个V3', color: '#fa8c16' },
-  { level: 'V5', requirement: '团队业绩100万 + 3个V4', color: '#f5222d' },
-  { level: 'V6', requirement: '团队业绩500万 + 3个V5', color: '#eb2f96' },
+  { level: 'V1', requirement: '小区业绩2000 HCF', rewardRate: 6, color: '#52c41a' },
+  { level: 'V2', requirement: '小区业绩2万 + 2个V1', rewardRate: 12, color: '#1890ff' },
+  { level: 'V3', requirement: '小区业绩10万 + 2个V2', rewardRate: 18, color: '#722ed1' },
+  { level: 'V4', requirement: '小区业绩50万 + 2个V3', rewardRate: 24, color: '#fa8c16' },
+  { level: 'V5', requirement: '小区业绩300万 + 1个V4', rewardRate: 30, color: '#f5222d' },
+  { level: 'V6', requirement: '小区业绩2000万 + 2个V4', rewardRate: 36, color: '#eb2f96' },
 ];
+
+// 推荐奖励配置
+export const REFERRAL_CONFIG = {
+  depositRewards: [5, 3], // 入金奖励：一代5%，二代3%
+  staticRewards: [20, 10, 5, 5, 5, 5, 5, 5, 3, 3, 3, 3, 3, 3, 3, 2, 2, 2, 2, 2], // 20级静态奖励
+  burnRates: {
+    referral: 10, // 推荐烧伤10%
+    team: 5,      // 团队烧伤5%
+  },
+};
