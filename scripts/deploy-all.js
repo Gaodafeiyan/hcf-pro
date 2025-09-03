@@ -32,9 +32,7 @@ async function main() {
         console.log("\n2. 部署USDTOracle...");
         const USDTOracle = await ethers.getContractFactory("USDTOracle");
         const oracle = await USDTOracle.deploy(
-            "0x55d398326f99059fF775485246999027B3197955", // BSC主网USDT地址
-            3600, // 1小时更新间隔
-            ethers.utils.parseUnits("1000000000", 18) // 10亿变化限制
+            ethers.utils.parseUnits("100000000000", 6) // 初始供应量：1000亿USDT
         );
         await oracle.deployed();
         deployedContracts.USDTOracle = oracle.address;

@@ -594,17 +594,7 @@ contract HCFStakingV2 is ReentrancyGuard, Ownable {
         emit AllLevelsUpdated(_l1, _l2, _l3, _l4, _l5);
     }
     
-    /**
-     * @dev 设置基础收益率（多签）
-     */
-    function setBaseDailyRates(uint256[5] memory rates) external onlyMultiSig {
-        for (uint256 i = 0; i < 5; i++) {
-            require(rates[i] <= 200, "Rate too high"); // 最高2%
-        }
-        baseDailyRates = rates;
-        emit RatesUpdated(rates);
-    }
-    
+
     /**
      * @dev 设置衰减参数（多签）
      */
