@@ -378,6 +378,9 @@
                     <input type="number" class="form-input" id="compoundAmount" 
                            placeholder="输入要复投的HCF数量" min="1" step="0.01">
                     <div class="error-message" id="compoundError" style="display:none;"></div>
+                    <div class="success-message" id="compoundSuggestion" style="display:none;">
+                        建议复投金额：<span id="suggestedCompound">-</span> HCF（质押量20%）
+                    </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
@@ -537,13 +540,13 @@
             }
         };
 
-        // 等级配置
+        // 等级配置（新收益机制）
         const STAKING_LEVELS = [
             { level: 1, min: 10, max: 100, rate: 0.3, enabled: false },
-            { level: 2, min: 100, max: 1000, rate: 0.5, enabled: false },
-            { level: 3, min: 1000, max: 10000, rate: 0.6, enabled: true },
-            { level: 4, min: 10000, max: 100000, rate: 0.7, enabled: true },
-            { level: 5, min: 100000, max: Infinity, rate: 0.8, enabled: true }
+            { level: 2, min: 100, max: 1000, rate: 0.4, enabled: false },
+            { level: 3, min: 1000, max: 10000, rate: 0.6, enabled: true },      // 1000 HCF: 0.6%
+            { level: 4, min: 10000, max: 100000, rate: 0.7, enabled: true },    // 10000 HCF: 0.7%
+            { level: 5, min: 100000, max: Infinity, rate: 0.8, enabled: true }  // 100000 HCF: 0.8%
         ];
 
         let connected = false;
@@ -781,7 +784,7 @@
                 else if (stakedAmount >= 100) level = 2;
                 
                 // 计算收益率（基于等级）
-                const levelRates = [0.3, 0.4, 0.5, 0.6, 0.7]; // L1-L5基础日化
+                const levelRates = [0.3, 0.4, 0.6, 0.7, 0.8]; // L1-L5基础日化（新收益机制）
                 const baseRate = levelRates[level - 1] || 0;
                 const hasLP = lpAmount > 0;
                 const totalRate = hasLP ? baseRate * 2 : baseRate; // LP双倍收益
@@ -868,10 +871,15 @@
                 if (userStakingData.hasLP) {
                     document.getElementById('userLPInfo').style.display = 'flex';
                     document.getElementById('userLPAmount').textContent = 
-                        `${userStakingData.lpHCF.toLocaleString()} HCF + ${userStakingData.lpBSDT.toLocaleString()} BSDT`;
+                        `${(userStakingData.lpAmount || 0).toLocaleString()} HCF + ${((userStakingData.lpAmount || 0) * 0.1).toLocaleString()} BSDT`;
                 } else {
                     document.getElementById('userLPInfo').style.display = 'none';
                 }
+                
+                // 显示建议复投金额（质押量的20%）
+                const suggestedCompound = userStakingData.stakeAmount * 0.2;
+                document.getElementById('compoundSuggestion').style.display = 'block';
+                document.getElementById('suggestedCompound').textContent = suggestedCompound.toFixed(0);
             } else {
                 document.getElementById('noStaking').style.display = 'block';
                 document.getElementById('stakingDetails').style.display = 'none';
@@ -961,19 +969,19 @@
             document.getElementById('currentLevel').textContent = `Level ${currentLevel.level}`;
             
             const baseRate = currentLevel.rate;
-            // LP增产是基础的2倍，总计3倍
-            const lpBonus = lpChecked ? baseRate * 2 : 0;
-            const totalRate = baseRate + lpBonus;
+            const baseReward = amount * baseRate / 100; // 基础收益
+            let totalReward = baseReward;
             
             if (lpChecked) {
+                totalReward = baseReward * 2; // LP后收益翻倍
+                const totalRate = totalReward / amount * 100;
                 document.getElementById('dailyRate').textContent = 
-                    `${baseRate}% + LP增产${lpBonus.toFixed(1)}% = ${totalRate.toFixed(1)}%`;
+                    `${baseRate}% + LP翻倍 = ${totalRate.toFixed(1)}%`;
             } else {
                 document.getElementById('dailyRate').textContent = `${baseRate}%`;
             }
             
-            const dailyReward = amount * totalRate / 100;
-            document.getElementById('dailyReward').textContent = `${dailyReward.toFixed(2)} HCF`;
+            document.getElementById('dailyReward').textContent = `${totalReward.toFixed(1)} HCF`;
             
             // LP相关 - 20%质押量 + 按当前价格的BSDT
             if (lpChecked) {
@@ -1143,18 +1151,19 @@
                 const bonus = equityPeriod === '100' ? 20 : 40;
                 boostInfo.style.display = 'block';
                 
-                // 演示质押收益计算
+                // 演示质押收益计算（新机制）
                 const exampleStake = 10000; // 假设用户质押10000 HCF
                 const baseRate = 0.7; // Level 4基础日化
-                const withLP = baseRate * 2; // 质押LP后翻倍
+                const baseReward = exampleStake * baseRate / 100; // 70 HCF/天
+                const withLP = baseReward * 2; // LP后翻倍：140 HCF/天
                 const withEquity = withLP * (1 + bonus / 100); // 股权LP增产
                 
                 boostDetails.innerHTML = `
-                    假设您有质押收益：<br>
-                    • 基础质押：${baseRate}%/天<br>
-                    • +质押LP：${withLP.toFixed(1)}%/天<br>
-                    • +股权LP：${withEquity.toFixed(1)}%/天 (+${bonus}%增产)<br>
-                    <strong>总收益提升：${((withEquity/baseRate - 1) * 100).toFixed(0)}%</strong>
+                    以10000 HCF质押为例：<br>
+                    • 基础质押：${baseReward} HCF/天（${baseRate}%）<br>
+                    • +普通LP：${withLP} HCF/天（${(withLP/exampleStake*100).toFixed(1)}%）<br>
+                    • +股权LP：${withEquity.toFixed(1)} HCF/天（${(withEquity/exampleStake*100).toFixed(2)}%，+${bonus}%增产）<br>
+                    <strong>复投金额：${(exampleStake * 0.2).toFixed(0)} HCF（质押量20%）</strong>
                 `;
             } else {
                 boostInfo.style.display = 'none';
