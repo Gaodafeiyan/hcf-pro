@@ -1440,7 +1440,7 @@
                 const metamaskWeb3 = new Web3(window.ethereum);
                 
                 // 创建合约实例
-                const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, contractAddresses.HCFStaking);
+                const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
                 
                 // 先获取用户的待领取收益
                 const pendingRewards = await stakingContract.methods.earned(userAddress).call();
@@ -1616,7 +1616,7 @@
                     const metamaskWeb3 = new Web3(window.ethereum);
                     
                     // 创建合约实例
-                    const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, contractAddresses.HCFStaking);
+                    const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
                     
                     // 将解除质押金额转换为wei单位
                     const amountWei = metamaskWeb3.utils.toWei(unstakeAmount.toString(), 'ether');
@@ -1720,15 +1720,15 @@
                 ];
                 
                 // 创建合约实例
-                const hcfTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, contractAddresses.HCFToken);
-                const bsdtTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, contractAddresses.BSDT);
-                const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, contractAddresses.HCFStaking);
+                const hcfTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.HCFToken);
+                const bsdtTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.BSDT);
+                const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
                 
                 // 1. 先授权HCF代币给质押合约
                 console.log('正在授权HCF...');
                 document.getElementById('lpStakeBtn').textContent = '正在授权HCF...';
                 const hcfApprove = await hcfTokenContract.methods.approve(
-                    contractAddresses.HCFStaking,
+                    CONTRACT_CONFIG.contracts.HCFStaking,
                     hcfRequiredWei
                 ).send({ from: userAddress });
                 console.log('HCF授权成功:', hcfApprove.transactionHash);
@@ -1737,7 +1737,7 @@
                 console.log('正在授权BSDT...');
                 document.getElementById('lpStakeBtn').textContent = '正在授权BSDT...';
                 const bsdtApprove = await bsdtTokenContract.methods.approve(
-                    contractAddresses.HCFStaking,
+                    CONTRACT_CONFIG.contracts.HCFStaking,
                     bsdtRequiredWei
                 ).send({ from: userAddress });
                 console.log('BSDT授权成功:', bsdtApprove.transactionHash);
