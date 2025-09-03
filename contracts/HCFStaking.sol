@@ -58,7 +58,7 @@ contract HCFStaking is Ownable, ReentrancyGuard {
     
     // ============ 常量 ============
     uint256 public constant BASIS_POINTS = 10000;
-    uint256 public constant DAILY_LIMIT = 500 * 10**18;
+    uint256 public constant DAILY_LIMIT = 1000 * 10**18;  // 修改为1000 HCF每日限额
     uint256 public constant MIN_COMPENSATION = 500 * 10**18;
     uint256 public constant DECAY_RATE = 10;
     uint256 public constant HOLDING_BONUS_DAYS = 30;
@@ -162,6 +162,9 @@ contract HCFStaking is Ownable, ReentrancyGuard {
         _;
     }
     
+    // ============ 状态变量（添加启动时间） ============
+    uint256 public launchTime;  // 合约启动时间，用于7天限购期
+    
     // ============ 构造函数 ============
     constructor(
         address _hcfToken,
@@ -175,6 +178,7 @@ contract HCFStaking is Ownable, ReentrancyGuard {
         multiSigWallet = _multiSigWallet;
         collectionAddress = _collectionAddress;
         bridgeAddress = _bridgeAddress;
+        launchTime = block.timestamp;  // 记录启动时间
         
         _initializeLevels();
         
@@ -569,11 +573,17 @@ contract HCFStaking is Ownable, ReentrancyGuard {
     }
     
     function _checkPurchaseLimit(address user, uint256 amount) internal {
+        // 如果已经过了7天，不再限制
+        if (block.timestamp >= launchTime + 7 days) {
+            return;  // 7天后开放，无限制
+        }
+        
         UserInfo storage info = userInfo[user];
         
         uint256 today = block.timestamp / 1 days;
         uint256 dayIndex = today % 7;
         
+        // 清理过期记录
         for (uint256 i = 0; i < 7; i++) {
             if (i != dayIndex) {
                 uint256 recordDay = info.buyHistory[i] / 10**36;
@@ -583,14 +593,14 @@ contract HCFStaking is Ownable, ReentrancyGuard {
             }
         }
         
-        uint256 total7Days = 0;
-        for (uint256 i = 0; i < 7; i++) {
-            total7Days += info.buyHistory[i] % 10**36;
-        }
+        // 计算今日已购买量
+        uint256 todayAmount = info.buyHistory[dayIndex] % 10**36;
         
-        require(total7Days + amount <= DAILY_LIMIT * 7, "Exceeds 7-day limit");
+        // 检查今日限额（前7天每天1000 HCF）
+        require(todayAmount + amount <= DAILY_LIMIT, "Exceeds daily limit 1000 HCF");
         
-        info.buyHistory[dayIndex] = (today * 10**36) + amount;
+        // 更新今日购买记录
+        info.buyHistory[dayIndex] = (today * 10**36) + todayAmount + amount;
     }
     
     function _getStakeLevel(uint256 amount) internal view returns (uint256) {
