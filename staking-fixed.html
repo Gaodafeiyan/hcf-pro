@@ -527,13 +527,13 @@
             chainId: 97, // BSC Testnet
             rpcUrl: 'https://data-seed-prebsc-1-s1.binance.org:8545/',
             contracts: {
-                // 暂时使用空地址，需要您提供真实的已部署合约地址
-                HCFToken: '',
-                BSDT: '',
-                HCFStaking: '',
-                HCFNode: '',
-                HCFReferral: '',
-                HCFRanking: ''
+                // 真实的BSC测试网合约地址
+                HCFToken: '0x78B7D17C3f98BB47955A155F661f9042F1717288',
+                BSDT: '0x52E9C19DFF5C8636A6725bd78A9c85ee5045ac15',
+                HCFStaking: '0x5eA9EDb9446C3FdbAc8ac3BcAf6bF8D8C137D5cD',
+                HCFNode: '0x6fDB1B1F09665Ac00C26701F5E1F92F4652D6F85',
+                HCFReferral: '0x18A468b3dfC71C3bA9F5A801734B219d253C7F27',
+                HCFRanking: '0x9A27E7f4139aD7a12591ce25e40c863f8A34e956'
             }
         };
 
@@ -646,7 +646,7 @@
                 return;
             }
             
-            // 这里需要添加合约ABI，现在先用基本的ERC20 ABI
+            // ERC20 ABI
             const ERC20_ABI = [
                 {
                     "constant": true,
@@ -664,15 +664,91 @@
                     "name": "approve",
                     "outputs": [{"name": "", "type": "bool"}],
                     "type": "function"
+                },
+                {
+                    "constant": true,
+                    "inputs": [{"name": "_owner", "type": "address"}, {"name": "_spender", "type": "address"}],
+                    "name": "allowance",
+                    "outputs": [{"name": "", "type": "uint256"}],
+                    "type": "function"
+                }
+            ];
+
+            // 质押合约 ABI
+            const STAKING_ABI = [
+                {
+                    "inputs": [{"name": "amount", "type": "uint256"}],
+                    "name": "stake",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "hcfAmount", "type": "uint256"}],
+                    "name": "addLP",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "hcfAmount", "type": "uint256"}],
+                    "name": "addEquityLP",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "compound",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "amount", "type": "uint256"}],
+                    "name": "unstake",
+                    "outputs": [],
+                    "stateMutability": "payable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "claimRewards",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "account", "type": "address"}],
+                    "name": "earned",
+                    "outputs": [{"name": "", "type": "uint256"}],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "user", "type": "address"}],
+                    "name": "getUserInfo",
+                    "outputs": [
+                        {"name": "stakedAmount", "type": "uint256"},
+                        {"name": "lpAmount", "type": "uint256"},
+                        {"name": "lastUpdateTime", "type": "uint256"},
+                        {"name": "rewardPerTokenPaid", "type": "uint256"}
+                    ],
+                    "stateMutability": "view",
+                    "type": "function"
                 }
             ];
 
             try {
-                // 初始化合约实例（需要完整的ABI）
+                // 初始化合约实例
                 contracts.HCFToken = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.HCFToken);
                 contracts.BSDT = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.BSDT);
+                contracts.HCFStaking = new web3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
                 
                 console.log('合约初始化完成');
+                console.log('HCF Token:', CONTRACT_CONFIG.contracts.HCFToken);
+                console.log('BSDT Token:', CONTRACT_CONFIG.contracts.BSDT);
+                console.log('Staking Contract:', CONTRACT_CONFIG.contracts.HCFStaking);
             } catch (error) {
                 console.error('合约初始化失败:', error);
             }
@@ -681,7 +757,7 @@
         // ============ 合约交互函数 ============
         async function getUserStakingDataFromContract() {
             try {
-                if (!contracts.HCFToken || !userAddress) {
+                if (!contracts.HCFToken || !contracts.HCFStaking || !userAddress) {
                     return null;
                 }
 
@@ -689,19 +765,45 @@
                 const hcfBalance = await contracts.HCFToken.methods.balanceOf(userAddress).call();
                 const hcfBalanceFormatted = parseFloat(web3.utils.fromWei(hcfBalance, 'ether'));
 
-                // 这里应该调用质押合约获取质押信息
-                // 由于需要完整的质押合约ABI，现在返回基本信息
-                console.log('用户HCF余额:', hcfBalanceFormatted);
+                // 从质押合约获取用户信息
+                const userInfo = await contracts.HCFStaking.methods.getUserInfo(userAddress).call();
+                const pendingRewards = await contracts.HCFStaking.methods.earned(userAddress).call();
                 
-                // 返回基本数据结构，实际应从质押合约获取
+                const stakedAmount = parseFloat(web3.utils.fromWei(userInfo.stakedAmount, 'ether'));
+                const lpAmount = parseFloat(web3.utils.fromWei(userInfo.lpAmount, 'ether'));
+                const pendingRewardsFormatted = parseFloat(web3.utils.fromWei(pendingRewards, 'ether'));
+                
+                // 计算等级
+                let level = 1;
+                if (stakedAmount >= 100000) level = 5;
+                else if (stakedAmount >= 10000) level = 4;
+                else if (stakedAmount >= 1000) level = 3;
+                else if (stakedAmount >= 100) level = 2;
+                
+                // 计算收益率（基于等级）
+                const levelRates = [0.3, 0.4, 0.5, 0.6, 0.7]; // L1-L5基础日化
+                const baseRate = levelRates[level - 1] || 0;
+                const hasLP = lpAmount > 0;
+                const totalRate = hasLP ? baseRate * 2 : baseRate; // LP双倍收益
+                const dailyReward = stakedAmount * totalRate / 100;
+                
+                console.log('用户质押数据:', {
+                    hcfBalance: hcfBalanceFormatted,
+                    stakedAmount,
+                    lpAmount,
+                    level,
+                    pendingRewards: pendingRewardsFormatted
+                });
+                
                 return {
-                    stakeAmount: 0, // 从质押合约获取
-                    level: 0,
-                    baseRate: 0,
-                    totalRate: 0,
-                    dailyReward: 0,
-                    pendingReward: 0,
-                    hasLP: false,
+                    stakeAmount: stakedAmount,
+                    level: level,
+                    baseRate: baseRate,
+                    totalRate: totalRate,
+                    dailyReward: dailyReward,
+                    pendingReward: pendingRewardsFormatted,
+                    hasLP: hasLP,
+                    lpAmount: lpAmount,
                     hcfBalance: hcfBalanceFormatted
                 };
             } catch (error) {
@@ -894,12 +996,71 @@
             document.getElementById('stakeBtn').textContent = `确认质押 ${amount} HCF`;
         }
 
-        function stake() {
+        async function stake() {
             if (!connected) {
                 alert('请先连接钱包');
                 return;
             }
-            alert('质押成功！（演示模式）');
+
+            const stakeAmount = parseFloat(document.getElementById('stakeAmount').value);
+            if (!stakeAmount || stakeAmount < 1000) {
+                alert('质押金额不能少于1000 HCF');
+                return;
+            }
+
+            // 检查是否有合约实例
+            if (!contracts.HCFToken || !contracts.HCFStaking) {
+                alert('合约未初始化，使用演示模式');
+                return;
+            }
+
+            try {
+                document.getElementById('stakeBtn').disabled = true;
+                document.getElementById('stakeBtn').textContent = '处理中...';
+
+                const stakeAmountWei = web3.utils.toWei(stakeAmount.toString(), 'ether');
+
+                // 检查用户余额
+                const balance = await contracts.HCFToken.methods.balanceOf(userAddress).call();
+                if (web3.utils.toBN(balance).lt(web3.utils.toBN(stakeAmountWei))) {
+                    alert('HCF余额不足');
+                    return;
+                }
+
+                // 检查授权额度
+                const allowance = await contracts.HCFToken.methods.allowance(
+                    userAddress, 
+                    CONTRACT_CONFIG.contracts.HCFStaking
+                ).call();
+
+                if (web3.utils.toBN(allowance).lt(web3.utils.toBN(stakeAmountWei))) {
+                    // 需要授权
+                    console.log('需要授权HCF代币');
+                    const approveTx = await contracts.HCFToken.methods.approve(
+                        CONTRACT_CONFIG.contracts.HCFStaking,
+                        stakeAmountWei
+                    ).send({ from: userAddress });
+                    console.log('授权交易:', approveTx.transactionHash);
+                }
+
+                // 执行质押
+                console.log('开始质押:', stakeAmountWei);
+                const stakeTx = await contracts.HCFStaking.methods.stake(stakeAmountWei)
+                    .send({ from: userAddress });
+
+                console.log('质押成功:', stakeTx.transactionHash);
+                alert(`质押成功！\n交易哈希: ${stakeTx.transactionHash}`);
+
+                // 刷新用户数据
+                await updateUserStakingInfo();
+
+            } catch (error) {
+                console.error('质押失败:', error);
+                alert(`质押失败: ${error.message}`);
+            } finally {
+                document.getElementById('stakeBtn').disabled = false;
+                document.getElementById('stakeBtn').textContent = `确认质押 ${stakeAmount} HCF`;
+            }
         }
 
         function compound() {
