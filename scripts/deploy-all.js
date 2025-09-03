@@ -136,8 +136,7 @@ async function main() {
         const HCFBurnMechanism = await ethers.getContractFactory("HCFBurnMechanism");
         const burnMechanism = await HCFBurnMechanism.deploy(
             hcfToken.address,
-            staking.address,
-            referral.address
+            multiSig.address
         );
         await burnMechanism.deployed();
         deployedContracts.HCFBurnMechanism = burnMechanism.address;
