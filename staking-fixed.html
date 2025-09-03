@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCF Finance - 智能质押平台</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            color: white;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        
+        .nav a:hover, .nav a.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-input.error {
+            border-color: #ff4444;
+        }
+        
+        .error-message {
+            color: #ff4444;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .success-message {
+            color: #4caf50;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .level-display {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .checkbox-group input {
+            margin-right: 8px;
+            width: 18px;
+            height: 18px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .select-group {
+            position: relative;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            appearance: none;
+        }
+        
+        .select-group::after {
+            content: '▼';
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #666;
+        }
+        
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        .info-box p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .wallet-connect {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .wallet-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .wallet-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .connected-address {
+            margin-top: 10px;
+            color: #4caf50;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🚀 HCF Finance</div>
+            <div class="nav">
+                <a href="#dashboard">仪表板</a>
+                <a href="#staking" class="active">质押挖矿</a>
+                <a href="#node">节点NFT</a>
+                <a href="#referral">推荐奖励</a>
+                <a href="#exchange">交易所</a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 钱包连接卡片 -->
+            <div class="card">
+                <div class="card-title">💳 钱包连接</div>
+                <div id="walletSection" class="wallet-connect">
+                    <button class="wallet-btn" onclick="connectWallet()">连接钱包</button>
+                    <div class="connected-address" id="connectedAddress" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- 全网统计 -->
+            <div class="card">
+                <div class="card-title">📊 全网统计</div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">总质押量</div>
+                        <div class="stat-value">1,234,567 HCF</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">总节点数</div>
+                        <div class="stat-value">45 / 99</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">HCF价格</div>
+                        <div class="stat-value">$0.85</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">APY</div>
+                        <div class="stat-value">146%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 质押挖矿 -->
+            <div class="card">
+                <div class="card-title">🔥 智能质押（自动等级）</div>
+                
+                <div class="info-box">
+                    <p>💡 起步1000 HCF，必须10的倍数</p>
+                    <p>📈 系统自动匹配最优等级</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">质押数量</label>
+                    <input type="number" class="form-input" id="stakeAmount" 
+                           placeholder="输入HCF数量（最低1000）" 
+                           min="1000" step="10" onchange="updateStakeInfo()">
+                    <div class="error-message" id="stakeError" style="display:none;"></div>
+                </div>
+
+                <div class="level-display" id="levelDisplay" style="display:none;">
+                    <div class="level-info">
+                        <span>当前等级</span>
+                        <span id="currentLevel">-</span>
+                    </div>
+                    <div class="level-info">
+                        <span>基础日化</span>
+                        <span id="dailyRate">-</span>
+                    </div>
+                    <div class="level-info">
+                        <span>预计日收益</span>
+                        <span id="dailyReward">-</span>
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="lpStake" onchange="updateStakeInfo()">
+                    <label for="lpStake">LP质押（需等额BSDT，收益翻倍）</label>
+                </div>
+
+                <div class="form-group" id="bsdtRequired" style="display:none;">
+                    <label class="form-label">需要BSDT</label>
+                    <input type="text" class="form-input" id="bsdtAmount" readonly>
+                </div>
+
+                <button class="btn" id="stakeBtn" onclick="stake()" disabled>确认质押</button>
+            </div>
+
+            <!-- 复投操作 -->
+            <div class="card">
+                <div class="card-title">🎁 智能复投</div>
+                
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">待领取收益</div>
+                        <div class="stat-value">123.45 HCF</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">累计收益</div>
+                        <div class="stat-value">5,678.90 HCF</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">选择复投金额（固定选项）</label>
+                    <div class="select-group">
+                        <select class="form-select" id="compoundAmount">
+                            <option value="">请选择复投金额</option>
+                            <option value="10">10 HCF</option>
+                            <option value="20">20 HCF</option>
+                            <option value="200">200 HCF</option>
+                            <option value="2000">2000 HCF</option>
+                            <option value="20000">20000 HCF</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="compound()">确认复投</button>
+            </div>
+
+            <!-- 我的质押 -->
+            <div class="card">
+                <div class="card-title">💰 我的质押</div>
+                
+                <div class="level-display">
+                    <div class="level-info">
+                        <span>质押总额</span>
+                        <span>10,000 HCF</span>
+                    </div>
+                    <div class="level-info">
+                        <span>LP质押</span>
+                        <span>5,000 HCF + 5,000 BSDT</span>
+                    </div>
+                    <div class="level-info">
+                        <span>当前等级</span>
+                        <span>Level 4</span>
+                    </div>
+                    <div class="level-info">
+                        <span>综合日化</span>
+                        <span>1.4%</span>
+                    </div>
+                    <div class="level-info">
+                        <span>质押时间</span>
+                        <span>30天</span>
+                    </div>
+                </div>
+
+                <button class="btn" style="background: #ff5252;" onclick="unstake()">解除质押</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 等级配置
+        const STAKING_LEVELS = [
+            { level: 1, min: 10, max: 100, rate: 0.3, enabled: false },
+            { level: 2, min: 100, max: 1000, rate: 0.5, enabled: false },
+            { level: 3, min: 1000, max: 10000, rate: 0.6, enabled: true },
+            { level: 4, min: 10000, max: 100000, rate: 0.7, enabled: true },
+            { level: 5, min: 100000, max: Infinity, rate: 0.8, enabled: true }
+        ];
+
+        let connected = false;
+        let userAddress = '';
+
+        function connectWallet() {
+            // 模拟钱包连接
+            connected = true;
+            userAddress = '0x' + Math.random().toString(16).substr(2, 40);
+            document.getElementById('connectedAddress').style.display = 'block';
+            document.getElementById('connectedAddress').textContent = 
+                userAddress.substr(0, 6) + '...' + userAddress.substr(-4);
+            document.querySelector('.wallet-btn').textContent = '已连接';
+        }
+
+        function updateStakeInfo() {
+            const amountInput = document.getElementById('stakeAmount');
+            const amount = parseFloat(amountInput.value) || 0;
+            const lpChecked = document.getElementById('lpStake').checked;
+            
+            // 清除之前的错误
+            document.getElementById('stakeError').style.display = 'none';
+            amountInput.classList.remove('error');
+            
+            // 验证最低金额
+            if (amount < 1000) {
+                document.getElementById('stakeError').textContent = '最低质押1000 HCF';
+                document.getElementById('stakeError').style.display = 'block';
+                amountInput.classList.add('error');
+                document.getElementById('levelDisplay').style.display = 'none';
+                document.getElementById('stakeBtn').disabled = true;
+                return;
+            }
+            
+            // 验证10的倍数
+            if (amount % 10 !== 0) {
+                document.getElementById('stakeError').textContent = '质押数量必须是10的倍数';
+                document.getElementById('stakeError').style.display = 'block';
+                amountInput.classList.add('error');
+                document.getElementById('levelDisplay').style.display = 'none';
+                document.getElementById('stakeBtn').disabled = true;
+                return;
+            }
+            
+            // 自动计算等级
+            let currentLevel = null;
+            for (const level of STAKING_LEVELS) {
+                if (amount >= level.min && amount < level.max && level.enabled) {
+                    currentLevel = level;
+                    break;
+                }
+            }
+            
+            if (!currentLevel) {
+                document.getElementById('stakeError').textContent = '该等级暂未开放';
+                document.getElementById('stakeError').style.display = 'block';
+                document.getElementById('levelDisplay').style.display = 'none';
+                document.getElementById('stakeBtn').disabled = true;
+                return;
+            }
+            
+            // 显示等级信息
+            document.getElementById('levelDisplay').style.display = 'block';
+            document.getElementById('currentLevel').textContent = `Level ${currentLevel.level}`;
+            
+            const baseRate = currentLevel.rate;
+            const actualRate = lpChecked ? baseRate * 2 : baseRate;
+            document.getElementById('dailyRate').textContent = `${baseRate}%` + (lpChecked ? ` → ${actualRate}%` : '');
+            
+            const dailyReward = amount * actualRate / 100;
+            document.getElementById('dailyReward').textContent = `${dailyReward.toFixed(2)} HCF`;
+            
+            // LP相关
+            if (lpChecked) {
+                document.getElementById('bsdtRequired').style.display = 'block';
+                document.getElementById('bsdtAmount').value = `${amount} BSDT`;
+            } else {
+                document.getElementById('bsdtRequired').style.display = 'none';
+            }
+            
+            // 更新按钮
+            document.getElementById('stakeBtn').disabled = false;
+            document.getElementById('stakeBtn').textContent = `确认质押 ${amount} HCF`;
+        }
+
+        function stake() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            alert('质押成功！（演示模式）');
+        }
+
+        function compound() {
+            const amount = document.getElementById('compoundAmount').value;
+            if (!amount) {
+                alert('请选择复投金额');
+                return;
+            }
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            alert(`复投 ${amount} HCF 成功！（演示模式）`);
+        }
+
+        function unstake() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            if (confirm('解除质押将扣除手续费，确定继续？')) {
+                alert('解除质押成功！（演示模式）');
+            }
+        }
+    </script>
+</body>
+</html>
