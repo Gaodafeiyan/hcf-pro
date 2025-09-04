@@ -1439,6 +1439,24 @@
                 // 创建MetaMask Web3实例用于交易
                 const metamaskWeb3 = new Web3(window.ethereum);
                 
+                // 定义STAKING_ABI（compound函数需要的部分）
+                const STAKING_ABI = [
+                    {
+                        "inputs": [{"name": "amount", "type": "uint256"}],
+                        "name": "compoundFixed",
+                        "outputs": [],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                    },
+                    {
+                        "inputs": [{"name": "account", "type": "address"}],
+                        "name": "earned",
+                        "outputs": [{"name": "", "type": "uint256"}],
+                        "stateMutability": "view",
+                        "type": "function"
+                    }
+                ];
+                
                 // 创建合约实例
                 const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
                 
@@ -1615,6 +1633,17 @@
                     // 创建MetaMask Web3实例用于交易
                     const metamaskWeb3 = new Web3(window.ethereum);
                     
+                    // 定义STAKING_ABI（unstake函数需要的部分）
+                    const STAKING_ABI = [
+                        {
+                            "inputs": [{"name": "amount", "type": "uint256"}],
+                            "name": "unstake",
+                            "outputs": [],
+                            "stateMutability": "payable",
+                            "type": "function"
+                        }
+                    ];
+                    
                     // 创建合约实例
                     const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
                     
@@ -1715,6 +1744,21 @@
                         "name": "balanceOf",
                         "outputs": [{"name": "", "type": "uint256"}],
                         "stateMutability": "view",
+                        "type": "function"
+                    }
+                ];
+                
+                // 定义STAKING_ABI（LP质押需要的部分）
+                const STAKING_ABI = [
+                    {
+                        "inputs": [
+                            {"name": "amount", "type": "uint256"},
+                            {"name": "isLP", "type": "bool"},
+                            {"name": "isEquity", "type": "bool"}
+                        ],
+                        "name": "stake",
+                        "outputs": [],
+                        "stateMutability": "nonpayable",
                         "type": "function"
                     }
                 ];

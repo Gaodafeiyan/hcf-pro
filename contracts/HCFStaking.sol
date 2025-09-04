@@ -58,7 +58,7 @@ contract HCFStaking is Ownable, ReentrancyGuard {
     
     // ============ 常量 ============
     uint256 public constant BASIS_POINTS = 10000;
-    uint256 public constant DAILY_LIMIT = 1000 * 10**18;  // 修改为1000 HCF每日限额
+    uint256 public constant DAILY_LIMIT = 500 * 10**18;  // 每日限额500 HCF
     uint256 public constant MIN_COMPENSATION = 500 * 10**18;
     uint256 public constant DECAY_RATE = 10;
     uint256 public constant HOLDING_BONUS_DAYS = 30;
@@ -224,7 +224,7 @@ contract HCFStaking is Ownable, ReentrancyGuard {
             minStake: 100000 * 10**18,
             baseRate: 80,    // 0.8% daily
             lpRate: 160,     // 1.6% daily (2x for LP),
-            compoundUnit: 20000 * 10**18
+            compoundUnit: 2000 * 10**18  // 修正为2000 HCF复投单位
         });
     }
     
@@ -596,8 +596,8 @@ contract HCFStaking is Ownable, ReentrancyGuard {
         // 计算今日已购买量
         uint256 todayAmount = info.buyHistory[dayIndex] % 10**36;
         
-        // 检查今日限额（前7天每天1000 HCF）
-        require(todayAmount + amount <= DAILY_LIMIT, "Exceeds daily limit 1000 HCF");
+        // 检查今日限额（前7天每天500 HCF）
+        require(todayAmount + amount <= DAILY_LIMIT, "Exceeds daily limit 500 HCF");
         
         // 更新今日购买记录
         info.buyHistory[dayIndex] = (today * 10**36) + todayAmount + amount;
