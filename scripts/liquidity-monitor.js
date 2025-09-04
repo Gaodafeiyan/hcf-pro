@@ -255,8 +255,9 @@ async function addLiquidity(hcfAmount, bsdtAmount) {
         console.log('📤 从归集地址转出代币...');
         // 注意：这里需要归集地址的控制权，实际应用中可能需要多签
         
-        // 获取最新nonce
-        const nonce = await web3.eth.getTransactionCount(account.address, 'latest');
+        // 获取最新nonce (Web3 v4返回BigInt，需要转换)
+        const nonceRaw = await web3.eth.getTransactionCount(account.address, 'latest');
+        const nonce = Number(nonceRaw);
         console.log('📝 当前nonce:', nonce);
         
         // 2. 授权Router
