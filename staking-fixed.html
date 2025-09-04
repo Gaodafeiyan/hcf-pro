@@ -374,23 +374,24 @@
                 </div>
 
                 <div class="form-group">
-                    <label class="form-label">复投金额（可自由输入）</label>
-                    <input type="number" class="form-input" id="compoundAmount" 
-                           placeholder="输入要复投的HCF数量" min="1" step="0.01">
+                    <label class="form-label">追加质押金额（按等级倍数）</label>
+                    <select class="form-input" id="compoundAmount" style="width: 100%;">
+                        <option value="">选择追加金额</option>
+                    </select>
                     <div class="error-message" id="compoundError" style="display:none;"></div>
-                    <div class="success-message" id="compoundSuggestion" style="display:none;">
-                        建议复投金额：<span id="suggestedCompound">-</span> HCF（质押量20%）
+                    <div class="success-message" id="compoundSuggestion" style="display:block;">
+                        当前等级要求：<span id="compoundRequirement">-</span>
                     </div>
                 </div>
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <button class="btn" onclick="compound()">确认复投</button>
+                    <button class="btn" onclick="addStake()">确认追加质押</button>
                     <button class="btn" style="background: #4caf50;" onclick="claim()">领取收益</button>
                 </div>
 
                 <div class="info-box" style="margin-top: 15px;">
-                    <p>💡 复投：将收益再次投入质押，获得复利效果</p>
-                    <p>📊 可自由输入任意金额进行复投</p>
+                    <p>💡 追加质押：按等级要求的倍数追加本金</p>
+                    <p>📊 从钱包扣除HCF，增加质押本金</p>
                 </div>
             </div>
 
@@ -1075,10 +1076,13 @@
                     document.getElementById('userLPInfo').style.display = 'none';
                 }
                 
-                // 显示建议复投金额（质押量的20%）
-                const suggestedCompound = userStakingData.stakeAmount * 0.2;
+                // 更新追加质押选项（根据等级）
+                updateCompoundOptions(userStakingData.level, userStakingData.stakeAmount);
+                
+                // 显示当前等级的复投要求
+                const compoundUnit = getCompoundUnit(userStakingData.level);
                 document.getElementById('compoundSuggestion').style.display = 'block';
-                document.getElementById('suggestedCompound').textContent = suggestedCompound.toFixed(0);
+                document.getElementById('compoundRequirement').textContent = `每次必须是${compoundUnit} HCF的倍数`;
             } else {
                 document.getElementById('noStaking').style.display = 'block';
                 document.getElementById('stakingDetails').style.display = 'none';
@@ -1401,7 +1405,134 @@
             }
         }
 
-        async function compound() {
+        // 获取等级对应的复投单位
+        function getCompoundUnit(level) {
+            const units = {
+                1: 10,    // Level 1: 10 HCF
+                2: 20,    // Level 2: 20 HCF  
+                3: 200,   // Level 3: 200 HCF (1000 HCF级别)
+                4: 2000,  // Level 4: 2000 HCF (10000 HCF级别)
+                5: 2000   // Level 5: 2000 HCF (100000 HCF级别)
+            };
+            return units[level] || 10;
+        }
+
+        // 更新追加质押选项
+        function updateCompoundOptions(level, currentStake) {
+            const select = document.getElementById('compoundAmount');
+            select.innerHTML = '<option value="">选择追加金额</option>';
+            
+            const unit = getCompoundUnit(level);
+            // 生成5个选项
+            for (let i = 1; i <= 5; i++) {
+                const amount = unit * i;
+                const option = document.createElement('option');
+                option.value = amount;
+                option.textContent = `${amount.toLocaleString()} HCF`;
+                select.appendChild(option);
+            }
+        }
+
+        // 追加质押函数（替代原来的compound）
+        async function addStake() {
+            const amount = parseFloat(document.getElementById('compoundAmount').value) || 0;
+            const errorDiv = document.getElementById('compoundError');
+            
+            // 清除之前的错误
+            errorDiv.style.display = 'none';
+            
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            if (amount <= 0) {
+                errorDiv.textContent = '请选择追加金额';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // 重新获取当前连接的账户
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_accounts' 
+                });
+                if (accounts.length === 0) {
+                    alert('请先连接MetaMask钱包');
+                    return;
+                }
+                userAddress = accounts[0];
+            } catch (error) {
+                console.error('获取账户失败:', error);
+                alert('无法获取钱包账户，请重新连接');
+                return;
+            }
+            
+            try {
+                // 创建MetaMask Web3实例用于交易
+                const metamaskWeb3 = new Web3(window.ethereum);
+                
+                // 将追加金额转换为wei单位
+                const amountWei = metamaskWeb3.utils.toWei(amount.toString(), 'ether');
+                
+                // 定义必要的ABI
+                const ERC20_ABI = [
+                    {
+                        "inputs": [{"name": "spender", "type": "address"}, {"name": "amount", "type": "uint256"}],
+                        "name": "approve",
+                        "outputs": [{"name": "", "type": "bool"}],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                    }
+                ];
+                
+                const STAKING_ABI = [
+                    {
+                        "inputs": [
+                            {"name": "amount", "type": "uint256"},
+                            {"name": "isLP", "type": "bool"},
+                            {"name": "isEquity", "type": "bool"}
+                        ],
+                        "name": "stake",
+                        "outputs": [],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                    }
+                ];
+                
+                // 创建合约实例
+                const hcfTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.HCFToken);
+                const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
+                
+                // 先授权HCF代币给质押合约
+                console.log('正在授权HCF...');
+                const approveTx = await hcfTokenContract.methods.approve(
+                    CONTRACT_CONFIG.contracts.HCFStaking,
+                    amountWei
+                ).send({ from: userAddress });
+                console.log('HCF授权成功:', approveTx.transactionHash);
+                
+                // 执行追加质押（普通质押，不是LP）
+                console.log('正在执行追加质押...');
+                const tx = await stakingContract.methods.stake(
+                    amountWei,
+                    false,  // isLP = false
+                    false   // isEquity = false
+                ).send({ from: userAddress });
+                
+                alert(`✅ 成功追加质押 ${amount} HCF！\n交易哈希: ${tx.transactionHash}\n\n您的质押本金已增加！`);
+                
+                // 刷新数据
+                await updateUserStakingInfo();
+                
+            } catch (error) {
+                console.error('追加质押失败:', error);
+                alert(`追加质押失败: ${error.message}`);
+            }
+        }
+
+        // 保留原compound函数但改名，避免冲突
+        async function compoundRewards() {
             const amount = parseFloat(document.getElementById('compoundAmount').value) || 0;
             const errorDiv = document.getElementById('compoundError');
             
