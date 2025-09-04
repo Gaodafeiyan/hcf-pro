@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCF推荐系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@4.3.0/dist/web3.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #764ba2;
+        }
+        
+        .wallet-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .connect-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+        
+        .connect-btn:hover {
+            transform: translateY(-2px);
+        }
+        
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card h2 {
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        
+        .referral-code-section {
+            text-align: center;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .referral-code {
+            font-size: 32px;
+            font-weight: bold;
+            color: #764ba2;
+            margin: 15px 0;
+            padding: 15px;
+            background: white;
+            border: 2px dashed #764ba2;
+            border-radius: 8px;
+            position: relative;
+        }
+        
+        .copy-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+        
+        .referral-link {
+            margin-top: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            word-break: break-all;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .bind-section {
+            margin-bottom: 20px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .btn-primary {
+            background: #764ba2;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .stat-box {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #764ba2;
+        }
+        
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .team-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .team-member {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .member-address {
+            font-family: monospace;
+            font-size: 14px;
+            color: #666;
+        }
+        
+        .member-level {
+            background: #764ba2;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        .rewards-history {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .reward-item {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+        
+        .reward-amount {
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-warning {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo">HCF 推荐系统</div>
+            <div class="wallet-info">
+                <span id="walletBalance">-</span>
+                <span id="walletAddress">未连接</span>
+                <button id="connectWallet" class="connect-btn">连接钱包</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-grid">
+            <!-- 左侧：推荐码和绑定 -->
+            <div class="card">
+                <h2>我的推荐</h2>
+                
+                <!-- 绑定推荐人 -->
+                <div class="bind-section" id="bindSection" style="display: none;">
+                    <div class="alert alert-warning">
+                        您还没有绑定推荐人，请输入推荐码绑定
+                    </div>
+                    <div class="input-group">
+                        <input type="text" id="referrerCode" placeholder="输入推荐码或地址">
+                        <button class="btn-primary" onclick="bindReferrer()">绑定推荐人</button>
+                    </div>
+                </div>
+                
+                <!-- 我的推荐码 -->
+                <div class="referral-code-section" id="myReferralSection" style="display: none;">
+                    <div style="color: #666; margin-bottom: 10px;">我的推荐码</div>
+                    <div class="referral-code" id="myReferralCode">
+                        加载中...
+                        <button class="copy-btn" onclick="copyCode()">复制</button>
+                    </div>
+                    <div class="referral-link">
+                        <strong>推荐链接：</strong>
+                        <span id="referralLink">-</span>
+                        <button class="copy-btn" onclick="copyLink()">复制链接</button>
+                    </div>
+                </div>
+                
+                <!-- 推荐统计 -->
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-value" id="directCount">0</div>
+                        <div class="stat-label">直推人数</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="teamCount">0</div>
+                        <div class="stat-label">团队人数</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="totalRewards">0</div>
+                        <div class="stat-label">累计奖励(HCF)</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-value" id="pendingRewards">0</div>
+                        <div class="stat-label">待领取(HCF)</div>
+                    </div>
+                </div>
+                
+                <!-- 领取奖励 -->
+                <div style="margin-top: 20px; text-align: center;">
+                    <button class="btn-primary" style="width: 100%;" onclick="claimRewards()">
+                        领取推荐奖励
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 右侧：团队信息 -->
+            <div>
+                <!-- 直推列表 -->
+                <div class="card" style="margin-bottom: 20px;">
+                    <h2>直推成员</h2>
+                    <div class="team-list" id="directTeamList">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+                
+                <!-- 奖励记录 -->
+                <div class="card">
+                    <h2>奖励记录</h2>
+                    <div class="rewards-history" id="rewardsHistory">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 合约配置
+        const CONTRACT_CONFIG = {
+            contracts: {
+                HCFToken: '0x09F320b75e6A74994713a0e4Be54eF8f09fbaEcc',
+                HCFReferral: '0x18A468b3dfC71C3bA9F5A801734B219d253C7F27',  // 推荐合约地址
+                HCFStaking: '0x6E4e682Cc90124Ef66a8cfC8Fc875CF5Ee8E8a74'
+            },
+            chainId: 97,  // BSC测试网
+            rpcUrl: 'https://data-seed-prebsc-1-s1.binance.org:8545'
+        };
+
+        // ABI定义
+        const REFERRAL_ABI = [
+            {
+                "inputs": [{"name": "_referrer", "type": "address"}],
+                "name": "bindReferrer",
+                "outputs": [],
+                "type": "function"
+            },
+            {
+                "inputs": [{"name": "", "type": "address"}],
+                "name": "referrer",
+                "outputs": [{"name": "", "type": "address"}],
+                "type": "function",
+                "stateMutability": "view"
+            },
+            {
+                "inputs": [{"name": "", "type": "address"}],
+                "name": "directReferrals",
+                "outputs": [{"name": "", "type": "address[]"}],
+                "type": "function",
+                "stateMutability": "view"
+            },
+            {
+                "inputs": [{"name": "", "type": "address"}],
+                "name": "referralRewards",
+                "outputs": [{"name": "", "type": "uint256"}],
+                "type": "function",
+                "stateMutability": "view"
+            },
+            {
+                "inputs": [],
+                "name": "claimRewards",
+                "outputs": [],
+                "type": "function"
+            }
+        ];
+
+        let web3;
+        let userAddress;
+        let referralContract;
+
+        // 连接钱包
+        async function connectWallet() {
+            if (typeof window.ethereum === 'undefined') {
+                alert('请安装MetaMask钱包！');
+                return;
+            }
+
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_requestAccounts' 
+                });
+                
+                userAddress = accounts[0];
+                web3 = new Web3(window.ethereum);
+                
+                // 切换到BSC测试网
+                try {
+                    await window.ethereum.request({
+                        method: 'wallet_switchEthereumChain',
+                        params: [{ chainId: '0x61' }]
+                    });
+                } catch (error) {
+                    console.error('切换网络失败:', error);
+                }
+                
+                // 初始化合约
+                if (CONTRACT_CONFIG.contracts.HCFReferral !== '0x...') {
+                    referralContract = new web3.eth.Contract(
+                        REFERRAL_ABI, 
+                        CONTRACT_CONFIG.contracts.HCFReferral
+                    );
+                }
+                
+                // 更新UI
+                updateWalletUI();
+                loadReferralData();
+                
+            } catch (error) {
+                console.error('连接钱包失败:', error);
+                alert('连接钱包失败！');
+            }
+        }
+
+        // 更新钱包UI
+        async function updateWalletUI() {
+            if (!userAddress) return;
+            
+            document.getElementById('walletAddress').textContent = 
+                userAddress.slice(0, 6) + '...' + userAddress.slice(-4);
+            document.getElementById('connectWallet').textContent = '已连接';
+            
+            // 获取余额
+            const balance = await web3.eth.getBalance(userAddress);
+            const bnbBalance = web3.utils.fromWei(balance, 'ether');
+            document.getElementById('walletBalance').textContent = 
+                parseFloat(bnbBalance).toFixed(4) + ' BNB';
+        }
+
+        // 加载推荐数据
+        async function loadReferralData() {
+            if (!userAddress) return;
+            
+            // 显示推荐码（使用地址后8位作为简化码）
+            const code = userAddress.slice(-8).toUpperCase();
+            document.getElementById('myReferralCode').innerHTML = 
+                code + '<button class="copy-btn" onclick="copyCode()">复制</button>';
+            
+            // 生成推荐链接
+            const baseUrl = window.location.origin + window.location.pathname;
+            const referralLink = `${baseUrl}?ref=${userAddress}`;
+            document.getElementById('referralLink').textContent = referralLink;
+            
+            // 显示相应的部分
+            document.getElementById('myReferralSection').style.display = 'block';
+            
+            // TODO: 从合约读取实际数据
+            // 这里使用模拟数据
+            document.getElementById('directCount').textContent = '5';
+            document.getElementById('teamCount').textContent = '23';
+            document.getElementById('totalRewards').textContent = '1,234.56';
+            document.getElementById('pendingRewards').textContent = '123.45';
+            
+            // 加载直推列表
+            loadDirectTeam();
+            
+            // 加载奖励记录
+            loadRewardsHistory();
+        }
+
+        // 加载直推团队
+        function loadDirectTeam() {
+            // 模拟数据
+            const members = [
+                { address: '0x1234...5678', level: '1级' },
+                { address: '0x8765...4321', level: '2级' },
+                { address: '0x2468...1357', level: '1级' },
+                { address: '0x1357...2468', level: '3级' },
+                { address: '0x9876...5432', level: '1级' }
+            ];
+            
+            let html = '';
+            members.forEach(member => {
+                html += `
+                    <div class="team-member">
+                        <span class="member-address">${member.address}</span>
+                        <span class="member-level">${member.level}</span>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('directTeamList').innerHTML = html || '<div class="loading">暂无数据</div>';
+        }
+
+        // 加载奖励记录
+        function loadRewardsHistory() {
+            // 模拟数据
+            const rewards = [
+                { date: '2024-12-04', amount: '123.45 HCF', type: '推荐奖励' },
+                { date: '2024-12-03', amount: '234.56 HCF', type: '团队奖励' },
+                { date: '2024-12-02', amount: '345.67 HCF', type: '推荐奖励' },
+                { date: '2024-12-01', amount: '456.78 HCF', type: '级差奖励' }
+            ];
+            
+            let html = '';
+            rewards.forEach(reward => {
+                html += `
+                    <div class="reward-item">
+                        <div>
+                            <div>${reward.date}</div>
+                            <div style="color: #666; font-size: 12px;">${reward.type}</div>
+                        </div>
+                        <div class="reward-amount">+${reward.amount}</div>
+                    </div>
+                `;
+            });
+            
+            document.getElementById('rewardsHistory').innerHTML = html || '<div class="loading">暂无记录</div>';
+        }
+
+        // 绑定推荐人
+        async function bindReferrer() {
+            const referrerInput = document.getElementById('referrerCode').value;
+            if (!referrerInput) {
+                alert('请输入推荐码或地址');
+                return;
+            }
+            
+            // 如果输入的是推荐码，需要转换为地址
+            // 这里简化处理，实际需要后端映射
+            
+            alert('绑定功能需要部署推荐合约后才能使用');
+        }
+
+        // 领取奖励
+        async function claimRewards() {
+            if (!referralContract) {
+                alert('推荐合约未部署');
+                return;
+            }
+            
+            try {
+                const tx = await referralContract.methods.claimRewards()
+                    .send({ from: userAddress });
+                alert('领取成功！交易哈希：' + tx.transactionHash);
+                loadReferralData();
+            } catch (error) {
+                console.error('领取失败:', error);
+                alert('领取失败：' + error.message);
+            }
+        }
+
+        // 复制推荐码
+        function copyCode() {
+            const code = document.getElementById('myReferralCode').textContent.split('复制')[0].trim();
+            navigator.clipboard.writeText(code);
+            alert('推荐码已复制');
+        }
+
+        // 复制推荐链接
+        function copyLink() {
+            const link = document.getElementById('referralLink').textContent;
+            navigator.clipboard.writeText(link);
+            alert('推荐链接已复制');
+        }
+
+        // 检查URL参数中的推荐码
+        function checkReferralParam() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const ref = urlParams.get('ref');
+            if (ref) {
+                document.getElementById('referrerCode').value = ref;
+                document.getElementById('bindSection').style.display = 'block';
+            }
+        }
+
+        // 页面加载时执行
+        window.addEventListener('load', () => {
+            checkReferralParam();
+            
+            // 自动连接钱包（如果已授权）
+            if (window.ethereum && window.ethereum.selectedAddress) {
+                connectWallet();
+            }
+        });
+    </script>
+</body>
+</html>

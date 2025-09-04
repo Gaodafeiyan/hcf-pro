@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>HCF LP升级测试</title>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/web3@4.3.0/dist/web3.min.js"></script>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 800px; 
+            margin: 50px auto; 
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .status { 
+            padding: 10px; 
+            margin: 10px 0; 
+            border-radius: 5px;
+        }
+        .success { background: #d4edda; color: #155724; }
+        .error { background: #f8d7da; color: #721c24; }
+        .info { background: #d1ecf1; color: #0c5460; }
+        button {
+            background: #1890ff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover { background: #40a9ff; }
+        button:disabled { 
+            background: #ccc; 
+            cursor: not-allowed;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+        }
+        .address {
+            font-family: monospace;
+            background: #f0f0f0;
+            padding: 5px;
+            border-radius: 3px;
+            word-break: break-all;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 HCF LP升级直接测试</h1>
+    
+    <div class="card">
+        <h2>合约地址</h2>
+        <p>HCF Token: <span class="address">0x09F320b75e6A74994713a0e4Be54eF8f09fbaEcc</span></p>
+        <p>BSDT Token V2: <span class="address">0x91152b436A5b3535E01902Cf09a3c59Ab4c433BD</span></p>
+        <p>Staking Contract: <span class="address">0x6E4e682Cc90124Ef66a8cfC8Fc875CF5Ee8E8a74</span></p>
+    </div>
+
+    <div class="card">
+        <h2>钱包连接</h2>
+        <button onclick="connectWallet()">连接MetaMask</button>
+        <div id="walletStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>账户信息</h2>
+        <div id="accountInfo">请先连接钱包</div>
+    </div>
+
+    <div class="card">
+        <h2>质押信息</h2>
+        <button onclick="getStakeInfo()" disabled id="btnGetStake">获取质押信息</button>
+        <div id="stakeInfo"></div>
+    </div>
+
+    <div class="card">
+        <h2>LP升级测试</h2>
+        <button onclick="testLPUpgrade()" disabled id="btnTestLP">测试LP升级</button>
+        <div id="lpTestResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>手动LP升级</h2>
+        <input type="number" id="stakeIndex" placeholder="输入质押索引 (从0开始)" />
+        <button onclick="manualLPUpgrade()" disabled id="btnManualLP">执行LP升级</button>
+        <div id="manualLPResult"></div>
+    </div>
+
+<script>
+// 合约地址
+const CONTRACT_ADDRESSES = {
+    HCFToken: '0x09F320b75e6A74994713a0e4Be54eF8f09fbaEcc',
+    BSDT: '0x91152b436A5b3535E01902Cf09a3c59Ab4c433BD',
+    HCFStaking: '0x6E4e682Cc90124Ef66a8cfC8Fc875CF5Ee8E8a74'
+};
+
+// ABI定义
+const STAKING_ABI = [
+    {
+        "inputs": [{"name": "user", "type": "address"}],
+        "name": "getUserStakes",
+        "outputs": [
+            {
+                "components": [
+                    {"name": "amount", "type": "uint256"},
+                    {"name": "timestamp", "type": "uint256"},
+                    {"name": "lockDays", "type": "uint256"},
+                    {"name": "isActive", "type": "bool"},
+                    {"name": "level", "type": "uint256"},
+                    {"name": "lastClaimTime", "type": "uint256"},
+                    {"name": "totalClaimed", "type": "uint256"},
+                    {"name": "isLP", "type": "bool"},
+                    {"name": "lpBSDTAmount", "type": "uint256"},
+                    {"name": "compoundCount", "type": "uint256"}
+                ],
+                "name": "",
+                "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "index", "type": "uint256"}],
+        "name": "upgradeToLP",
+        "outputs": [],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [{"name": "user", "type": "address"}],
+        "name": "getUserLevel",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    }
+];
+
+const ERC20_ABI = [
+    {
+        "inputs": [{"name": "account", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"name": "spender", "type": "address"},
+            {"name": "amount", "type": "uint256"}
+        ],
+        "name": "approve",
+        "outputs": [{"name": "", "type": "bool"}],
+        "stateMutability": "nonpayable",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {"name": "owner", "type": "address"},
+            {"name": "spender", "type": "address"}
+        ],
+        "name": "allowance",
+        "outputs": [{"name": "", "type": "uint256"}],
+        "stateMutability": "view",
+        "type": "function"
+    }
+];
+
+let web3;
+let userAccount;
+let contracts = {};
+
+async function connectWallet() {
+    try {
+        if (!window.ethereum) {
+            alert('请安装MetaMask钱包!');
+            return;
+        }
+
+        // 连接钱包
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        userAccount = accounts[0];
+        
+        // 初始化Web3
+        web3 = new Web3(window.ethereum);
+        
+        // 检查网络
+        const chainId = await web3.eth.getChainId();
+        if (chainId !== 97n) {
+            alert('请切换到BSC测试网 (Chain ID: 97)');
+            return;
+        }
+
+        // 初始化合约
+        contracts.staking = new web3.eth.Contract(STAKING_ABI, CONTRACT_ADDRESSES.HCFStaking);
+        contracts.hcf = new web3.eth.Contract(ERC20_ABI, CONTRACT_ADDRESSES.HCFToken);
+        contracts.bsdt = new web3.eth.Contract(ERC20_ABI, CONTRACT_ADDRESSES.BSDT);
+
+        document.getElementById('walletStatus').innerHTML = 
+            `<div class="status success">✅ 已连接: ${userAccount.slice(0,6)}...${userAccount.slice(-4)}</div>`;
+        
+        // 启用按钮
+        document.getElementById('btnGetStake').disabled = false;
+        document.getElementById('btnTestLP').disabled = false;
+        document.getElementById('btnManualLP').disabled = false;
+        
+        // 自动获取账户信息
+        await getAccountInfo();
+    } catch (error) {
+        console.error('连接失败:', error);
+        document.getElementById('walletStatus').innerHTML = 
+            `<div class="status error">❌ 连接失败: ${error.message}</div>`;
+    }
+}
+
+async function getAccountInfo() {
+    try {
+        const hcfBalance = await contracts.hcf.methods.balanceOf(userAccount).call();
+        const bsdtBalance = await contracts.bsdt.methods.balanceOf(userAccount).call();
+        const userLevel = await contracts.staking.methods.getUserLevel(userAccount).call();
+        
+        document.getElementById('accountInfo').innerHTML = `
+            <div class="status info">
+                <p>HCF余额: ${web3.utils.fromWei(hcfBalance, 'ether')} HCF</p>
+                <p>BSDT余额: ${web3.utils.fromWei(bsdtBalance, 'ether')} BSDT</p>
+                <p>用户等级: Level ${userLevel}</p>
+            </div>
+        `;
+    } catch (error) {
+        console.error('获取账户信息失败:', error);
+    }
+}
+
+async function getStakeInfo() {
+    try {
+        const stakes = await contracts.staking.methods.getUserStakes(userAccount).call();
+        
+        if (stakes.length === 0) {
+            document.getElementById('stakeInfo').innerHTML = 
+                '<div class="status info">您还没有质押记录</div>';
+            return;
+        }
+        
+        let html = '<div class="status info">';
+        stakes.forEach((stake, index) => {
+            if (stake.isActive) {
+                const amount = web3.utils.fromWei(stake.amount, 'ether');
+                const isLP = stake.isLP;
+                const lpBSDT = stake.lpBSDTAmount ? web3.utils.fromWei(stake.lpBSDTAmount, 'ether') : '0';
+                
+                html += `
+                    <div style="border-bottom: 1px solid #ddd; padding: 10px 0;">
+                        <strong>质押 #${index}</strong><br>
+                        金额: ${amount} HCF<br>
+                        等级: Level ${stake.level}<br>
+                        状态: ${isLP ? '✅ LP质押' : '普通质押'}<br>
+                        ${isLP ? `BSDT数量: ${lpBSDT} BSDT` : ''}
+                        ${!isLP && Number(stake.level) >= 3 ? '<span style="color: green;">✨ 可升级为LP</span>' : ''}
+                    </div>
+                `;
+            }
+        });
+        html += '</div>';
+        
+        document.getElementById('stakeInfo').innerHTML = html;
+    } catch (error) {
+        console.error('获取质押信息失败:', error);
+        document.getElementById('stakeInfo').innerHTML = 
+            `<div class="status error">❌ 获取失败: ${error.message}</div>`;
+    }
+}
+
+async function testLPUpgrade() {
+    try {
+        document.getElementById('lpTestResult').innerHTML = 
+            '<div class="status info">⏳ 测试中...</div>';
+        
+        // 获取用户质押
+        const stakes = await contracts.staking.methods.getUserStakes(userAccount).call();
+        
+        // 找到第一个可以升级的质押
+        let upgradeableIndex = -1;
+        for (let i = 0; i < stakes.length; i++) {
+            if (stakes[i].isActive && !stakes[i].isLP && Number(stakes[i].level) >= 3) {
+                upgradeableIndex = i;
+                break;
+            }
+        }
+        
+        if (upgradeableIndex === -1) {
+            document.getElementById('lpTestResult').innerHTML = 
+                '<div class="status error">❌ 没有找到可升级的质押（需要Level 3+的普通质押）</div>';
+            return;
+        }
+        
+        const stake = stakes[upgradeableIndex];
+        const additionalHCF = BigInt(stake.amount) * 20n / 100n;
+        const requiredBSDT = additionalHCF;
+        
+        // 检查余额
+        const hcfBalance = await contracts.hcf.methods.balanceOf(userAccount).call();
+        const bsdtBalance = await contracts.bsdt.methods.balanceOf(userAccount).call();
+        
+        let html = '<div class="status info">';
+        html += `<strong>质押 #${upgradeableIndex} LP升级需求:</strong><br>`;
+        html += `额外HCF: ${web3.utils.fromWei(additionalHCF.toString(), 'ether')} HCF<br>`;
+        html += `需要BSDT: ${web3.utils.fromWei(requiredBSDT.toString(), 'ether')} BSDT<br>`;
+        html += `<br><strong>当前余额:</strong><br>`;
+        html += `HCF: ${web3.utils.fromWei(hcfBalance, 'ether')} HCF `;
+        html += BigInt(hcfBalance) >= additionalHCF ? '✅' : '❌ 不足';
+        html += `<br>BSDT: ${web3.utils.fromWei(bsdtBalance, 'ether')} BSDT `;
+        html += BigInt(bsdtBalance) >= requiredBSDT ? '✅' : '❌ 不足';
+        
+        // 检查授权
+        const hcfAllowance = await contracts.hcf.methods.allowance(userAccount, CONTRACT_ADDRESSES.HCFStaking).call();
+        const bsdtAllowance = await contracts.bsdt.methods.allowance(userAccount, CONTRACT_ADDRESSES.HCFStaking).call();
+        
+        html += `<br><br><strong>授权状态:</strong><br>`;
+        html += `HCF授权: ${web3.utils.fromWei(hcfAllowance, 'ether')} HCF `;
+        html += BigInt(hcfAllowance) >= additionalHCF ? '✅' : '⚠️ 需要授权';
+        html += `<br>BSDT授权: ${web3.utils.fromWei(bsdtAllowance, 'ether')} BSDT `;
+        html += BigInt(bsdtAllowance) >= requiredBSDT ? '✅' : '⚠️ 需要授权';
+        
+        html += '</div>';
+        
+        // 如果余额和授权都满足，显示升级按钮
+        if (BigInt(hcfBalance) >= additionalHCF && BigInt(bsdtBalance) >= requiredBSDT) {
+            html += `<br><button onclick="executeUpgrade(${upgradeableIndex})">执行升级 (质押 #${upgradeableIndex})</button>`;
+        }
+        
+        document.getElementById('lpTestResult').innerHTML = html;
+    } catch (error) {
+        console.error('测试失败:', error);
+        document.getElementById('lpTestResult').innerHTML = 
+            `<div class="status error">❌ 测试失败: ${error.message}</div>`;
+    }
+}
+
+async function executeUpgrade(index) {
+    try {
+        document.getElementById('lpTestResult').innerHTML += 
+            '<div class="status info">⏳ 正在执行升级...</div>';
+        
+        // 获取质押信息计算需要的金额
+        const stakes = await contracts.staking.methods.getUserStakes(userAccount).call();
+        const stake = stakes[index];
+        const additionalHCF = BigInt(stake.amount) * 20n / 100n;
+        const requiredBSDT = additionalHCF;
+        
+        // 检查并授权HCF
+        const hcfAllowance = await contracts.hcf.methods.allowance(userAccount, CONTRACT_ADDRESSES.HCFStaking).call();
+        if (BigInt(hcfAllowance) < additionalHCF) {
+            console.log('授权HCF...');
+            await contracts.hcf.methods.approve(CONTRACT_ADDRESSES.HCFStaking, additionalHCF.toString()).send({ from: userAccount });
+        }
+        
+        // 检查并授权BSDT
+        const bsdtAllowance = await contracts.bsdt.methods.allowance(userAccount, CONTRACT_ADDRESSES.HCFStaking).call();
+        if (BigInt(bsdtAllowance) < requiredBSDT) {
+            console.log('授权BSDT...');
+            await contracts.bsdt.methods.approve(CONTRACT_ADDRESSES.HCFStaking, requiredBSDT.toString()).send({ from: userAccount });
+        }
+        
+        // 执行升级
+        console.log('执行LP升级...');
+        const tx = await contracts.staking.methods.upgradeToLP(index).send({ from: userAccount });
+        
+        document.getElementById('lpTestResult').innerHTML = 
+            `<div class="status success">✅ LP升级成功!<br>交易哈希: ${tx.transactionHash}</div>`;
+        
+        // 刷新信息
+        await getStakeInfo();
+        await getAccountInfo();
+    } catch (error) {
+        console.error('升级失败:', error);
+        document.getElementById('lpTestResult').innerHTML = 
+            `<div class="status error">❌ 升级失败: ${error.message}</div>`;
+    }
+}
+
+async function manualLPUpgrade() {
+    const index = document.getElementById('stakeIndex').value;
+    if (!index && index !== 0) {
+        alert('请输入质押索引');
+        return;
+    }
+    
+    try {
+        await executeUpgrade(parseInt(index));
+        document.getElementById('manualLPResult').innerHTML = 
+            '<div class="status success">✅ 手动LP升级成功!</div>';
+    } catch (error) {
+        document.getElementById('manualLPResult').innerHTML = 
+            `<div class="status error">❌ 手动升级失败: ${error.message}</div>`;
+    }
+}
+
+// 自动连接钱包（如果已经授权过）
+window.addEventListener('load', async () => {
+    if (window.ethereum && window.ethereum.selectedAddress) {
+        await connectWallet();
+    }
+});
+</script>
+</body>
+</html>

@@ -1,34 +1,31 @@
 #!/bin/bash
 
-echo "🚀 部署前端到服务器..."
+# HCF-PRO Frontend Deployment Script
+# This script uploads the built frontend to your server
 
-# 1. 拉取最新代码
-cd /srv/hcf-pro
-git pull
+SERVER_USER="ubuntu"
+SERVER_HOST="your-server-ip"  # 替换为你的服务器IP
+SERVER_PATH="/home/ubuntu/hcf-pro/frontend/dist"
 
-# 2. 进入前端目录
-cd /srv/hcf-pro/frontend
+echo "🚀 Deploying HCF-PRO frontend to server..."
 
-# 3. 安装依赖
-echo "📦 安装依赖..."
-npm install
+# 上传构建文件到服务器
+echo "📦 Uploading build files..."
+scp -r frontend/dist/* ${SERVER_USER}@${SERVER_HOST}:${SERVER_PATH}/
 
-# 4. 构建生产版本
-echo "🔨 构建生产版本..."
-npm run build
-
-# 5. 复制到网站目录
-echo "📋 部署到网站目录..."
-sudo rm -rf /var/www/hcf-finance.xyz/*
-sudo cp -r dist/* /var/www/hcf-finance.xyz/
-
-# 6. 设置权限
-sudo chown -R www-data:www-data /var/www/hcf-finance.xyz
-sudo chmod -R 755 /var/www/hcf-finance.xyz
-
-# 7. 重启nginx
-echo "🔄 重启Nginx..."
-sudo systemctl reload nginx
-
-echo "✅ 部署完成！"
-echo "🌐 访问 https://hcf-finance.xyz 查看"
+if [ $? -eq 0 ]; then
+    echo "✅ Files uploaded successfully!"
+    
+    # 在服务器上重启服务
+    echo "🔄 Restarting frontend service..."
+    ssh ${SERVER_USER}@${SERVER_HOST} "cd /home/ubuntu/hcf-pro/frontend && pm2 restart hcf-frontend"
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Frontend service restarted!"
+        echo "🎉 Deployment complete! Please clear your browser cache and test at https://hcf-finance.xyz/"
+    else
+        echo "❌ Failed to restart service"
+    fi
+else
+    echo "❌ Failed to upload files"
+fi

@@ -1,0 +1,23 @@
+{
+  "timestamp": "2025-09-04T10:28:03.421Z",
+  "results": {
+    "passed": [
+      "HCF Token: 已部署",
+      "HCF Token: 总供应量正常",
+      "BSDT Token V2: 已部署",
+      "HCF Staking: 已部署",
+      "Staking: 归集地址已设置",
+      "Staking: 每日限额正确（500 HCF）",
+      "HCF-BSDT LP Pool: 已部署",
+      "LP Pool: 流动性池已创建并有储备",
+      "HCF Referral: 已部署",
+      "Referral: 合约已部署"
+    ],
+    "failed": [],
+    "warnings": [
+      "BSDT V2: Router未授权"
+    ]
+  },
+  "passRate": "100.0",
+  "ready": true
+}

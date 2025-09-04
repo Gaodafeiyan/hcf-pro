@@ -21,10 +21,11 @@ const CONFIG = {
     // 合约地址
     contracts: {
         HCFToken: process.env.HCF_TOKEN || '0xbA43eC196259AA0380E775b19B0e92522964c1A4',
-        BSDTToken: process.env.BSDT_TOKEN || '0xE78F01bC30f38Da150B2022b883Cc4786277cbC6',
+        BSDTToken: process.env.BSDT_TOKEN_V2 || process.env.BSDT_TOKEN || '0xE78F01bC30f38Da150B2022b883Cc4786277cbC6', // 使用V2版本
         HCFStaking: process.env.HCF_STAKING || '0x9e93166c3C42172aA90982eE83CEc0e7c962Ea3D',
         PancakeRouter: process.env.PANCAKE_ROUTER || '0xD99D1c33F9fC3444f8101754aBC46c52416550D1', // PancakeSwap测试网Router
-        PancakeFactory: process.env.PANCAKE_FACTORY || '0x6725F303b657a9451d8BA641348b6761A6CC7a17'
+        PancakeFactory: process.env.PANCAKE_FACTORY || '0x6725F303b657a9451d8BA641348b6761A6CC7a17',
+        LiquidityHelper: process.env.LIQUIDITY_HELPER // LiquidityHelper合约
     },
     
     // 归集地址（从合约读取或环境变量）
@@ -80,26 +81,25 @@ const ABI = {
         }
     ],
     
-    PancakeRouter: [
+    LiquidityHelper: [
         {
             "inputs": [
-                {"name": "tokenA", "type": "address"},
-                {"name": "tokenB", "type": "address"},
-                {"name": "amountADesired", "type": "uint256"},
-                {"name": "amountBDesired", "type": "uint256"},
-                {"name": "amountAMin", "type": "uint256"},
-                {"name": "amountBMin", "type": "uint256"},
-                {"name": "to", "type": "address"},
-                {"name": "deadline", "type": "uint256"}
+                {"name": "hcfAmount", "type": "uint256"},
+                {"name": "bsdtAmount", "type": "uint256"},
+                {"name": "minHcfAmount", "type": "uint256"},
+                {"name": "minBsdtAmount", "type": "uint256"}
             ],
             "name": "addLiquidity",
             "outputs": [
-                {"name": "amountA", "type": "uint256"},
-                {"name": "amountB", "type": "uint256"},
-                {"name": "liquidity", "type": "uint256"}
+                {"name": "", "type": "uint256"},
+                {"name": "", "type": "uint256"},
+                {"name": "", "type": "uint256"}
             ],
             "type": "function"
-        },
+        }
+    ],
+    
+    PancakeRouter: [
         {
             "inputs": [
                 {"name": "tokenA", "type": "address"},
@@ -171,6 +171,11 @@ async function init() {
         contracts.BSDTToken = new web3.eth.Contract(ABI.ERC20, CONFIG.contracts.BSDTToken);
         contracts.PancakeRouter = new web3.eth.Contract(ABI.PancakeRouter, CONFIG.contracts.PancakeRouter);
         contracts.HCFStaking = new web3.eth.Contract(ABI.HCFStaking, CONFIG.contracts.HCFStaking);
+        
+        if (CONFIG.contracts.LiquidityHelper) {
+            contracts.LiquidityHelper = new web3.eth.Contract(ABI.LiquidityHelper, CONFIG.contracts.LiquidityHelper);
+            console.log('📍 LiquidityHelper合约:', CONFIG.contracts.LiquidityHelper);
+        }
         
         // 获取归集地址
         if (!CONFIG.collectionAddress) {
@@ -251,16 +256,15 @@ async function addLiquidity(hcfAmount, bsdtAmount) {
         console.log(`   HCF: ${Web3.utils.fromWei(hcfAmount, 'ether')}`);
         console.log(`   BSDT: ${Web3.utils.fromWei(bsdtAmount, 'ether')}`);
         
-        // 1. 从归集地址转账到Keeper地址
-        console.log('📤 从归集地址转出代币...');
-        // 注意：这里需要归集地址的控制权，实际应用中可能需要多签
+        // 使用新的BSDT V2，可以直接添加流动性
+        console.log('📤 直接添加流动性（BSDT V2支持）...');
         
         // 获取最新nonce (Web3 v4返回BigInt，需要转换)
         const nonceRaw = await web3.eth.getTransactionCount(account.address, 'latest');
         const nonce = Number(nonceRaw);
         console.log('📝 当前nonce:', nonce);
         
-        // 2. 授权Router
+        // 1. 授权Router
         console.log('🔓 授权代币给Router...');
         const hcfApprove = await contracts.HCFToken.methods
             .approve(CONFIG.contracts.PancakeRouter, hcfAmount)
@@ -282,7 +286,7 @@ async function addLiquidity(hcfAmount, bsdtAmount) {
             });
         console.log('   BSDT授权交易:', bsdtApprove.transactionHash);
         
-        // 3. 添加流动性
+        // 2. 添加流动性
         console.log('💧 添加流动性到池子...');
         const deadline = Math.floor(Date.now() / 1000) + 300; // 5分钟后过期
         const minAmounts = '0'; // 实际应用中应该设置滑点保护
@@ -300,10 +304,24 @@ async function addLiquidity(hcfAmount, bsdtAmount) {
             )
             .send({ 
                 from: account.address,
-                gas: CONFIG.gas.gasLimit,
+                gas: 3000000, // 增加gas确保成功
                 gasPrice: CONFIG.gas.maxGasPrice,
                 nonce: nonce + 2
             });
+        
+        console.log('✅ 流动性添加成功!');
+        console.log('   交易哈希:', addLiquidityTx.transactionHash);
+        console.log('   区块:', addLiquidityTx.blockNumber);
+        
+        // 3. 记录日志
+        logTransaction({
+            timestamp: new Date().toISOString(),
+            txHash: addLiquidityTx.transactionHash,
+            blockNumber: addLiquidityTx.blockNumber,
+            hcfAmount: Web3.utils.fromWei(hcfAmount, 'ether'),
+            bsdtAmount: Web3.utils.fromWei(bsdtAmount, 'ether'),
+            status: 'success'
+        });
         
         console.log('✅ 流动性添加成功!');
         console.log('   交易哈希:', addLiquidityTx.transactionHash);
