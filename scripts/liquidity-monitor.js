@@ -6,11 +6,11 @@
  * 3. 记录LP Token并分配给用户
  */
 
-const Web3 = require('web3');
+const { Web3 } = require('web3');  // Web3 v4 需要解构导入
 const cron = require('node-cron');
 const fs = require('fs');
 const path = require('path');
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '../.env.liquidity') });
 
 // ============ 配置 ============
 const CONFIG = {
@@ -43,7 +43,7 @@ const CONFIG = {
     
     // Gas设置
     gas: {
-        maxGasPrice: Web3.utils.toWei('10', 'gwei'),
+        maxGasPrice: '10000000000', // 10 gwei in wei
         gasLimit: 500000
     }
 };
@@ -159,9 +159,9 @@ async function init() {
         
         // 检查余额
         const balance = await web3.eth.getBalance(account.address);
-        console.log('💰 BNB余额:', web3.utils.fromWei(balance, 'ether'));
+        console.log('💰 BNB余额:', Web3.utils.fromWei(balance, 'ether'));
         
-        if (parseFloat(web3.utils.fromWei(balance, 'ether')) < 0.01) {
+        if (parseFloat(Web3.utils.fromWei(balance, 'ether')) < 0.01) {
             console.warn('⚠️ BNB余额过低，可能无法支付Gas费');
         }
         
@@ -191,8 +191,8 @@ async function checkBalances() {
         const hcfBalance = await contracts.HCFToken.methods.balanceOf(CONFIG.collectionAddress).call();
         const bsdtBalance = await contracts.BSDTToken.methods.balanceOf(CONFIG.collectionAddress).call();
         
-        const hcfAmount = parseFloat(web3.utils.fromWei(hcfBalance, 'ether'));
-        const bsdtAmount = parseFloat(web3.utils.fromWei(bsdtBalance, 'ether'));
+        const hcfAmount = parseFloat(Web3.utils.fromWei(hcfBalance, 'ether'));
+        const bsdtAmount = parseFloat(Web3.utils.fromWei(bsdtBalance, 'ether'));
         
         console.log(`\n📊 归集地址余额:`);
         console.log(`   HCF: ${hcfAmount.toFixed(2)}`);
@@ -213,7 +213,7 @@ async function calculateOptimalAmounts(hcfBalance, bsdtBalance) {
         const targetRatio = 0.1;
         
         const hcfAmount = hcfBalance;
-        const bsdtRequired = web3.utils.toWei((parseFloat(web3.utils.fromWei(hcfBalance, 'ether')) * targetRatio).toString(), 'ether');
+        const bsdtRequired = Web3.utils.toWei((parseFloat(Web3.utils.fromWei(hcfBalance, 'ether')) * targetRatio).toString(), 'ether');
         
         // 检查BSDT是否足够
         if (bsdtBalance >= bsdtRequired) {
@@ -223,7 +223,7 @@ async function calculateOptimalAmounts(hcfBalance, bsdtBalance) {
             };
         } else {
             // BSDT不足，按BSDT数量反算HCF
-            const adjustedHCF = web3.utils.toWei((parseFloat(web3.utils.fromWei(bsdtBalance, 'ether')) / targetRatio).toString(), 'ether');
+            const adjustedHCF = Web3.utils.toWei((parseFloat(Web3.utils.fromWei(bsdtBalance, 'ether')) / targetRatio).toString(), 'ether');
             return {
                 hcfAmount: adjustedHCF,
                 bsdtAmount: bsdtBalance
@@ -247,8 +247,8 @@ async function addLiquidity(hcfAmount, bsdtAmount) {
     
     try {
         console.log('\n🔄 开始添加流动性...');
-        console.log(`   HCF: ${web3.utils.fromWei(hcfAmount, 'ether')}`);
-        console.log(`   BSDT: ${web3.utils.fromWei(bsdtAmount, 'ether')}`);
+        console.log(`   HCF: ${Web3.utils.fromWei(hcfAmount, 'ether')}`);
+        console.log(`   BSDT: ${Web3.utils.fromWei(bsdtAmount, 'ether')}`);
         
         // 1. 从归集地址转账到Keeper地址
         console.log('📤 从归集地址转出代币...');
@@ -305,8 +305,8 @@ async function addLiquidity(hcfAmount, bsdtAmount) {
             timestamp: new Date().toISOString(),
             txHash: addLiquidityTx.transactionHash,
             blockNumber: addLiquidityTx.blockNumber,
-            hcfAmount: web3.utils.fromWei(hcfAmount, 'ether'),
-            bsdtAmount: web3.utils.fromWei(bsdtAmount, 'ether'),
+            hcfAmount: Web3.utils.fromWei(hcfAmount, 'ether'),
+            bsdtAmount: Web3.utils.fromWei(bsdtAmount, 'ether'),
             status: 'success'
         });
         
@@ -317,8 +317,8 @@ async function addLiquidity(hcfAmount, bsdtAmount) {
         logTransaction({
             timestamp: new Date().toISOString(),
             error: error.message,
-            hcfAmount: web3.utils.fromWei(hcfAmount, 'ether'),
-            bsdtAmount: web3.utils.fromWei(bsdtAmount, 'ether'),
+            hcfAmount: Web3.utils.fromWei(hcfAmount, 'ether'),
+            bsdtAmount: Web3.utils.fromWei(bsdtAmount, 'ether'),
             status: 'failed'
         });
     } finally {
