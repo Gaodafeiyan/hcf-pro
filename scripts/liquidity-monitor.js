@@ -152,8 +152,9 @@ async function init() {
             throw new Error('❌ 未设置KEEPER_PRIVATE_KEY环境变量');
         }
         
-        // 导入账户
-        account = web3.eth.accounts.privateKeyToAccount(CONFIG.PRIVATE_KEY);
+        // 导入账户（确保私钥有0x前缀）
+        const privateKey = CONFIG.PRIVATE_KEY.startsWith('0x') ? CONFIG.PRIVATE_KEY : '0x' + CONFIG.PRIVATE_KEY;
+        account = web3.eth.accounts.privateKeyToAccount(privateKey);
         web3.eth.accounts.wallet.add(account);
         console.log('📝 Keeper地址:', account.address);
         
