@@ -593,20 +593,20 @@
                 // 最新的BSC测试网合约地址（2024-12-04更新）
                 HCFToken: '0x09F320b75e6A74994713a0e4Be54eF8f09fbaEcc',
                 BSDT: '0x91152b436A5b3535E01902Cf09a3c59Ab4c433BD', // BSDT V2（无DEX限制）
-                HCFStaking: '0x6E4e682Cc90124Ef66a8cfC8Fc875CF5Ee8E8a74',
+                HCFStaking: '0x101B9a796e791390a1410C3e10e0087AaE099e24',
                 HCFNode: '0x6fDB1B1F09665Ac00C26701F5E1F92F4652D6F85',  // 从.env获取
                 HCFReferral: '0x18A468b3dfC71C3bA9F5A801734B219d253C7F27', // 已部署的推荐合约
                 HCFExchange: '0x6729c0977325772cF6750eD65f9e3E07f331E104'  // HCF-BSDT兑换
             }
         };
 
-        // 等级配置（完整收益机制）
+        // 等级配置（符合文档要求）
         const STAKING_LEVELS = [
-            { level: 1, min: 10, max: 100, rate: 0.3, enabled: false, cap: 0.3 },
-            { level: 2, min: 100, max: 1000, rate: 0.4, enabled: false, cap: 0.4 },
-            { level: 3, min: 1000, max: 10000, rate: 0.6, enabled: true, cap: 1.68 },      // 1000 HCF: 0.6%, 封顶1.68%
-            { level: 4, min: 10000, max: 100000, rate: 0.7, enabled: true, cap: 1.96 },    // 10000 HCF: 0.7%, 封顶1.96%
-            { level: 5, min: 100000, max: Infinity, rate: 0.8, enabled: true, cap: 2.24 }  // 100000 HCF: 0.8%, 封顶2.24%
+            { level: 1, min: 100, max: 1000, rate: 0.4, enabled: false, cap: 0.8, compoundMultiple: 10 },      // L1: 100 HCF, 0.4%, 10倍
+            { level: 2, min: 1000, max: 5000, rate: 0.5, enabled: false, cap: 1.0, compoundMultiple: 20 },     // L2: 1000 HCF, 0.5%, 20倍
+            { level: 3, min: 5000, max: 10000, rate: 0.6, enabled: true, cap: 1.2, compoundMultiple: 200 },    // L3: 5000 HCF, 0.6%, 200倍
+            { level: 4, min: 10000, max: 50000, rate: 0.7, enabled: true, cap: 1.4, compoundMultiple: 2000 },  // L4: 10000 HCF, 0.7%, 2000倍
+            { level: 5, min: 50000, max: Infinity, rate: 0.8, enabled: true, cap: 1.6, compoundMultiple: 20000 } // L5: 50000 HCF, 0.8%, 20000倍
         ];
         
         // 股权LP配置
