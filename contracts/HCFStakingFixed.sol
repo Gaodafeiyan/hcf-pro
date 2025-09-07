@@ -459,7 +459,7 @@ contract HCFStakingFixed is Ownable, ReentrancyGuard {
     /**
      * @dev 领取奖励
      */
-    function claimRewards() external nonReentrant notPaused cooldownCheck {
+    function claimRewards() external payable nonReentrant notPaused cooldownCheck {
         UserInfo storage user = userInfo[msg.sender];
         
         _updateRewards(msg.sender);
