@@ -79,7 +79,9 @@ async function main() {
         const staking = await HCFStakingFixed.deploy(
             HCF_TOKEN,
             BSDT_TOKEN,
-            referral.address
+            multiSigWallet,      // multiSigWallet
+            multiSigWallet,      // collectionAddress
+            multiSigWallet       // bridgeAddress
         );
         await staking.deployed();
         newContracts.staking = staking.address;
