@@ -127,7 +127,12 @@ async function main() {
         // 1. 部署 HCF 代币
         console.log("\n📍 [1/7] 部署 HCF 代币合约...");
         const HCFToken = await ethers.getContractFactory("HCFToken");
-        const hcfToken = await HCFToken.deploy();
+        const hcfToken = await HCFToken.deploy(
+            "0x4509f773f2Cb6543837Eabbd27538139feE59496", // 营销钱包
+            "0x4509f773f2Cb6543837Eabbd27538139feE59496", // 节点池
+            "0x4509f773f2Cb6543837Eabbd27538139feE59496", // LP池
+            "0x4509f773f2Cb6543837Eabbd27538139feE59496"  // 桥地址
+        );
         await hcfToken.deployed();
         logDeployment("HCFToken", hcfToken.address, "HCF主代币");
         
@@ -151,9 +156,9 @@ async function main() {
         const stakingFixed = await HCFStakingFixed.deploy(
             hcfToken.address,      // HCF token
             bsdtToken.address,     // BSDT token  
-            deployer.address,      // multisig (临时用deployer)
-            deployer.address,      // collection (临时用deployer)
-            deployer.address       // bridge (临时用deployer)
+            "0x4509f773f2Cb6543837Eabbd27538139feE59496",      // multisig
+            "0x4509f773f2Cb6543837Eabbd27538139feE59496",      // collection
+            "0x4509f773f2Cb6543837Eabbd27538139feE59496"       // bridge
         );
         await stakingFixed.deployed();
         logDeployment("HCFStakingFixed", stakingFixed.address, "质押合约固定版");
