@@ -1,0 +1,1859 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https: wss: ws:;">
+    <title>HCF Finance - 智能质押平台 (主网版)</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.10.0/dist/web3.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 30px;
+            color: white;
+            text-align: center;
+        }
+        
+        .logo {
+            font-size: 32px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 20px;
+        }
+        
+        .nav a {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+        
+        .nav a:hover, .nav a.active {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 5px;
+        }
+        
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-input.error {
+            border-color: #ff4444;
+        }
+        
+        .error-message {
+            color: #ff4444;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .success-message {
+            color: #4caf50;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        
+        .level-display {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .level-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        
+        .checkbox-group input {
+            margin-right: 8px;
+            width: 18px;
+            height: 18px;
+        }
+        
+        .btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s, opacity 0.3s;
+        }
+        
+        .btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .select-group {
+            position: relative;
+        }
+        
+        .form-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            appearance: none;
+        }
+        
+        .select-group::after {
+            content: '▼';
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #666;
+        }
+        
+        .info-box {
+            background: #f0f7ff;
+            border-left: 4px solid #667eea;
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+        
+        .info-box p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .wallet-connect {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .wallet-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+        
+        .wallet-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .connected-address {
+            margin-top: 10px;
+            color: #4caf50;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">🚀 HCF Finance</div>
+            <div class="nav">
+                <a href="#dashboard">仪表板</a>
+                <a href="#staking" class="active">质押挖矿</a>
+                <a href="#node">节点NFT</a>
+                <a href="#referral">推荐奖励</a>
+                <a href="#exchange">交易所</a>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- 钱包连接卡片 -->
+            <div class="card">
+                <div class="card-title">💳 钱包连接</div>
+                <div id="walletSection" class="wallet-connect">
+                    <button class="wallet-btn" onclick="connectWallet()">连接钱包</button>
+                    <div class="connected-address" id="connectedAddress" style="display:none;"></div>
+                </div>
+            </div>
+
+            <!-- 全网统计 -->
+            <div class="card">
+                <div class="card-title">📊 全网统计</div>
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">总质押量</div>
+                        <div class="stat-value">1,234,567 HCF</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">总节点数</div>
+                        <div class="stat-value">45 / 99</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">HCF价格</div>
+                        <div class="stat-value">$0.85</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">APY</div>
+                        <div class="stat-value">146%</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 质押挖矿 -->
+            <div class="card">
+                <div class="card-title">🔥 智能质押（自动等级）</div>
+                
+                <div class="info-box">
+                    <p>💡 最低1000 HCF起步</p>
+                    <p>📈 系统自动匹配最优等级（L3-L5开放）</p>
+                    <p>⏰ 无锁定期，随时可解除质押</p>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">质押数量</label>
+                    <input type="number" class="form-input" id="stakeAmount" 
+                           placeholder="输入HCF数量（最低1000）" 
+                           min="1000" step="10" onchange="updateStakeInfo()">
+                    <div class="error-message" id="stakeError" style="display:none;"></div>
+                </div>
+
+                <div class="level-display" id="levelDisplay" style="display:none;">
+                    <div class="level-info">
+                        <span>当前等级</span>
+                        <span id="currentLevel">-</span>
+                    </div>
+                    <div class="level-info">
+                        <span>基础日化</span>
+                        <span id="dailyRate">-</span>
+                    </div>
+                    <div class="level-info">
+                        <span>预计日收益</span>
+                        <span id="dailyReward">-</span>
+                    </div>
+                </div>
+
+                <!-- 收益分解显示 -->
+                <div id="rewardBreakdown" class="reward-breakdown" style="margin: 15px 0; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 14px;"></div>
+
+
+                <div class="form-group" id="lpRequired" style="display:none;">
+                    <label class="form-label">LP需要投入</label>
+                    <div class="info-box" style="margin-top: 10px;">
+                        <p id="lpHCFAmount">HCF: 计算中...</p>
+                        <p id="lpBSDTAmount">BSDT: 计算中...</p>
+                        <p style="color: #666; font-size: 12px;">LP投入 = 质押量20% + 等值BSDT（按当前价格）</p>
+                    </div>
+                </div>
+
+                <button class="btn" id="stakeBtn" onclick="stake()" disabled>确认质押</button>
+            </div>
+
+            <!-- 收益管理 -->
+            <div class="card">
+                <div class="card-title">💰 收益管理</div>
+                
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">待领取收益</div>
+                        <div class="stat-value">123.45 HCF</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">累计收益</div>
+                        <div class="stat-value">5,678.90 HCF</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">追加质押金额（按等级倍数）</label>
+                    <select class="form-input" id="compoundAmount" style="width: 100%;">
+                        <option value="">选择追加金额</option>
+                    </select>
+                    <div class="error-message" id="compoundError" style="display:none;"></div>
+                    <div class="success-message" id="compoundSuggestion" style="display:block;">
+                        当前等级要求：<span id="compoundRequirement">-</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <button class="btn" onclick="addStake()">确认追加质押</button>
+                    <button class="btn" style="background: #4caf50;" onclick="claim()">领取收益</button>
+                </div>
+
+                <div class="info-box" style="margin-top: 15px;">
+                    <p>💡 追加质押：按等级要求的倍数追加本金</p>
+                    <p>📊 从钱包扣除HCF，增加质押本金</p>
+                </div>
+            </div>
+
+            <!-- 普通LP质押升级卡片 -->
+            <div class="card" id="lpStakeCard" style="display:none;">
+                <div class="card-title">💎 升级为LP质押（双倍收益）</div>
+                
+                <div class="info-box" style="margin-bottom: 15px; background: #f6ffed; border-color: #52c41a;">
+                    <p><strong>🎯 恭喜！您已达到Level 3，可以升级为LP质押</strong></p>
+                    <p><strong>💡 LP质押升级说明：</strong></p>
+                    <p>• 在现有质押基础上，追加20%作为流动性</p>
+                    <p>• 需要额外投入HCF + 等值BSDT</p>
+                    <p>• 升级后获得双倍收益率（基础0.6% + LP加成0.6% = 1.2%）</p>
+                    <p>• 这不是新的质押，而是对您现有质押的升级</p>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">您当前的质押量（将基于此升级）</label>
+                    <input type="number" class="form-input" id="lpBaseAmount" value="1000" min="1000" step="1000" readonly style="background: #f0f0f0;">
+                </div>
+                
+                <div class="stats-grid" style="margin: 15px 0;">
+                    <div class="stat-box">
+                        <div class="stat-label">额外需要HCF</div>
+                        <div class="stat-value" id="lpHCFRequired">200 HCF</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">额外需要BSDT</div>
+                        <div class="stat-value" id="lpBSDTRequired">20 BSDT</div>
+                    </div>
+                </div>
+                
+                <div class="info-box" style="background: #fff7e6;">
+                    <p><strong>📈 升级后的预期日收益：</strong></p>
+                    <p>当前收益：<span id="lpBaseReward">6</span> HCF/天（0.6%）</p>
+                    <p style="color: #52c41a;">➕ LP加成：+<span id="lpBonusReward">6</span> HCF/天（0.6%）</p>
+                    <p><strong style="color: #52c41a;">🎯 升级后总收益：<span id="lpTotalReward">12</span> HCF/天（1.2%）</strong></p>
+                </div>
+                
+                <div class="form-group" style="margin-top: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+                        <span>HCF余额：<span id="lpHCFBalance">0</span></span>
+                        <span id="lpHCFStatus" style="color: #52c41a;">✓ 充足</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>BSDT余额：<span id="lpBSDTBalance">0</span></span>
+                        <span id="lpBSDTStatus" style="color: #52c41a;">✓ 充足</span>
+                    </div>
+                </div>
+                
+                <button class="btn" id="lpStakeBtn" onclick="executeLPStake()" style="background: linear-gradient(45deg, #52c41a, #73d13d);">
+                    🚀 确认升级为LP质押（追加 200 HCF + 20 BSDT）
+                </button>
+            </div>
+
+            <!-- 添加流动性（任何人都可以） -->
+            <div class="card">
+                <div class="card-title">💧 添加流动性</div>
+                
+                <div class="stats-grid">
+                    <div class="stat-box">
+                        <div class="stat-label">当前底池HCF</div>
+                        <div class="stat-value">1,000,000 HCF</div>
+                    </div>
+                    <div class="stat-box">
+                        <div class="stat-label">当前底池BSDT</div>
+                        <div class="stat-value">100,000 BSDT</div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">HCF数量</label>
+                    <input type="number" class="form-input" id="liquidityHCF" 
+                           placeholder="输入HCF数量" onchange="calculateBSDTAmount()">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">BSDT数量（自动计算）</label>
+                    <input type="number" class="form-input" id="liquidityBSDT" 
+                           placeholder="根据当前价格自动计算" readonly style="background: #f5f5f5;">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">股权LP（增产质押收益）</label>
+                    <div class="select-group">
+                        <select class="form-select" id="equityLPPeriod" onchange="updateLiquidityInfo()">
+                            <option value="">不选择股权LP</option>
+                            <option value="100">100天期（+20%增产）</option>
+                            <option value="300">300天期（+40%增产）</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="info-box" id="liquidityInfo" style="margin-bottom: 15px;">
+                    <p id="currentPrice">当前价格: 1 HCF = 0.1 BSDT</p>
+                    <p id="liquidityImpact"></p>
+                    <div id="equityBoostInfo" style="display:none; margin-top: 10px; padding: 10px; background: #e8f5e8; border-radius: 5px;">
+                        <p style="margin: 0; font-weight: bold; color: #2e7d32;">📈 股权LP增产效果预览</p>
+                        <p id="boostDetails" style="margin: 5px 0 0 0; font-size: 14px;"></p>
+                    </div>
+                </div>
+
+                <button class="btn" onclick="addLiquidity()">添加流动性</button>
+                
+                <div class="info-box" style="margin-top: 15px;">
+                    <p>💡 任何人都可以添加流动性到交易池</p>
+                    <p>🔒 股权LP：锁定期满后可赎回，增产现有质押收益</p>
+                    <p>📈 100天期：+20%增产 | 300天期：+40%增产</p>
+                    <p>💰 普通LP：立即获得LP代币，可随时赎回</p>
+                    <p>⚠️ 添加流动性有5%滑点保护</p>
+                </div>
+            </div>
+
+            <!-- 底池管理（仅多签显示） -->
+            <div class="card" id="poolManagement" style="display:none;">
+                <div class="card-title">🏦 底池管理（多签权限）</div>
+                
+                <div class="form-group">
+                    <label class="form-label">添加HCF稳定价格（仅多签）</label>
+                    <input type="number" class="form-input" id="addPoolAmount" placeholder="输入HCF数量">
+                </div>
+
+                <button class="btn" onclick="addToPool()">添加HCF到底池</button>
+                
+                <div class="info-box" style="margin-top: 15px;">
+                    <p>⚠️ 仅多签钱包可操作</p>
+                    <p>🔒 底池资金锁仓10年</p>
+                    <p>📍 合约: HCFToken.addFunds()</p>
+                </div>
+            </div>
+
+            <!-- 我的质押 -->
+            <div class="card">
+                <div class="card-title">💰 我的质押</div>
+                
+                <div id="myStakingInfo">
+                    <!-- 未连接钱包时显示 -->
+                    <div id="noStaking" style="text-align: center; padding: 40px; color: #666;">
+                        <p>请先连接钱包查看质押信息</p>
+                    </div>
+                    
+                    <!-- 有质押时显示 -->
+                    <div id="stakingDetails" style="display: none;">
+                        <div class="level-display">
+                            <div class="level-info">
+                                <span>质押总额</span>
+                                <span id="userStakeAmount">0 HCF</span>
+                            </div>
+                            <div class="level-info">
+                                <span>当前等级</span>
+                                <span id="userLevel">-</span>
+                            </div>
+                            <div class="level-info">
+                                <span>基础日化</span>
+                                <span id="userBaseRate">0%</span>
+                            </div>
+                            <div class="level-info" id="userLPInfo" style="display: none;">
+                                <span>LP投入</span>
+                                <span id="userLPAmount">0 HCF + 0 BSDT</span>
+                            </div>
+                            <div class="level-info">
+                                <span>综合日化</span>
+                                <span id="userTotalRate">0%</span>
+                            </div>
+                            <div class="level-info">
+                                <span>预计日收益</span>
+                                <span id="userDailyReward">0 HCF</span>
+                            </div>
+                            <div class="level-info">
+                                <span>待领取收益</span>
+                                <span id="userPendingReward">0 HCF</span>
+                            </div>
+
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+                            <button class="btn" style="background: #4caf50;" onclick="claimRewards()">领取收益</button>
+                            <button class="btn" style="background: #ff5252;" onclick="unstake()">解除质押（无锁定期）</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============ 合约配置 ============
+        const CONTRACT_CONFIG = {
+            chainId: 56, // BSC Mainnet
+            rpcUrls: [
+                'https://bsc-testnet.publicnode.com',
+                'https://bsc-testnet-rpc.publicnode.com',
+                'https://endpoints.omniatech.io/v1/bsc/testnet/public',
+                'https://bsc-testnet.public.blastapi.io',
+                'https://bsc-dataseed1.binance.org/'
+            ],
+            currentRpcIndex: 0,
+            contracts: {
+                // 最新的BSC测试网合约地址（2024-12-04更新）
+                HCFToken: '0x09F320b75e6A74994713a0e4Be54eF8f09fbaEcc',
+                BSDT: '0x91152b436A5b3535E01902Cf09a3c59Ab4c433BD', // BSDT V2（无DEX限制）
+                HCFStaking: '待部署', // 部署后需要更新
+                HCFNode: '0x6fDB1B1F09665Ac00C26701F5E1F92F4652D6F85',  // 从.env获取
+                HCFReferral: '0x18A468b3dfC71C3bA9F5A801734B219d253C7F27', // 已部署的推荐合约
+                HCFExchange: '0x6729c0977325772cF6750eD65f9e3E07f331E104'  // HCF-BSDT兑换
+            }
+        };
+
+        // 等级配置（符合文档要求）
+        const STAKING_LEVELS = [
+            { level: 1, min: 100, max: 1000, rate: 0.4, enabled: false, cap: 0.8, compoundMultiple: 10 },      // L1: 100 HCF, 0.4%, 10倍
+            { level: 2, min: 1000, max: 5000, rate: 0.5, enabled: false, cap: 1.0, compoundMultiple: 20 },     // L2: 1000 HCF, 0.5%, 20倍
+            { level: 3, min: 5000, max: 10000, rate: 0.6, enabled: true, cap: 1.2, compoundMultiple: 200 },    // L3: 5000 HCF, 0.6%, 200倍
+            { level: 4, min: 10000, max: 50000, rate: 0.7, enabled: true, cap: 1.4, compoundMultiple: 2000 },  // L4: 10000 HCF, 0.7%, 2000倍
+            { level: 5, min: 50000, max: Infinity, rate: 0.8, enabled: true, cap: 1.6, compoundMultiple: 20000 } // L5: 50000 HCF, 0.8%, 20000倍
+        ];
+        
+        // 股权LP配置
+        const EQUITY_LP_CONFIG = {
+            100: { days: 100, bonus: 0.2 },  // 100天+20%
+            300: { days: 300, bonus: 0.4 }   // 300天+40%
+        };
+
+        let connected = false;
+        let userAddress = '';
+        let web3 = null;
+        let contracts = {};
+        
+        // 初始化显示当前价格
+        window.onload = function() {
+            updatePriceDisplay();
+        };
+        
+        function updatePriceDisplay() {
+            // 根据您的制度：初始价格 0.1 USD (100万HCF + 10万BSDT)
+            const currentHCFReserve = 1000000;
+            const currentBSDTReserve = 100000;
+            const currentPrice = currentBSDTReserve / currentHCFReserve;
+            
+            document.getElementById('currentPrice').textContent = 
+                `当前价格: 1 HCF = ${currentPrice.toFixed(4)} BSDT ($${currentPrice.toFixed(2)} USD)`;
+        }
+
+        // ============ Web3 连接函数 ============
+        async function connectWallet() {
+            try {
+                // 检查是否有MetaMask
+                if (typeof window.ethereum !== 'undefined') {
+                    // 请求连接钱包
+                    const accounts = await window.ethereum.request({ 
+                        method: 'eth_requestAccounts' 
+                    });
+                    
+                    userAddress = accounts[0];
+                    connected = true;
+                    
+                    // 检查网络
+                    const chainId = await window.ethereum.request({ 
+                        method: 'eth_chainId' 
+                    });
+                    
+                    if (parseInt(chainId, 16) !== CONTRACT_CONFIG.chainId) {
+                        await switchToBSCTestnet();
+                    }
+                    
+                    // 初始化Web3和合约
+                    await initializeContracts();
+                    
+                    // 更新UI
+                    document.getElementById('connectedAddress').style.display = 'block';
+                    document.getElementById('connectedAddress').textContent = 
+                        userAddress.substr(0, 6) + '...' + userAddress.substr(-4);
+                    document.querySelector('.wallet-btn').textContent = '已连接';
+                    
+                    // 更新用户质押信息
+                    await updateUserStakingInfo();
+                    
+                } else {
+                    alert('请安装MetaMask钱包！');
+                }
+            } catch (error) {
+                console.error('连接钱包失败:', error);
+                alert('连接钱包失败: ' + error.message);
+            }
+        }
+
+        async function switchToBSCTestnet() {
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x61' }] // BSC Testnet
+                });
+            } catch (switchError) {
+                // 如果网络不存在，添加网络
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: '0x61',
+                            chainName: 'BSC Testnet',
+                            rpcUrls: CONTRACT_CONFIG.rpcUrls,
+                            nativeCurrency: {
+                                name: 'BNB',
+                                symbol: 'BNB',
+                                decimals: 18
+                            },
+                            blockExplorerUrls: ['https://testnet.bscscan.com/']
+                        }]
+                    });
+                }
+            }
+        }
+
+        // ============ RPC自动切换功能 ============
+        async function initializeWeb3WithFallback() {
+            for (let i = 0; i < CONTRACT_CONFIG.rpcUrls.length; i++) {
+                try {
+                    const rpcUrl = CONTRACT_CONFIG.rpcUrls[i];
+                    console.log(`尝试RPC端点 ${i + 1}: ${rpcUrl}`);
+                    
+                    // 创建Web3实例
+                    const testWeb3 = new Web3(rpcUrl);
+                    
+                    // 测试连接
+                    await testWeb3.eth.getBlockNumber();
+                    
+                    // 如果成功，使用这个RPC
+                    web3 = testWeb3;
+                    CONTRACT_CONFIG.currentRpcIndex = i;
+                    console.log(`✅ 成功连接到RPC端点: ${rpcUrl}`);
+                    return;
+                } catch (error) {
+                    console.warn(`❌ RPC端点 ${i + 1} 连接失败:`, error.message);
+                    continue;
+                }
+            }
+            
+            // 如果所有RPC都失败，回退到MetaMask
+            console.log('⚠️ 所有RPC端点都失败，使用MetaMask provider');
+            web3 = new Web3(window.ethereum);
+        }
+
+        async function initializeContracts() {
+            // 尝试使用不同的RPC端点初始化Web3
+            await initializeWeb3WithFallback();
+            
+            // 检查是否有真实合约地址
+            if (!CONTRACT_CONFIG.contracts.HCFToken) {
+                console.log('合约地址未配置，使用模拟模式');
+                return;
+            }
+            
+            // ERC20 ABI
+            const ERC20_ABI = [
+                {
+                    "constant": true,
+                    "inputs": [{"name": "_owner", "type": "address"}],
+                    "name": "balanceOf",
+                    "outputs": [{"name": "balance", "type": "uint256"}],
+                    "type": "function"
+                },
+                {
+                    "constant": false,
+                    "inputs": [
+                        {"name": "_spender", "type": "address"},
+                        {"name": "_value", "type": "uint256"}
+                    ],
+                    "name": "approve",
+                    "outputs": [{"name": "", "type": "bool"}],
+                    "type": "function"
+                },
+                {
+                    "constant": true,
+                    "inputs": [{"name": "_owner", "type": "address"}, {"name": "_spender", "type": "address"}],
+                    "name": "allowance",
+                    "outputs": [{"name": "", "type": "uint256"}],
+                    "type": "function"
+                }
+            ];
+
+            // 质押合约 ABI（完整版）
+            const STAKING_ABI = [
+                {
+                    "inputs": [
+                        {"name": "amount", "type": "uint256"},
+                        {"name": "isLP", "type": "bool"},
+                        {"name": "isEquity", "type": "bool"}
+                    ],
+                    "name": "stake",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "claimRewards",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "amount", "type": "uint256"}],
+                    "name": "compoundFixed",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "amount", "type": "uint256"}],
+                    "name": "withdraw",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "hcfAmount", "type": "uint256"}],
+                    "name": "addLP",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "hcfAmount", "type": "uint256"}],
+                    "name": "addEquityLP",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "compound",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "amount", "type": "uint256"}],
+                    "name": "unstake",
+                    "outputs": [],
+                    "stateMutability": "payable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [],
+                    "name": "claimRewards",
+                    "outputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "account", "type": "address"}],
+                    "name": "earned",
+                    "outputs": [{"name": "", "type": "uint256"}],
+                    "stateMutability": "view",
+                    "type": "function"
+                },
+                {
+                    "inputs": [{"name": "user", "type": "address"}],
+                    "name": "getUserInfo",
+                    "outputs": [
+                        {"name": "stakedAmount", "type": "uint256"},
+                        {"name": "lpAmount", "type": "uint256"},
+                        {"name": "lastUpdateTime", "type": "uint256"},
+                        {"name": "rewardPerTokenPaid", "type": "uint256"}
+                    ],
+                    "stateMutability": "view",
+                    "type": "function"
+                }
+            ];
+
+            try {
+                // 初始化合约实例
+                contracts.HCFToken = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.HCFToken);
+                contracts.BSDT = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.BSDT);
+                contracts.HCFStaking = new web3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
+                
+                console.log('合约初始化完成');
+                console.log('HCF Token:', CONTRACT_CONFIG.contracts.HCFToken);
+                console.log('BSDT Token:', CONTRACT_CONFIG.contracts.BSDT);
+                console.log('Staking Contract:', CONTRACT_CONFIG.contracts.HCFStaking);
+            } catch (error) {
+                console.error('合约初始化失败:', error);
+            }
+        }
+
+        // ============ 合约调用重试机制 ============
+        async function callContractWithRetry(contractCall, maxRetries = 3) {
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    return await contractCall();
+                } catch (error) {
+                    console.warn(`合约调用失败 (尝试 ${attempt}/${maxRetries}):`, error.message);
+                    
+                    if (attempt === maxRetries) {
+                        throw error;
+                    }
+                    
+                    // 如果是RPC错误，尝试切换到下一个RPC端点
+                    if (error.message.includes('missing trie node') || 
+                        error.message.includes('Internal JSON-RPC error')) {
+                        console.log('检测到RPC错误，尝试切换端点...');
+                        await switchToNextRPC();
+                    }
+                    
+                    // 等待一段时间后重试
+                    await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+                }
+            }
+        }
+
+        async function switchToNextRPC() {
+            const nextIndex = (CONTRACT_CONFIG.currentRpcIndex + 1) % CONTRACT_CONFIG.rpcUrls.length;
+            try {
+                const rpcUrl = CONTRACT_CONFIG.rpcUrls[nextIndex];
+                console.log(`切换到RPC端点: ${rpcUrl}`);
+                
+                web3 = new Web3(rpcUrl);
+                await web3.eth.getBlockNumber(); // 测试连接
+                
+                CONTRACT_CONFIG.currentRpcIndex = nextIndex;
+                
+                // 重新初始化合约实例
+                await reinitializeContracts();
+                
+                console.log('✅ 成功切换RPC端点');
+            } catch (error) {
+                console.warn('❌ RPC切换失败:', error.message);
+            }
+        }
+
+        async function reinitializeContracts() {
+            if (!CONTRACT_CONFIG.contracts.HCFToken) return;
+            
+            try {
+                const ERC20_ABI = [
+                    {"constant": true, "inputs": [{"name": "_owner", "type": "address"}], "name": "balanceOf", "outputs": [{"name": "balance", "type": "uint256"}], "type": "function"},
+                    {"constant": false, "inputs": [{"name": "_spender", "type": "address"}, {"name": "_value", "type": "uint256"}], "name": "approve", "outputs": [{"name": "", "type": "bool"}], "type": "function"},
+                    {"constant": true, "inputs": [{"name": "_owner", "type": "address"}, {"name": "_spender", "type": "address"}], "name": "allowance", "outputs": [{"name": "", "type": "uint256"}], "type": "function"}
+                ];
+                
+                const STAKING_ABI = [
+                    {"inputs": [{"name": "amount", "type": "uint256"}], "name": "stake", "outputs": [], "stateMutability": "nonpayable", "type": "function"},
+                    {"inputs": [{"name": "account", "type": "address"}], "name": "earned", "outputs": [{"name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"},
+                    {"inputs": [{"name": "user", "type": "address"}], "name": "getUserInfo", "outputs": [{"name": "stakedAmount", "type": "uint256"}, {"name": "lpAmount", "type": "uint256"}, {"name": "lastUpdateTime", "type": "uint256"}, {"name": "rewardPerTokenPaid", "type": "uint256"}], "stateMutability": "view", "type": "function"}
+                ];
+                
+                contracts.HCFToken = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.HCFToken);
+                contracts.BSDT = new web3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.BSDT);
+                contracts.HCFStaking = new web3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
+            } catch (error) {
+                console.error('重新初始化合约失败:', error);
+            }
+        }
+
+        // ============ 合约交互函数 ============
+        async function getUserStakingDataFromContract() {
+            try {
+                if (!contracts.HCFToken || !contracts.HCFStaking || !userAddress) {
+                    return null;
+                }
+
+                // 获取用户HCF余额
+                const hcfBalance = await contracts.HCFToken.methods.balanceOf(userAddress).call();
+                const hcfBalanceFormatted = parseFloat(web3.utils.fromWei(hcfBalance, 'ether'));
+
+                // 从质押合约获取用户信息
+                const userInfo = await contracts.HCFStaking.methods.getUserInfo(userAddress).call();
+                const pendingRewards = await contracts.HCFStaking.methods.earned(userAddress).call();
+                
+                const stakedAmount = parseFloat(web3.utils.fromWei(userInfo.stakedAmount, 'ether'));
+                const lpAmount = parseFloat(web3.utils.fromWei(userInfo.lpAmount, 'ether'));
+                const pendingRewardsFormatted = parseFloat(web3.utils.fromWei(pendingRewards, 'ether'));
+                
+                // 计算等级
+                let level = 1;
+                if (stakedAmount >= 100000) level = 5;
+                else if (stakedAmount >= 10000) level = 4;
+                else if (stakedAmount >= 1000) level = 3;
+                else if (stakedAmount >= 100) level = 2;
+                
+                // 计算收益率（基于等级）
+                const levelRates = [0.3, 0.4, 0.6, 0.7, 0.8]; // L1-L5基础日化（新收益机制）
+                const baseRate = levelRates[level - 1] || 0;
+                const hasLP = lpAmount > 0;
+                const totalRate = hasLP ? baseRate * 2 : baseRate; // LP双倍收益
+                const dailyReward = stakedAmount * totalRate / 100;
+                
+                console.log('用户质押数据:', {
+                    hcfBalance: hcfBalanceFormatted,
+                    stakedAmount,
+                    lpAmount,
+                    level,
+                    pendingRewards: pendingRewardsFormatted
+                });
+                
+                return {
+                    stakeAmount: stakedAmount,
+                    level: level,
+                    baseRate: baseRate,
+                    totalRate: totalRate,
+                    dailyReward: dailyReward,
+                    pendingReward: pendingRewardsFormatted,
+                    hasLP: hasLP,
+                    lpAmount: lpAmount,
+                    hcfBalance: hcfBalanceFormatted
+                };
+            } catch (error) {
+                console.error('获取合约数据失败:', error);
+                return null;
+            }
+        }
+
+        async function getHCFPrice() {
+            try {
+                // 这里应该从预言机合约获取价格
+                // 现在返回模拟价格
+                return 0.1; // $0.10
+            } catch (error) {
+                console.error('获取价格失败:', error);
+                return 0.1;
+            }
+        }
+
+        async function updateUserStakingInfo() {
+            if (!connected) {
+                document.getElementById('noStaking').style.display = 'block';
+                document.getElementById('stakingDetails').style.display = 'none';
+                document.getElementById('lpStakeCard').style.display = 'none';
+                return;
+            }
+
+            try {
+                // 从合约读取用户质押数据
+                let userStakingData = await getUserStakingDataFromContract();
+                
+                // 如果无法从合约读取，使用模拟数据
+                if (!userStakingData) {
+                    console.log('使用模拟数据');
+                    userStakingData = simulateUserStakingData();
+                }
+
+                // 处理数据显示
+                displayStakingData(userStakingData);
+            } catch (error) {
+                console.error('更新质押信息失败:', error);
+                // 使用模拟数据作为后备
+                const userStakingData = simulateUserStakingData();
+                displayStakingData(userStakingData);
+            }
+        }
+
+        function displayStakingData(userStakingData) {
+            
+            if (userStakingData.stakeAmount > 0) {
+                document.getElementById('noStaking').style.display = 'none';
+                document.getElementById('stakingDetails').style.display = 'block';
+                
+                // 显示LP质押升级卡片（如果质押量>=1000且不是LP）
+                if (userStakingData.stakeAmount >= 1000 && !userStakingData.isLP) {
+                    document.getElementById('lpStakeCard').style.display = 'block';
+                    // 设置当前质押量
+                    document.getElementById('lpBaseAmount').value = userStakingData.stakeAmount;
+                    updateLPRequirement(); // 更新LP质押需求显示
+                } else {
+                    document.getElementById('lpStakeCard').style.display = 'none';
+                }
+                
+                // 更新质押信息
+                document.getElementById('userStakeAmount').textContent = `${userStakingData.stakeAmount.toLocaleString()} HCF`;
+                document.getElementById('userLevel').textContent = `Level ${userStakingData.level}`;
+                document.getElementById('userBaseRate').textContent = `${userStakingData.baseRate}%`;
+                document.getElementById('userTotalRate').textContent = `${userStakingData.totalRate}%`;
+                document.getElementById('userDailyReward').textContent = `${userStakingData.dailyReward.toFixed(2)} HCF`;
+                document.getElementById('userPendingReward').textContent = `${userStakingData.pendingReward.toFixed(2)} HCF`;
+                
+                // 显示LP信息（如果有）
+                if (userStakingData.hasLP) {
+                    document.getElementById('userLPInfo').style.display = 'flex';
+                    document.getElementById('userLPAmount').textContent = 
+                        `${(userStakingData.lpAmount || 0).toLocaleString()} HCF + ${((userStakingData.lpAmount || 0) * 0.1).toLocaleString()} BSDT`;
+                } else {
+                    document.getElementById('userLPInfo').style.display = 'none';
+                }
+                
+                // 更新追加质押选项（根据等级）
+                updateCompoundOptions(userStakingData.level, userStakingData.stakeAmount);
+                
+                // 显示当前等级的复投要求
+                const compoundUnit = getCompoundUnit(userStakingData.level);
+                document.getElementById('compoundSuggestion').style.display = 'block';
+                document.getElementById('compoundRequirement').textContent = `每次必须是${compoundUnit} HCF的倍数`;
+            } else {
+                document.getElementById('noStaking').style.display = 'block';
+                document.getElementById('stakingDetails').style.display = 'none';
+                document.getElementById('noStaking').innerHTML = '<p>您还没有质押，<a href="#" onclick="scrollToStaking()">立即开始质押</a></p>';
+            }
+        }
+
+        function simulateUserStakingData() {
+            // 模拟用户质押数据，实际应用中从合约读取
+            const scenarios = [
+                // 无质押
+                { stakeAmount: 0, level: 0, baseRate: 0, totalRate: 0, dailyReward: 0, pendingReward: 0, stakingDays: 0, hasLP: false },
+                // Level 3 无LP
+                { stakeAmount: 1000, level: 3, baseRate: 0.6, totalRate: 0.6, dailyReward: 6, pendingReward: 12.5, hasLP: false },
+                // Level 3 有LP
+                { stakeAmount: 1000, level: 3, baseRate: 0.6, totalRate: 1.2, dailyReward: 12, pendingReward: 25.8, hasLP: true, lpHCF: 200, lpBSDT: 20 },
+                // Level 4 有LP
+                { stakeAmount: 10000, level: 4, baseRate: 0.7, totalRate: 1.4, dailyReward: 140, pendingReward: 420, hasLP: true, lpHCF: 2000, lpBSDT: 200 }
+            ];
+            
+            // 随机选择一个场景，实际应用中从合约读取真实数据
+            return scenarios[Math.floor(Math.random() * scenarios.length)];
+        }
+
+        function scrollToStaking() {
+            document.querySelector('.card:nth-child(3)').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // 领取收益（真实合约调用）
+        async function claimRewards() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            if (!contracts.HCFStaking) {
+                alert('合约未初始化');
+                return;
+            }
+            
+            try {
+                const btn = event.target;
+                btn.disabled = true;
+                btn.textContent = '领取中...';
+                
+                // 调用真实的合约函数
+                const tx = await contracts.HCFStaking.methods.claimRewards().send({
+                    from: userAddress
+                });
+                
+                console.log('领取成功，交易哈希:', tx.transactionHash);
+                alert(`✅ 领取收益成功！\n交易哈希: ${tx.transactionHash}`);
+                
+                // 更新显示
+                await updateUserStakingInfo();
+                
+            } catch (error) {
+                console.error('领取失败:', error);
+                alert(`领取失败: ${error.message}`);
+            } finally {
+                const btn = event.target;
+                btn.disabled = false;
+                btn.textContent = '领取收益';
+            }
+        }
+
+        function updateStakeInfo() {
+            const amountInput = document.getElementById('stakeAmount');
+            const amount = parseFloat(amountInput.value) || 0;
+            const lpChecked = false; // 移除勾选框，LP质押现在是独立的
+            
+            // 清除之前的错误
+            document.getElementById('stakeError').style.display = 'none';
+            amountInput.classList.remove('error');
+            
+            // 验证最低金额（L3-L5开放，最低1000）
+            if (amount < 1000) {
+                document.getElementById('stakeError').textContent = '最低质押1000 HCF（L3等级）';
+                document.getElementById('stakeError').style.display = 'block';
+                amountInput.classList.add('error');
+                document.getElementById('levelDisplay').style.display = 'none';
+                document.getElementById('stakeBtn').disabled = true;
+                return;
+            }
+            
+            // 去掉10倍数验证，直接进入等级计算
+            
+            // 自动计算等级
+            let currentLevel = null;
+            for (const level of STAKING_LEVELS) {
+                if (amount >= level.min && amount < level.max) {
+                    if (!level.enabled) {
+                        // L1和L2暂未开放，但给出提示
+                        document.getElementById('stakeError').textContent = 
+                            `Level ${level.level} 暂未开放，请质押1000 HCF以上进入L3`;
+                        document.getElementById('stakeError').style.display = 'block';
+                        document.getElementById('levelDisplay').style.display = 'none';
+                        document.getElementById('stakeBtn').disabled = true;
+                        return;
+                    }
+                    currentLevel = level;
+                    break;
+                }
+            }
+            
+            if (!currentLevel) {
+                // 如果金额超过所有范围，使用L5
+                if (amount >= 100000) {
+                    currentLevel = STAKING_LEVELS[4]; // L5
+                }
+            }
+            
+            // 显示等级信息
+            document.getElementById('levelDisplay').style.display = 'block';
+            document.getElementById('currentLevel').textContent = `Level ${currentLevel.level}`;
+            
+            const baseRate = currentLevel.rate;
+            const baseReward = amount * baseRate / 100; // 基础日收益
+            let lpReward = 0;
+            let totalReward = baseReward;
+            
+            // LP增产机制：增加与基础收益相同的数量
+            if (lpChecked) {
+                lpReward = baseReward; // LP增产 = 基础收益
+                totalReward = baseReward + lpReward; // 总收益 = 基础 + LP增产
+                
+                const totalRate = totalReward / amount * 100;
+                document.getElementById('dailyRate').textContent = 
+                    `基础: ${baseRate}% + LP增产: ${baseRate}% = 综合: ${totalRate.toFixed(1)}%`;
+            } else {
+                document.getElementById('dailyRate').textContent = `基础: ${baseRate}%`;
+            }
+            
+            // 显示详细收益分解
+            updateRewardBredown(amount, baseReward, lpReward, currentLevel);
+            
+            document.getElementById('dailyReward').textContent = `${totalReward.toFixed(1)} HCF`;
+            
+            // LP相关 - 20%质押量 + 按当前价格的BSDT
+            if (lpChecked) {
+                document.getElementById('lpRequired').style.display = 'block';
+                
+                // LP需要质押量的20%
+                const lpHCF = amount * 0.2;
+                // 获取当前HCF价格（演示用0.1）
+                const hcfPrice = 0.1; // 实际应从合约获取
+                const lpBSDT = lpHCF * hcfPrice;
+                
+                document.getElementById('lpHCFAmount').textContent = `HCF: ${lpHCF.toFixed(2)} HCF`;
+                document.getElementById('lpBSDTAmount').textContent = `BSDT: ${lpBSDT.toFixed(2)} BSDT`;
+            } else {
+                document.getElementById('lpRequired').style.display = 'none';
+            }
+            
+            // 更新按钮
+            document.getElementById('stakeBtn').disabled = false;
+            document.getElementById('stakeBtn').textContent = `确认质押 ${amount} HCF`;
+        }
+
+        // 更新收益分解显示
+        function updateRewardBredown(amount, baseReward, lpReward, currentLevel) {
+            const breakdown = document.getElementById('rewardBreakdown');
+            if (!breakdown) return;
+            
+            let html = `
+                <div class="reward-detail">
+                    <h4>收益分解：</h4>
+                    <p>质押 ${amount.toLocaleString()} 枚</p>
+                    <p>日：${baseReward.toFixed(0)}枚（${currentLevel.rate}%）</p>`;
+            
+            if (lpReward > 0) {
+                html += `<p>普通LP：+${lpReward.toFixed(0)}枚（${currentLevel.rate}%）</p>`;
+                const totalRate = (baseReward + lpReward) / amount * 100;
+                html += `<p>综合收益：${totalRate.toFixed(1)}%</p>`;
+                
+                // 股权LP计算
+                const equity100Reward = (baseReward + lpReward) * (1 + EQUITY_LP_CONFIG[100].bonus);
+                const equity300Reward = (baseReward + lpReward) * (1 + EQUITY_LP_CONFIG[300].bonus);
+                const equity100Rate = equity100Reward / amount * 100;
+                const equity300Rate = equity300Reward / amount * 100;
+                
+                // 应用封顶
+                const cappedEquity100 = Math.min(equity100Reward, amount * currentLevel.cap / 100);
+                const cappedEquity300 = Math.min(equity300Reward, amount * currentLevel.cap / 100);
+                const cappedEquity100Rate = cappedEquity100 / amount * 100;
+                const cappedEquity300Rate = cappedEquity300 / amount * 100;
+                
+                html += `<p style="color: #3498db;">💡 如果你有股权LP（100天）+20%：综合收益${cappedEquity100.toFixed(0)}枚/天（${cappedEquity100Rate.toFixed(2)}%）</p>`;
+                html += `<p style="color: #3498db;">💡 如果你有股权LP（300天）+40%：综合收益${cappedEquity300.toFixed(0)}枚/天（${cappedEquity300Rate.toFixed(2)}%）</p>`;
+                html += `<p style="color: #f39c12;">封顶：${(amount * currentLevel.cap / 100).toFixed(0)}枚（${currentLevel.cap}%）</p>`;
+                html += `<p style="color: #95a5a6; font-size: 12px;">📝 股权LP需要在"添加流动性"页面单独操作</p>`;
+            }
+            
+            html += `</div>`;
+            breakdown.innerHTML = html;
+        }
+
+        async function stake() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+
+            // 重新获取当前连接的账户
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_accounts' 
+                });
+                if (accounts.length === 0) {
+                    alert('请先连接MetaMask钱包');
+                    return;
+                }
+                userAddress = accounts[0];
+                console.log('当前连接账户:', userAddress);
+            } catch (error) {
+                console.error('获取账户失败:', error);
+                alert('无法获取钱包账户，请重新连接');
+                return;
+            }
+
+            const stakeAmount = parseFloat(document.getElementById('stakeAmount').value);
+            if (!stakeAmount || stakeAmount < 1000) {
+                alert('质押金额不能少于1000 HCF');
+                return;
+            }
+
+            // 检查是否有合约实例
+            if (!contracts.HCFToken || !contracts.HCFStaking) {
+                alert('合约未初始化，使用演示模式');
+                return;
+            }
+
+            try {
+                document.getElementById('stakeBtn').disabled = true;
+                document.getElementById('stakeBtn').textContent = '处理中...';
+
+                const stakeAmountWei = web3.utils.toWei(stakeAmount.toString(), 'ether');
+                
+                // 创建MetaMask Web3实例用于交易
+                const metamaskWeb3 = new Web3(window.ethereum);
+                
+                // 验证网络连接
+                const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+                if (parseInt(chainId, 16) !== CONTRACT_CONFIG.chainId) {
+                    alert('请切换到BSC测试网');
+                    return;
+                }
+
+                // 检查用户余额
+                const balance = await contracts.HCFToken.methods.balanceOf(userAddress).call();
+                if (web3.utils.toBN(balance).lt(web3.utils.toBN(stakeAmountWei))) {
+                    alert('HCF余额不足');
+                    return;
+                }
+
+                // 检查授权额度
+                const allowance = await contracts.HCFToken.methods.allowance(
+                    userAddress, 
+                    CONTRACT_CONFIG.contracts.HCFStaking
+                ).call();
+
+                if (web3.utils.toBN(allowance).lt(web3.utils.toBN(stakeAmountWei))) {
+                    // 需要授权 - 使用最简单的方法
+                    console.log('需要授权HCF代币');
+                    
+                    // 构建授权交易数据
+                    const approveData = metamaskWeb3.eth.abi.encodeFunctionCall({
+                        name: 'approve',
+                        type: 'function',
+                        inputs: [
+                            { type: 'address', name: 'spender' },
+                            { type: 'uint256', name: 'amount' }
+                        ]
+                    }, [CONTRACT_CONFIG.contracts.HCFStaking, stakeAmountWei]);
+                    
+                    const approveTx = await window.ethereum.request({
+                        method: 'eth_sendTransaction',
+                        params: [{
+                            from: userAddress,
+                            to: CONTRACT_CONFIG.contracts.HCFToken,
+                            data: approveData
+                        }]
+                    });
+                    console.log('授权交易:', approveTx);
+                }
+
+                // 执行质押 - 使用最简单的方法
+                console.log('开始质押:', stakeAmountWei);
+                
+                // 构建质押交易数据
+                const stakeData = metamaskWeb3.eth.abi.encodeFunctionCall({
+                    name: 'stake',
+                    type: 'function',
+                    inputs: [
+                        { type: 'uint256', name: 'amount' }
+                    ]
+                }, [stakeAmountWei]);
+                
+                const stakeTx = await window.ethereum.request({
+                    method: 'eth_sendTransaction',
+                    params: [{
+                        from: userAddress,
+                        to: CONTRACT_CONFIG.contracts.HCFStaking,
+                        data: stakeData
+                    }]
+                });
+
+                console.log('质押成功:', stakeTx);
+                alert(`质押成功！\n交易哈希: ${stakeTx}`);
+
+                // 刷新用户数据
+                await updateUserStakingInfo();
+
+            } catch (error) {
+                console.error('质押失败:', error);
+                alert(`质押失败: ${error.message}`);
+            } finally {
+                document.getElementById('stakeBtn').disabled = false;
+                document.getElementById('stakeBtn').textContent = `确认质押 ${stakeAmount} HCF`;
+            }
+        }
+
+        // 获取等级对应的复投单位
+        function getCompoundUnit(level) {
+            const units = {
+                1: 10,    // Level 1: 10 HCF
+                2: 20,    // Level 2: 20 HCF  
+                3: 200,   // Level 3: 200 HCF (1000 HCF级别)
+                4: 2000,  // Level 4: 2000 HCF (10000 HCF级别)
+                5: 2000   // Level 5: 2000 HCF (100000 HCF级别)
+            };
+            return units[level] || 10;
+        }
+
+        // 更新追加质押选项
+        function updateCompoundOptions(level, currentStake) {
+            const select = document.getElementById('compoundAmount');
+            select.innerHTML = '<option value="">选择追加金额</option>';
+            
+            const unit = getCompoundUnit(level);
+            // 生成5个选项
+            for (let i = 1; i <= 5; i++) {
+                const amount = unit * i;
+                const option = document.createElement('option');
+                option.value = amount;
+                option.textContent = `${amount.toLocaleString()} HCF`;
+                select.appendChild(option);
+            }
+        }
+
+        // 追加质押函数（替代原来的compound）
+        async function addStake() {
+            const amount = parseFloat(document.getElementById('compoundAmount').value) || 0;
+            const errorDiv = document.getElementById('compoundError');
+            
+            // 清除之前的错误
+            errorDiv.style.display = 'none';
+            
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            if (amount <= 0) {
+                errorDiv.textContent = '请选择追加金额';
+                errorDiv.style.display = 'block';
+                return;
+            }
+            
+            // 重新获取当前连接的账户
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_accounts' 
+                });
+                if (accounts.length === 0) {
+                    alert('请先连接MetaMask钱包');
+                    return;
+                }
+                userAddress = accounts[0];
+            } catch (error) {
+                console.error('获取账户失败:', error);
+                alert('无法获取钱包账户，请重新连接');
+                return;
+            }
+            
+            try {
+                // 创建MetaMask Web3实例用于交易
+                const metamaskWeb3 = new Web3(window.ethereum);
+                
+                // 将追加金额转换为wei单位
+                const amountWei = metamaskWeb3.utils.toWei(amount.toString(), 'ether');
+                
+                // 定义必要的ABI
+                const ERC20_ABI = [
+                    {
+                        "inputs": [{"name": "spender", "type": "address"}, {"name": "amount", "type": "uint256"}],
+                        "name": "approve",
+                        "outputs": [{"name": "", "type": "bool"}],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                    }
+                ];
+                
+                const STAKING_ABI = [
+                    {
+                        "inputs": [
+                            {"name": "amount", "type": "uint256"},
+                            {"name": "isLP", "type": "bool"},
+                            {"name": "isEquity", "type": "bool"}
+                        ],
+                        "name": "stake",
+                        "outputs": [],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                    }
+                ];
+                
+                // 创建合约实例
+                const hcfTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.HCFToken);
+                const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
+                
+                // 先授权HCF代币给质押合约
+                console.log('正在授权HCF...');
+                const approveTx = await hcfTokenContract.methods.approve(
+                    CONTRACT_CONFIG.contracts.HCFStaking,
+                    amountWei
+                ).send({ from: userAddress });
+                console.log('HCF授权成功:', approveTx.transactionHash);
+                
+                // 执行追加质押（普通质押，不是LP）
+                console.log('正在执行追加质押...');
+                const tx = await stakingContract.methods.stake(
+                    amountWei,
+                    false,  // isLP = false
+                    false   // isEquity = false
+                ).send({ from: userAddress });
+                
+                alert(`✅ 成功追加质押 ${amount} HCF！\n交易哈希: ${tx.transactionHash}\n\n您的质押本金已增加！`);
+                
+                // 刷新数据
+                await updateUserStakingInfo();
+                
+            } catch (error) {
+                console.error('追加质押失败:', error);
+                alert(`追加质押失败: ${error.message}`);
+            }
+        }
+
+        // 旧的复投函数已删除，现在使用addStake()追加质押
+
+        function claim() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            alert('领取收益成功！（演示模式）');
+        }
+
+        function calculateBSDTAmount() {
+            const hcfAmount = parseFloat(document.getElementById('liquidityHCF').value) || 0;
+            
+            if (hcfAmount > 0) {
+                // 获取当前池子价格（演示数据）
+                const currentHCFReserve = 1000000;  // 当前池子HCF储备
+                const currentBSDTReserve = 100000;  // 当前池子BSDT储备
+                
+                // 计算当前价格: BSDT/HCF
+                const currentPrice = currentBSDTReserve / currentHCFReserve;
+                
+                // 根据当前价格计算需要的BSDT数量
+                const requiredBSDT = (hcfAmount * currentPrice).toFixed(2);
+                
+                // 自动填充BSDT输入框
+                document.getElementById('liquidityBSDT').value = requiredBSDT;
+                
+                // 更新显示信息
+                document.getElementById('currentPrice').textContent = 
+                    `当前价格: 1 HCF = ${currentPrice.toFixed(4)} BSDT ($${currentPrice.toFixed(2)} USD)`;
+                
+                // 计算对池子的影响
+                const impact = ((hcfAmount / currentHCFReserve) * 100).toFixed(2);
+                document.getElementById('liquidityImpact').textContent = 
+                    `池子影响: +${impact}% (添加后池子增大)`;
+            } else {
+                document.getElementById('liquidityBSDT').value = '';
+                document.getElementById('liquidityImpact').textContent = '';
+            }
+            
+            // 更新股权LP增产预览
+            updateEquityBoostPreview();
+        }
+
+        function updateEquityBoostPreview() {
+            const equityPeriod = document.getElementById('equityLPPeriod').value;
+            const boostInfo = document.getElementById('equityBoostInfo');
+            const boostDetails = document.getElementById('boostDetails');
+            
+            if (equityPeriod) {
+                const bonus = equityPeriod === '100' ? 20 : 40;
+                boostInfo.style.display = 'block';
+                
+                // 演示质押收益计算（新机制）
+                const exampleStake = 10000; // 假设用户质押10000 HCF
+                const baseRate = 0.7; // Level 4基础日化
+                const baseReward = exampleStake * baseRate / 100; // 70 HCF/天
+                const withLP = baseReward * 2; // LP后翻倍：140 HCF/天
+                const withEquity = withLP * (1 + bonus / 100); // 股权LP增产
+                
+                boostDetails.innerHTML = `
+                    以10000 HCF质押为例：<br>
+                    • 基础质押：${baseReward} HCF/天（${baseRate}%）<br>
+                    • +普通LP：${withLP} HCF/天（${(withLP/exampleStake*100).toFixed(1)}%）<br>
+                    • +股权LP：${withEquity.toFixed(1)} HCF/天（${(withEquity/exampleStake*100).toFixed(2)}%，+${bonus}%增产）<br>
+                    <strong>复投金额：${(exampleStake * 0.2).toFixed(0)} HCF（质押量20%）</strong>
+                `;
+            } else {
+                boostInfo.style.display = 'none';
+            }
+        }
+
+        function addLiquidity() {
+            const hcfAmount = parseFloat(document.getElementById('liquidityHCF').value) || 0;
+            const bsdtAmount = parseFloat(document.getElementById('liquidityBSDT').value) || 0;
+            const equityPeriod = document.getElementById('equityLPPeriod').value;
+            
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            if (hcfAmount <= 0 || bsdtAmount <= 0) {
+                alert('请输入有效的HCF和BSDT数量');
+                return;
+            }
+            
+            let lpType = '普通LP';
+            let message = `成功添加流动性！\nHCF: ${hcfAmount}\nBSDT: ${bsdtAmount}\n`;
+            
+            if (equityPeriod) {
+                const bonus = equityPeriod === '100' ? '20%' : '40%';
+                lpType = `股权LP（${equityPeriod}天期，+${bonus}增产）`;
+                message += `类型: ${lpType}\n锁定期: ${equityPeriod}天\n增产效果: 对现有质押收益+${bonus}`;
+            } else {
+                message += `类型: ${lpType}\n立即获得LP代币，可随时赎回`;
+            }
+            
+            alert(message + '\n（演示模式）');
+        }
+
+        function addToPool() {
+            const amount = document.getElementById('addPoolAmount').value;
+            if (!amount) {
+                alert('请输入添加金额');
+                return;
+            }
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            // 检查是否为多签钱包
+            alert(`添加 ${amount} HCF 到底池！需要多签确认（演示模式）`);
+        }
+
+        async function unstake() {
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            // 重新获取当前连接的账户
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_accounts' 
+                });
+                if (accounts.length === 0) {
+                    alert('请先连接MetaMask钱包');
+                    return;
+                }
+                userAddress = accounts[0];
+            } catch (error) {
+                console.error('获取账户失败:', error);
+                alert('无法获取钱包账户，请重新连接');
+                return;
+            }
+            
+            const unstakeAmount = prompt('请输入要解除质押的HCF数量:');
+            if (!unstakeAmount || parseFloat(unstakeAmount) <= 0) {
+                return;
+            }
+            
+            if (confirm(`确定要解除质押 ${unstakeAmount} HCF吗？\n注意：解除质押将扣除3%手续费`)) {
+                try {
+                    // 创建MetaMask Web3实例用于交易
+                    const metamaskWeb3 = new Web3(window.ethereum);
+                    
+                    // 定义STAKING_ABI（unstake函数需要的部分）
+                    const STAKING_ABI = [
+                        {
+                            "inputs": [{"name": "amount", "type": "uint256"}],
+                            "name": "unstake",
+                            "outputs": [],
+                            "stateMutability": "payable",
+                            "type": "function"
+                        }
+                    ];
+                    
+                    // 创建合约实例
+                    const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
+                    
+                    // 将解除质押金额转换为wei单位
+                    const amountWei = metamaskWeb3.utils.toWei(unstakeAmount.toString(), 'ether');
+                    
+                    // 调用合约的unstake函数进行解除质押
+                    console.log('正在执行解除质押...');
+                    const tx = await stakingContract.methods.unstake(amountWei).send({ 
+                        from: userAddress,
+                        value: 0  // unstake函数标记为payable，但不需要发送ETH
+                    });
+                    
+                    const netAmount = parseFloat(unstakeAmount) * 0.97; // 扣除3%手续费
+                    alert(`✅ 解除质押成功！\n解除数量: ${unstakeAmount} HCF\n实际到账: ${netAmount.toFixed(2)} HCF（已扣除3%手续费）\n交易哈希: ${tx.transactionHash}`);
+                    
+                    // 刷新数据
+                    await updateUserStakingInfo();
+                    
+                } catch (error) {
+                    console.error('解除质押失败:', error);
+                    alert(`解除质押失败: ${error.message}`);
+                }
+            }
+        }
+        
+        // LP质押相关函数
+        function updateLPRequirement() {
+            const baseAmount = parseFloat(document.getElementById('lpBaseAmount')?.value || 1000);
+            const hcfRequired = baseAmount * 0.2; // 20%
+            const bsdtRequired = hcfRequired * 0.1; // 按0.1美元价格
+            
+            // 更新显示
+            if (document.getElementById('lpHCFRequired')) {
+                document.getElementById('lpHCFRequired').textContent = `${hcfRequired.toFixed(2)} HCF`;
+                document.getElementById('lpBSDTRequired').textContent = `${bsdtRequired.toFixed(2)} BSDT`;
+                
+                // 更新预期收益
+                const baseReward = baseAmount * 0.006; // 0.6%日化
+                document.getElementById('lpBaseReward').textContent = baseReward.toFixed(2);
+                document.getElementById('lpBonusReward').textContent = baseReward.toFixed(2);
+                document.getElementById('lpTotalReward').textContent = (baseReward * 2).toFixed(2);
+                
+                // 更新按钮文字
+                document.getElementById('lpStakeBtn').textContent = 
+                    `🚀 确认升级为LP质押（追加 ${hcfRequired.toFixed(2)} HCF + ${bsdtRequired.toFixed(2)} BSDT）`;
+            }
+        }
+        
+        async function executeLPStake() {
+            const baseAmount = parseFloat(document.getElementById('lpBaseAmount').value || 1000);
+            const hcfRequired = baseAmount * 0.2;
+            const bsdtRequired = hcfRequired * 0.1;
+            
+            if (!connected) {
+                alert('请先连接钱包');
+                return;
+            }
+            
+            // 重新获取当前连接的账户
+            try {
+                const accounts = await window.ethereum.request({ 
+                    method: 'eth_accounts' 
+                });
+                if (accounts.length === 0) {
+                    alert('请先连接MetaMask钱包');
+                    return;
+                }
+                userAddress = accounts[0];
+            } catch (error) {
+                console.error('获取账户失败:', error);
+                alert('无法获取钱包账户，请重新连接');
+                return;
+            }
+            
+            try {
+                document.getElementById('lpStakeBtn').disabled = true;
+                document.getElementById('lpStakeBtn').textContent = '正在执行LP质押...';
+                
+                // 创建MetaMask Web3实例用于交易
+                const metamaskWeb3 = new Web3(window.ethereum);
+                
+                // 将HCF和BSDT数量转换为wei单位
+                const hcfRequiredWei = metamaskWeb3.utils.toWei(hcfRequired.toString(), 'ether');
+                const bsdtRequiredWei = metamaskWeb3.utils.toWei(bsdtRequired.toString(), 'ether');
+                
+                // 定义ERC20 ABI（用于代币approve和transfer）
+                const ERC20_ABI = [
+                    {
+                        "inputs": [{"name": "spender", "type": "address"}, {"name": "amount", "type": "uint256"}],
+                        "name": "approve",
+                        "outputs": [{"name": "", "type": "bool"}],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                    },
+                    {
+                        "inputs": [{"name": "account", "type": "address"}],
+                        "name": "balanceOf",
+                        "outputs": [{"name": "", "type": "uint256"}],
+                        "stateMutability": "view",
+                        "type": "function"
+                    }
+                ];
+                
+                // 定义STAKING_ABI（LP质押需要的部分）
+                const STAKING_ABI = [
+                    {
+                        "inputs": [
+                            {"name": "amount", "type": "uint256"},
+                            {"name": "isLP", "type": "bool"},
+                            {"name": "isEquity", "type": "bool"}
+                        ],
+                        "name": "stake",
+                        "outputs": [],
+                        "stateMutability": "nonpayable",
+                        "type": "function"
+                    }
+                ];
+                
+                // 创建合约实例
+                const hcfTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.HCFToken);
+                const bsdtTokenContract = new metamaskWeb3.eth.Contract(ERC20_ABI, CONTRACT_CONFIG.contracts.BSDT);
+                const stakingContract = new metamaskWeb3.eth.Contract(STAKING_ABI, CONTRACT_CONFIG.contracts.HCFStaking);
+                
+                // 1. 先授权HCF代币给质押合约
+                console.log('正在授权HCF...');
+                document.getElementById('lpStakeBtn').textContent = '正在授权HCF...';
+                const hcfApprove = await hcfTokenContract.methods.approve(
+                    CONTRACT_CONFIG.contracts.HCFStaking,
+                    hcfRequiredWei
+                ).send({ from: userAddress });
+                console.log('HCF授权成功:', hcfApprove.transactionHash);
+                
+                // 2. 授权BSDT代币给质押合约
+                console.log('正在授权BSDT...');
+                document.getElementById('lpStakeBtn').textContent = '正在授权BSDT...';
+                const bsdtApprove = await bsdtTokenContract.methods.approve(
+                    CONTRACT_CONFIG.contracts.HCFStaking,
+                    bsdtRequiredWei
+                ).send({ from: userAddress });
+                console.log('BSDT授权成功:', bsdtApprove.transactionHash);
+                
+                // 3. 执行LP质押升级（追加质押，设置isLP=true）
+                console.log('正在执行LP质押升级...');
+                document.getElementById('lpStakeBtn').textContent = '正在执行LP质押升级...';
+                const tx = await stakingContract.methods.stake(
+                    hcfRequiredWei,  // 追加的HCF数量（基础数量的20%）
+                    true,            // isLP = true (LP质押)
+                    false            // isEquity = false
+                ).send({ from: userAddress });
+                
+                alert(`🎉 恭喜！成功升级为LP质押！\n\n追加投入：${hcfRequired.toFixed(2)} HCF + ${bsdtRequired.toFixed(2)} BSDT\n交易哈希: ${tx.transactionHash}\n\n您的质押已升级：\n• 原质押：${baseAmount} HCF\n• 现在状态：LP质押\n• 日收益率已翻倍！\n\n您现在享受双倍收益率！`);
+                
+                // 刷新数据
+                await updateUserStakingInfo();
+                
+            } catch (error) {
+                console.error('LP质押失败:', error);
+                alert(`LP质押失败: ${error.message}`);
+            } finally {
+                document.getElementById('lpStakeBtn').disabled = false;
+                document.getElementById('lpStakeBtn').textContent = '确认升级为LP质押';
+                updateLPRequirement();
+            }
+        }
+    </script>
+</body>
+</html>
