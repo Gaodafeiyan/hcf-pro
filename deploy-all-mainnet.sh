@@ -139,7 +139,12 @@ async function main() {
         // 2. 部署 BSDT 代币
         console.log("\n📍 [2/7] 部署 BSDT 代币合约...");
         const BSDTToken = await ethers.getContractFactory("BSDTTokenV2");
-        const bsdtToken = await BSDTToken.deploy();
+        const bsdtToken = await BSDTToken.deploy(
+            "0x55d398326f99059fF775485246999027B3197955", // USDT主网地址
+            "0x0567F2323251f0Aab15c8dFb1967E4e8A7D42aeE", // USDT Oracle主网地址
+            "0x4509f773f2Cb6543837Eabbd27538139feE59496", // Keeper地址
+            "0x4509f773f2Cb6543837Eabbd27538139feE59496"  // LP池地址
+        );
         await bsdtToken.deployed();
         logDeployment("BSDTTokenV2", bsdtToken.address, "BSDT代币V2版本");
         
