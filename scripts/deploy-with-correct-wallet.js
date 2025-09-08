@@ -94,7 +94,10 @@ async function main() {
         // 5. 部署燃烧机制
         console.log("\n📍 [5/8] 部署燃烧机制...");
         const HCFBurnMechanism = await ethers.getContractFactory("HCFBurnMechanism");
-        const burn = await HCFBurnMechanism.deploy(HCF_TOKEN);
+        const burn = await HCFBurnMechanism.deploy(
+            HCF_TOKEN,
+            multiSigWallet
+        );
         await burn.deployed();
         newContracts.burn = burn.address;
         console.log("✅ 燃烧机制:", burn.address);
