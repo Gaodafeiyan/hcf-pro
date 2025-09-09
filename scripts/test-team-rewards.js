@@ -6,15 +6,11 @@ async function main() {
     console.log(chalk.blue.bold("   🧪 测试团队奖励系统"));
     console.log(chalk.blue.bold("========================================\n"));
 
-    // 合约地址 - 部署后需要更新
-    const TEAM_REWARDS_ADDRESS = ""; // 部署后填入
+    // 合约地址 - 已部署
+    const TEAM_REWARDS_ADDRESS = "0x5E165C46B47eCA24c7B251910c95bD8f49A2F0c6";
     const REFERRAL_ADDRESS = "0xea0e87adfdad8b27e967287f7f6ad8a491d88e4f";
     const STAKING_ADDRESS = "0x209d3d4f8ab55cd678d736957abc139f157753fe";
     
-    if (!TEAM_REWARDS_ADDRESS) {
-        console.log(chalk.red("❌ 请先部署团队奖励合约并填入地址"));
-        return;
-    }
     
     const [deployer] = await ethers.getSigners();
     
