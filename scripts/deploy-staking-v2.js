@@ -18,7 +18,7 @@ async function main() {
     const addresses = {
         HCF: "0xE0A4a6a7f35b803596008D2F7e69D6Cc1Bc6f192",      // HCF Token
         BSDT: "0x3932968a904Bf6773E8a13F1D2358331B9a1a530",     // BSDT Token
-        HCF_BSDT_PAIR: "0x8288dd6507f5aDa98602DE3138A79CC3712F5685", // HCF/BSDT池子
+        HCF_BSDT_PAIR: "0x8288dd6507f5ada98602de3138a79cc3712f5685", // HCF/BSDT池子
         FEE_RECEIVER: deployer.address  // 费用接收地址（可以修改）
     };
     
