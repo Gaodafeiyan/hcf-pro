@@ -1,96 +1,146 @@
 const { ethers } = require("hardhat");
 const chalk = require("chalk");
-const fs = require("fs");
 
 async function main() {
     console.log(chalk.blue.bold("\n========================================"));
-    console.log(chalk.blue.bold("   检查部署状态"));
+    console.log(chalk.blue.bold("   📊 HCF系统部署状态检查"));
     console.log(chalk.blue.bold("========================================\n"));
 
     const [deployer] = await ethers.getSigners();
-    console.log(chalk.cyan("当前账户:"), deployer.address);
-
-    // 检查新BSDT
-    const NEW_BSDT = "0xf460422388C1205724EF699051aBe300215E490b";
-    console.log(chalk.yellow("\n检查新BSDT..."));
-    try {
-        const bsdt = await ethers.getContractAt("BSDTToken", NEW_BSDT);
-        const totalSupply = await bsdt.totalSupply();
-        const supplyFormatted = ethers.utils.formatEther(totalSupply);
-        const supplyInBillion = (parseFloat(supplyFormatted) / 1000000000).toFixed(0);
-        console.log(chalk.green("✅ BSDT地址:"), NEW_BSDT);
-        console.log(chalk.green("   总供应量:"), supplyInBillion, "亿枚");
-        
-        // 检查部署者余额
-        const balance = await bsdt.balanceOf(deployer.address);
-        const balanceFormatted = ethers.utils.formatEther(balance);
-        console.log(chalk.green("   部署者余额:"), balanceFormatted, "BSDT");
-    } catch (e) {
-        console.log(chalk.red("❌ BSDT合约无法访问"));
-    }
+    console.log("检查账户:", deployer.address);
+    const balance = await deployer.getBalance();
+    console.log("账户余额:", ethers.utils.formatEther(balance), "BNB");
     
-    // 检查新HCF
-    const NEW_HCF = "0x2877E99F01c739C38c0d0E204761518Ed6ff11c3";
-    console.log(chalk.yellow("\n检查新HCF..."));
-    try {
-        const hcf = await ethers.getContractAt("HCFToken", NEW_HCF);
-        const totalSupply = await hcf.totalSupply();
-        const supplyFormatted = ethers.utils.formatEther(totalSupply);
-        console.log(chalk.green("✅ HCF地址:"), NEW_HCF);
-        console.log(chalk.green("   总供应量:"), supplyFormatted, "HCF");
-        
-        // 检查部署者余额
-        const balance = await hcf.balanceOf(deployer.address);
-        const balanceFormatted = ethers.utils.formatEther(balance);
-        console.log(chalk.green("   部署者余额:"), balanceFormatted, "HCF");
-    } catch (e) {
-        console.log(chalk.red("❌ HCF合约无法访问"));
-    }
+    // 已部署的合约地址
+    const contracts = {
+        "HCF Token": "0xc5c3f24a212838968759045d1654d3643016d585",
+        "HCF/BSDT Pool": "0x53df45a3260af4b7590a53ce11e7a1f8df5a8048",
+        "HCF Staking": "0x209d3d4f8ab55cd678d736957abc139f157753fe",
+        "HCF AntiDump": "0xff9d8c2f579cb2b6e663b05f2f0d1e19dcb3eb5a",
+        "HCF Node": "0x10b4284eafdc92f448d29db58f1ccc784e8230ad",
+        "HCF Referral": "0xea0e87adfdad8b27e967287f7f6ad8a491d88e4f",
+        "HCF Ranking": "0x92bc67fdf088e9b06285c8e62f2f36f69f4cc1fa",
+        "HCF Governance": "0xb61f86e8e6e8e2ec0cfc29f60bc088c8e7aba9ef"
+    };
     
-    // 检查是否有保存的地址
-    console.log(chalk.yellow("\n检查已保存的地址..."));
-    
-    try {
-        if (fs.existsSync('./new-bsdt-address.json')) {
-            const data = JSON.parse(fs.readFileSync('./new-bsdt-address.json', 'utf8'));
-            console.log(chalk.cyan("new-bsdt-address.json:"));
-            console.log(data);
+    console.log(chalk.cyan("📝 已部署合约:"));
+    for (const [name, address] of Object.entries(contracts)) {
+        try {
+            const code = await ethers.provider.getCode(address);
+            if (code !== "0x") {
+                console.log(chalk.green(`✅ ${name}: ${address}`));
+            } else {
+                console.log(chalk.red(`❌ ${name}: 未部署`));
+            }
+        } catch (e) {
+            console.log(chalk.red(`❌ ${name}: 检查失败`));
         }
-    } catch (e) {
-        console.log(chalk.gray("无new-bsdt-address.json文件"));
     }
     
+    // 检查税费系统
+    console.log(chalk.cyan("\n💰 税费系统:"));
     try {
-        if (fs.existsSync('./deployed-contracts-v2.json')) {
-            const data = JSON.parse(fs.readFileSync('./deployed-contracts-v2.json', 'utf8'));
-            console.log(chalk.cyan("\ndeployed-contracts-v2.json:"));
-            console.log(data);
+        const hcf = await ethers.getContractAt("HCFToken", contracts["HCF Token"]);
+        const pool = contracts["HCF/BSDT Pool"];
+        const isDEX = await hcf.isDEXPair(pool);
+        
+        if (isDEX) {
+            console.log(chalk.green("✅ 税费已激活"));
+            console.log("  买入税: 2%");
+            console.log("  卖出税: 5%");
+            console.log("  转账税: 1%");
+            
+            const totalBurned = await hcf.totalBurned();
+            console.log(`  已销毁: ${ethers.utils.formatEther(totalBurned)} HCF`);
         } else {
-            console.log(chalk.yellow("⚠️ deployed-contracts-v2.json不存在，可能部署未完成"));
+            console.log(chalk.red("❌ 税费未激活"));
         }
     } catch (e) {
-        console.log(chalk.gray("无deployed-contracts-v2.json文件"));
+        console.log(chalk.red("❌ 无法检查税费状态"));
     }
+    
+    // 检查池子状态
+    console.log(chalk.cyan("\n🏊 流动性池:"));
+    try {
+        const pair = await ethers.getContractAt("IPancakePair", contracts["HCF/BSDT Pool"]);
+        const reserves = await pair.getReserves();
+        const token0 = await pair.token0();
+        
+        let hcfReserve, bsdtReserve;
+        if (token0.toLowerCase() === contracts["HCF Token"].toLowerCase()) {
+            hcfReserve = reserves[0];
+            bsdtReserve = reserves[1];
+        } else {
+            hcfReserve = reserves[1];
+            bsdtReserve = reserves[0];
+        }
+        
+        const hcfAmount = ethers.utils.formatEther(hcfReserve);
+        const bsdtAmount = ethers.utils.formatEther(bsdtReserve);
+        const price = parseFloat(bsdtAmount) / parseFloat(hcfAmount);
+        
+        console.log(`  HCF储备: ${hcfAmount} HCF`);
+        console.log(`  BSDT储备: ${bsdtAmount} BSDT`);
+        console.log(`  HCF价格: ${price.toFixed(4)} BSDT`);
+        
+        // 检查是否达到目标
+        const targetHCF = 1000000;
+        const targetBSDT = 100000;
+        
+        if (parseFloat(hcfAmount) >= targetHCF && parseFloat(bsdtAmount) >= targetBSDT) {
+            console.log(chalk.green(`✅ 流动性充足 (目标: ${targetHCF} HCF + ${targetBSDT} BSDT)`));
+        } else {
+            console.log(chalk.yellow(`⚠️ 流动性不足 (目标: ${targetHCF} HCF + ${targetBSDT} BSDT)`));
+        }
+    } catch (e) {
+        console.log(chalk.red("❌ 无法检查池子状态"));
+    }
+    
+    // 检查质押系统
+    console.log(chalk.cyan("\n⛏️ 质押系统:"));
+    try {
+        const staking = await ethers.getContractAt("HCFStakingFinal", contracts["HCF Staking"]);
+        const totalStaked = await staking.totalStaked();
+        console.log(`  总质押: ${ethers.utils.formatEther(totalStaked)} HCF`);
+        
+        // 检查等级配置
+        for (let i = 3; i <= 5; i++) {
+            const level = await staking.levels(i);
+            console.log(`  L${i}: 最小${ethers.utils.formatEther(level.minStake)} HCF, 日化${level.dailyRate / 100}%`);
+        }
+    } catch (e) {
+        console.log(chalk.red("❌ 无法检查质押状态"));
+    }
+    
+    // 待部署/集成
+    console.log(chalk.cyan("\n⏳ 待完成:"));
+    console.log(chalk.yellow("📦 团队奖励V1-V6系统:"));
+    console.log("  状态: 合约已开发，待部署");
+    console.log("  地址: 需要向部署账户充值0.02 BNB");
+    console.log("  功能: V1-V6等级奖励 (6%-36%)");
+    
+    console.log(chalk.yellow("\n🔄 20级推荐奖励:"));
+    console.log("  状态: 待开发");
+    console.log("  功能: 20层推荐奖励递减");
+    
+    console.log(chalk.yellow("\n🔥 销毁机制:"));
+    console.log("  状态: 部分实现");
+    console.log("  当前: 税费自动销毁");
+    console.log("  待完成: 销毁至990,000 HCF停止");
+    
+    console.log(chalk.yellow("\n💎 其他功能:"));
+    console.log("  • 7天购买限制 (1000 HCF/天)");
+    console.log("  • BNB领取手续费 5%");
+    console.log("  • 账号最小余额 0.0001 HCF");
     
     console.log(chalk.blue.bold("\n========================================"));
-    console.log(chalk.blue.bold("         当前状态"));
+    console.log(chalk.green.bold("   当前进度: 75% 完成"));
     console.log(chalk.blue.bold("========================================\n"));
-    
-    console.log(chalk.green("✅ 已完成:"));
-    console.log(chalk.white("  1. BSDT V2 部署 (", supplyInBillion || "?", "亿枚)"));
-    console.log(chalk.white("  2. HCF Token 部署"));
-    
-    console.log(chalk.yellow("\n⚠️ 可能需要:"));
-    console.log(chalk.white("  1. 继续完成其他合约部署"));
-    console.log(chalk.white("  2. 或者使用更简单的部署脚本"));
-    
-    console.log(chalk.cyan("\n建议: 运行简化版部署脚本"));
-    console.log(chalk.white("npx hardhat run scripts/deploy-essential-contracts.js --network bsc"));
 }
 
 main()
     .then(() => process.exit(0))
     .catch((error) => {
-        console.error(chalk.red("错误:"), error);
+        console.error(error);
         process.exit(1);
     });

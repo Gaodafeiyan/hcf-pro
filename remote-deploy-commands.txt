@@ -1,0 +1,26 @@
+# 远程服务器部署命令
+
+# 1. 进入项目目录
+cd /root/hcf-project
+
+# 2. 检查账户余额
+npx hardhat run scripts/check-balance.js --network bsc
+
+# 3. 如果余额不足，需要先充值0.02 BNB到部署账户
+# 部署账户地址会在上面的命令中显示
+
+# 4. 部署团队奖励合约
+npx hardhat run scripts/deploy-team-rewards.js --network bsc
+
+# 5. 记录部署的合约地址
+# 部署成功后会显示: 合约地址: 0x...
+
+# 6. 更新集成脚本中的地址
+# 编辑 scripts/integrate-team-rewards.js
+# 将 TEAM_REWARDS_ADDRESS = "" 改为刚部署的地址
+
+# 7. 运行集成脚本
+npx hardhat run scripts/integrate-team-rewards.js --network bsc
+
+# 8. 测试团队奖励功能
+npx hardhat run scripts/test-team-rewards.js --network bsc
