@@ -21,9 +21,9 @@ async function main() {
         // 1. 检查代币余额
         console.log(chalk.yellow.bold("\n1. 检查代币余额..."));
         
-        const usdt = await ethers.getContractAt("IERC20", contracts.USDT);
-        const bsdt = await ethers.getContractAt("IERC20", contracts.BSDT);
-        const hcf = await ethers.getContractAt("IERC20", contracts.HCF);
+        const usdt = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", contracts.USDT);
+        const bsdt = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", contracts.BSDT);
+        const hcf = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", contracts.HCF);
         
         const usdtBalance = await usdt.balanceOf(signer.address);
         const bsdtBalance = await bsdt.balanceOf(signer.address);

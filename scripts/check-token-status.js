@@ -38,7 +38,7 @@ async function main() {
             console.log(chalk.red("❌ USDT合约不存在"));
         } else {
             console.log(chalk.green("✅ USDT合约正常"));
-            const usdt = await ethers.getContractAt("IERC20", contracts.USDT);
+            const usdt = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", contracts.USDT);
             const usdtBalance = await usdt.balanceOf(signer.address);
             console.log(chalk.white("  余额:"), ethers.utils.formatUnits(usdtBalance, 18), "USDT");
         }
@@ -49,7 +49,7 @@ async function main() {
             console.log(chalk.red("❌ BSDT合约不存在"));
         } else {
             console.log(chalk.green("✅ BSDT合约正常"));
-            const bsdt = await ethers.getContractAt("IERC20", contracts.BSDT);
+            const bsdt = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", contracts.BSDT);
             const bsdtBalance = await bsdt.balanceOf(signer.address);
             const bsdtTotalSupply = await bsdt.totalSupply();
             console.log(chalk.white("  余额:"), ethers.utils.formatEther(bsdtBalance), "BSDT");
@@ -72,7 +72,7 @@ async function main() {
             console.log(chalk.red("❌ HCF合约不存在"));
         } else {
             console.log(chalk.green("✅ HCF合约正常"));
-            const hcf = await ethers.getContractAt("IERC20", contracts.HCF);
+            const hcf = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", contracts.HCF);
             const hcfBalance = await hcf.balanceOf(signer.address);
             const hcfTotalSupply = await hcf.totalSupply();
             console.log(chalk.white("  余额:"), ethers.utils.formatEther(hcfBalance), "HCF");
@@ -118,14 +118,14 @@ async function main() {
             console.log(chalk.yellow("解决: 充值至少0.01 BNB作为Gas费"));
         }
 
-        const usdt = await ethers.getContractAt("IERC20", contracts.USDT);
+        const usdt = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", contracts.USDT);
         const usdtBalance = await usdt.balanceOf(signer.address);
         if (usdtBalance.eq(0)) {
             console.log(chalk.red("\n问题2: USDT余额为0"));
             console.log(chalk.yellow("解决: 获取至少1 USDT"));
         }
 
-        const bsdt = await ethers.getContractAt("IERC20", contracts.BSDT);
+        const bsdt = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", contracts.BSDT);
         const bsdtBalance = await bsdt.balanceOf(signer.address);
         if (bsdtBalance.eq(0)) {
             console.log(chalk.red("\n问题3: BSDT余额为0"));
@@ -133,7 +133,7 @@ async function main() {
             console.log(chalk.gray("命令: npx hardhat run scripts/exchange-usdt-to-bsdt.js --network bsc"));
         }
 
-        const hcf = await ethers.getContractAt("IERC20", contracts.HCF);
+        const hcf = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", contracts.HCF);
         const hcfBalance = await hcf.balanceOf(signer.address);
         if (hcfBalance.eq(0)) {
             console.log(chalk.red("\n问题4: HCF余额为0"));
