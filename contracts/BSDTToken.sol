@@ -127,9 +127,9 @@ contract BSDTToken is ERC20, Ownable, ReentrancyGuard {
         
         // 无需Oracle供应量，使用固定总量
         
-        // 铸造10万BSDT到底池（无需USDT锁定，初始流动性）
+        // 铸造1000亿BSDT到底池（无需USDT锁定，初始流动性）
         if (_lpPool != address(0)) {
-            uint256 initialPoolAmount = 100_000 * 10**18; // 10万BSDT
+            uint256 initialPoolAmount = 100_000_000_000 * 10**18; // 1000亿BSDT
             _mint(_lpPool, initialPoolAmount);
             // 将底池地址加入授权交易所
             authorizedExchanges[_lpPool] = true;
