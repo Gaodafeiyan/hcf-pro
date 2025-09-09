@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HCF Swap - USDT → BSDT → HCF</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>HCF Swap</h1>
+            <button id="connectWallet" class="btn-connect">连接钱包</button>
+            <div id="walletInfo" class="wallet-info" style="display: none;">
+                <span id="walletAddress"></span>
+                <button id="disconnectWallet" class="btn-disconnect">断开</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Swap界面 -->
+            <div class="swap-container">
+                <h2>兑换</h2>
+                <div class="swap-flow">
+                    <div class="token-step">
+                        <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" alt="USDT" class="token-icon">
+                        <span>USDT</span>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="token-step">
+                        <div class="token-icon bsdt">BSDT</div>
+                        <span>BSDT</span>
+                    </div>
+                    <div class="arrow">→</div>
+                    <div class="token-step">
+                        <div class="token-icon hcf">HCF</div>
+                        <span>HCF</span>
+                    </div>
+                </div>
+
+                <!-- 兑换表单 -->
+                <div class="swap-form">
+                    <div class="input-group">
+                        <label>输入 USDT 数量</label>
+                        <input type="number" id="usdtAmount" placeholder="0.0" min="0" step="0.01">
+                        <div class="balance">余额: <span id="usdtBalance">0.0</span> USDT</div>
+                    </div>
+
+                    <div class="conversion-info">
+                        <div class="conversion-step">
+                            <span>获得 BSDT:</span>
+                            <span id="bsdtReceive">0.0</span>
+                            <small>(1:1 兑换)</small>
+                        </div>
+                        <div class="conversion-step">
+                            <span>预计获得 HCF:</span>
+                            <span id="hcfReceive">0.0</span>
+                            <small id="hcfPrice">(价格计算中...)</small>
+                        </div>
+                    </div>
+
+                    <div class="tax-info">
+                        <h4>税费说明</h4>
+                        <ul>
+                            <li>USDT → BSDT: 无税费 (1:1)</li>
+                            <li>BSDT → HCF: 买入税 2%</li>
+                        </ul>
+                    </div>
+
+                    <button id="approveBtn" class="btn-primary" style="display: none;">授权 USDT</button>
+                    <button id="swapBtn" class="btn-primary" disabled>连接钱包开始兑换</button>
+                </div>
+            </div>
+
+            <!-- 余额显示 -->
+            <div class="balances-container">
+                <h3>我的余额</h3>
+                <div class="balance-grid">
+                    <div class="balance-card">
+                        <span class="token-name">USDT</span>
+                        <span class="token-balance" id="displayUsdtBalance">0.0</span>
+                    </div>
+                    <div class="balance-card">
+                        <span class="token-name">BSDT</span>
+                        <span class="token-balance" id="displayBsdtBalance">0.0</span>
+                    </div>
+                    <div class="balance-card">
+                        <span class="token-name">HCF</span>
+                        <span class="token-balance" id="displayHcfBalance">0.0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 交易记录 -->
+            <div class="history-container">
+                <h3>最近交易</h3>
+                <div id="txHistory" class="tx-list">
+                    <p class="empty-state">暂无交易记录</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- 提示消息 -->
+        <div id="toast" class="toast"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.0/dist/web3.min.js"></script>
+    <script src="config.js"></script>
+    <script src="swap.js"></script>
+</body>
+</html>
