@@ -32,8 +32,7 @@ async function main() {
         const BSDTGateway = await ethers.getContractFactory("BSDTGateway");
         const gateway = await BSDTGateway.deploy(
             USDT_BSC,
-            NEW_BSDT,
-            deployer.address  // 财务地址
+            NEW_BSDT
         );
         await gateway.deployed();
         console.log(chalk.green("✅ BSDTGateway:"), gateway.address);
