@@ -131,7 +131,7 @@ async function main() {
     
     const total = optimizations.immediate + optimizations.suggested + optimizations.optional;
     
-    console.log(chalk.cyan(`📊 待优化项总计：${total}项"));
+    console.log(chalk.cyan(`📊 待优化项总计：${total}项`));
     console.log(chalk.green(`  ✅ 立即可做：${optimizations.immediate}项`));
     console.log(chalk.yellow(`  ⚠️ 建议优化：${optimizations.suggested}项`));
     console.log(chalk.gray(`  💡 可选优化：${optimizations.optional}项`));

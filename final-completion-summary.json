@@ -1,0 +1,17 @@
+{
+  "timestamp": "2025-09-09T01:54:41.894Z",
+  "completionRate": "83.1%",
+  "statistics": {
+    "total": 32,
+    "completed": 21,
+    "partial": 8,
+    "missing": 3
+  },
+  "criticalMissing": [
+    "1 USDT for anchor pool",
+    "1 extra BSDT",
+    "Liquidity pools creation"
+  ],
+  "canLaunch": false,
+  "estimatedTime": "1 hour with funds"
+}
