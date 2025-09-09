@@ -129,7 +129,7 @@ async function main() {
             console.log(chalk.green.bold("\n✅ 流动性已清空！"));
             console.log(chalk.yellow("\n下一步：重新添加正确比例"));
             console.log("运行: npx hardhat run scripts/create-hcf-bsdt-pool.js --network bsc");
-            console.log("添加: 10000 HCF + 1000 BSDT (价格0.1)"));
+            console.log("添加: 10000 HCF + 1000 BSDT (价格0.1)");
         } else if (finalLP.gt(0)) {
             console.log(chalk.yellow(`\n⚠️ 还有 ${ethers.utils.formatEther(finalLP)} LP 未移除`));
             console.log("可能需要手动处理或等待");
