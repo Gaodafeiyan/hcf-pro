@@ -4,7 +4,7 @@ const fs = require("fs");
 
 async function main() {
     console.log(chalk.blue.bold("\n========================================"));
-    console.log(chalk.blue.bold("   🚀 部署 HCFStakingV2 合约"));
+    console.log(chalk.blue.bold("   🚀 部署 HCFStakingFinal 合约"));
     console.log(chalk.blue.bold("========================================\n"));
 
     const [deployer] = await ethers.getSigners();
@@ -31,10 +31,10 @@ async function main() {
     
     try {
         // 1. 部署质押合约
-        console.log(chalk.cyan("1. 部署HCFStakingV2合约..."));
+        console.log(chalk.cyan("1. 部署HCFStakingFinal合约..."));
         
-        const HCFStakingV2 = await ethers.getContractFactory("HCFStakingV2");
-        const stakingContract = await HCFStakingV2.deploy(
+        const HCFStakingFinal = await ethers.getContractFactory("HCFStakingFinal");
+        const stakingContract = await HCFStakingFinal.deploy(
             addresses.HCF,
             addresses.BSDT,
             addresses.FEE_RECEIVER
@@ -70,7 +70,7 @@ async function main() {
             network: "BSC Mainnet",
             timestamp: new Date().toISOString(),
             contracts: {
-                HCFStakingV2: stakingContract.address,
+                HCFStakingFinal: stakingContract.address,
                 HCF: addresses.HCF,
                 BSDT: addresses.BSDT,
                 HCF_BSDT_PAIR: addresses.HCF_BSDT_PAIR
