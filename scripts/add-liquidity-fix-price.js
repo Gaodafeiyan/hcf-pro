@@ -54,10 +54,18 @@ async function main() {
         const k = currentHCF.mul(currentBSDT);
         console.log(`恒定乘积 k = ${ethers.utils.formatEther(k.div(ethers.utils.parseEther("1")))}`);
         
-        // 目标：添加9000 HCF + 90 BSDT (按0.01价格比例)
-        // 这样新储备变成: 9003 HCF + 122 BSDT ≈ 0.0135 BSDT/HCF
-        const addHCF = ethers.utils.parseEther("9000");
-        const addBSDT = ethers.utils.parseEther("90");
+        // 目标：精确调整到 1 HCF = 0.1 BSDT
+        // 价格 = BSDT储备 / HCF储备 = 0.1
+        // 所以需要: HCF储备 = BSDT储备 * 10
+        
+        // 当前约: 3.16 HCF + 31.6 BSDT (价格10)
+        // 目标: 10000 HCF + 1000 BSDT (价格0.1)
+        
+        const targetHCF = ethers.utils.parseEther("10000");
+        const targetBSDT = ethers.utils.parseEther("1000");
+        
+        const addHCF = targetHCF.sub(currentHCF);
+        const addBSDT = targetBSDT.sub(currentBSDT);
         
         console.log(chalk.yellow("添加方案："));
         console.log(`添加: ${ethers.utils.formatEther(addHCF)} HCF + ${ethers.utils.formatEther(addBSDT)} BSDT`);
