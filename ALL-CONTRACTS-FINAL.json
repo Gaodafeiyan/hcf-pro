@@ -1,0 +1,25 @@
+{
+  "network": "BSC Mainnet",
+  "chainId": 56,
+  "timestamp": "2025-09-09T02:51:58.465Z",
+  "deployed": {
+    "HCF": "0x2877E99F01c739C38c0d0E204761518Ed6ff11c3",
+    "BSDT": "0xf460422388C1205724EF699051aBe300215E490b",
+    "BSDTGateway": "0xcED40bF4AF4dD04F821Bd777f7d953861cfD9cda",
+    "HCFSwapRouter": "0x2e386A8313Cc33a24370A25Fdae5E8d5C548760a"
+  },
+  "external": {
+    "USDT": "0x55d398326f99059fF775485246999027B3197955",
+    "PancakeRouter": "0x10ED43C718714eb63d5aA57B78B54704E256024E",
+    "PancakeFactory": "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73"
+  },
+  "notDeployed": [
+    "HCFStaking",
+    "ReferralSystem",
+    "NodeNFT",
+    "BurnManager",
+    "MarketControl",
+    "StakingRankingRewards"
+  ],
+  "status": "核心系统已就绪，等待创建流动性池"
+}
