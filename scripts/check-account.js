@@ -37,7 +37,10 @@ async function main() {
         // 检查HCF余额
         try {
             const HCF_ADDRESS = "0xc5c3f24A212838968759045d1654d3643016D585";
-            const hcf = await ethers.getContractAt("IERC20", HCF_ADDRESS);
+            const hcf = await ethers.getContractAt(
+                ["function balanceOf(address) view returns (uint256)"],
+                HCF_ADDRESS
+            );
             const hcfBalance = await hcf.balanceOf(address);
             console.log(`  HCF余额: ${ethers.utils.formatEther(hcfBalance)} HCF`);
         } catch (e) {
