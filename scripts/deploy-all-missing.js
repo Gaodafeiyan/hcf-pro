@@ -54,10 +54,7 @@ async function main() {
         // 3. 部署治理系统
         console.log(chalk.cyan("\n3️⃣ 部署治理系统..."));
         const HCFGovernance = await ethers.getContractFactory("HCFGovernance");
-        const governance = await HCFGovernance.deploy(
-            EXISTING.HCF,
-            1000 * 10**18 // 最小提案门槛 1000 HCF
-        );
+        const governance = await HCFGovernance.deploy(); // 构造函数不需要参数
         
         console.log("  交易:", governance.deployTransaction.hash);
         await governance.deployed();
