@@ -72,9 +72,10 @@ async function main() {
         
         const newHCF = currentHCF.add(addHCF);
         const newBSDT = currentBSDT.add(addBSDT);
-        const newPrice = newBSDT.mul(ethers.utils.parseEther("1")).div(newHCF);
+        // 价格 = BSDT / HCF
+        const newPriceRatio = parseFloat(ethers.utils.formatEther(newBSDT)) / parseFloat(ethers.utils.formatEther(newHCF));
         console.log(`预计新储备: ${ethers.utils.formatEther(newHCF)} HCF / ${ethers.utils.formatEther(newBSDT)} BSDT`);
-        console.log(chalk.green(`预计新价格: 1 HCF = ${ethers.utils.formatEther(newPrice)} BSDT`));
+        console.log(chalk.green(`预计新价格: 1 HCF = ${newPriceRatio.toFixed(4)} BSDT`));
         
         // 3. 检查余额
         console.log(chalk.cyan("\n3. 检查余额..."));
