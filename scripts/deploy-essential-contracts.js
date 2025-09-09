@@ -56,12 +56,20 @@ async function main() {
         console.log(chalk.yellow.bold("\n设置授权..."));
         const bsdt = await ethers.getContractAt("BSDTToken", NEW_BSDT);
         
-        // 授权Gateway和Router
-        await bsdt.addAuthorizedExchange(gateway.address);
-        console.log(chalk.green("✅ BSDTGateway已授权"));
-        
-        await bsdt.addAuthorizedExchange(swapRouter.address);
-        console.log(chalk.green("✅ HCFSwapRouter已授权"));
+        try {
+            // 授权Gateway和Router（需要多签权限）
+            await bsdt.authorizeExchange(gateway.address, true);
+            console.log(chalk.green("✅ BSDTGateway已授权"));
+            
+            await bsdt.authorizeExchange(swapRouter.address, true);
+            console.log(chalk.green("✅ HCFSwapRouter已授权"));
+        } catch (error) {
+            console.log(chalk.yellow("⚠️ 授权失败（可能需要多签权限）"));
+            console.log(chalk.yellow("   错误:", error.message));
+            console.log(chalk.cyan("\n注意: 合约已部署成功，但需要手动授权"));
+            console.log(chalk.white("   BSDTGateway:", gateway.address));
+            console.log(chalk.white("   HCFSwapRouter:", swapRouter.address));
+        }
         
     } catch (error) {
         console.log(chalk.red("部署失败:"), error.message);
