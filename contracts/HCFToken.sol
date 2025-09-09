@@ -89,11 +89,9 @@ contract HCFToken is ERC20, Ownable, ReentrancyGuard {
         reserveWallet = address(this); // 初始储备在合约内
         deployTime = block.timestamp;  // 记录部署时间
         
-        // 铸造首发1000万给owner
-        _mint(msg.sender, INITIAL_RELEASE);
-        
-        // 铸造900万储备金直接到owner（后续需设置多签）
-        _mint(msg.sender, RESERVE_FUND);
+        // 按需求铸造完整的10亿代币给owner
+        // 这样才有足够的HCF创建流动性池和后续分配
+        _mint(msg.sender, TOTAL_SUPPLY);
         
         // 设置免税地址
         isExcludedFromTax[msg.sender] = true;
