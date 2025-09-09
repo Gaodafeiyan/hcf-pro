@@ -1,0 +1,30 @@
+{
+  "network": "BSC Mainnet",
+  "chainId": 56,
+  "contracts": {
+    "tokens": {
+      "HCF": "0x24cA14001674fD9250c9E343e30Bc788bC3a64cC",
+      "BSDT": "0x6f5DaF12BAe217aE1420310D589719eccC0Cf908",
+      "USDT": "0x55d398326f99059fF775485246999027B3197955"
+    },
+    "business": {
+      "Staking": "0x42C343c61a630d0107B752001caCd50EfbDD13f6",
+      "Referral": "0x78b07724647657f9CB8FD2f9b11a47b32E0eEc1D",
+      "NodeNFT": "0x99D7ded9645Abf6869614C4D7dcF34b0CBE03b55"
+    },
+    "swap": {
+      "BSDTGateway": "0xb4c9C3E8CA4365c04d47dD6113831449213731ca",
+      "HCFRouter": "0x266b661f952dF7f5FBC97b28E9828775d9F0e75d"
+    },
+    "utils": {
+      "BurnManager": "0x2C1E651183ea61f044A76CFb64c2A3b9b1e98735",
+      "MarketControl": "0xCB42212723DDbd78Ca795428360E4B93bA87ebA2",
+      "RankingRewards": "0xB83742944eE696318d9087076DC2D1bFF946E6Be"
+    },
+    "pancakeswap": {
+      "Factory": "0xcA143Ce32Fe78f1f7019d7d551a6402fC5350c73",
+      "Router": "0x10ED43C718714eb63d5aA57B78B54704E256024E"
+    }
+  },
+  "timestamp": "2025-09-09T02:16:15.551Z"
+}
