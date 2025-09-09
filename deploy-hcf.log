@@ -1,0 +1,13 @@
+[dotenv@17.2.2] injecting env (27) from .env -- tip: 📡 auto-backup env with Radar: https://dotenvx.com/radar
+Compiled 2 Solidity files successfully (evm target: paris).
+[dotenv@17.2.2] injecting env (0) from .env -- tip: 🔐 encrypt with Dotenvx: https://dotenvx.com
+
+========================================
+   🚀 部署新HCF合约（10亿总量）
+========================================
+
+部署账户: 0xaC444B9d4915456F330793d384516AcD9A370Eb6
+BNB余额: 0.0 BNB
+❌ BNB不足，需要至少0.05 BNB
+
+✅ 脚本执行完成！

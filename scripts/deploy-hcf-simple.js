@@ -16,16 +16,15 @@ async function main() {
     }
     
     try {
-        const multiSig = deployer.address;
+        const addr = deployer.address;
         
         console.log("开始部署...");
         const HCFToken = await ethers.getContractFactory("HCFToken");
         const hcf = await HCFToken.deploy(
-            multiSig,
-            multiSig,
-            multiSig,
-            multiSig,
-            multiSig
+            addr,  // marketingWallet
+            addr,  // nodePool
+            addr,  // lpPool
+            addr   // bridgeAddress
         );
         
         await hcf.deployed();

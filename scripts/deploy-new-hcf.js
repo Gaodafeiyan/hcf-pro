@@ -37,7 +37,6 @@ async function main() {
         
         const HCFToken = await ethers.getContractFactory("HCFToken");
         const hcf = await HCFToken.deploy(
-            multiSigWallet,
             marketingWallet,
             nodePool,
             lpPool,
