@@ -46,8 +46,7 @@ async function main() {
             NEW_BSDT,
             USDT_BSC,
             PANCAKE_ROUTER,
-            gateway.address,
-            deployer.address  // 费用接收者
+            gateway.address
         );
         await swapRouter.deployed();
         console.log(chalk.green("✅ HCFSwapRouter:"), swapRouter.address);

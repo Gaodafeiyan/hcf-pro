@@ -42,7 +42,7 @@ async function main() {
         const mintAmountFormatted = ethers.utils.formatEther(mintAmount);
         const mintInBillion = parseFloat(mintAmountFormatted) / 1000000000;
         
-        console.log(chalk.yellow(`\n需要增发: ${mintInBillion.toFixed(0)} 亿枚"));
+        console.log(chalk.yellow(`\n需要增发: ${mintInBillion.toFixed(0)} 亿枚`));
         
         // 尝试增发
         console.log(chalk.cyan("\n尝试增发..."));
