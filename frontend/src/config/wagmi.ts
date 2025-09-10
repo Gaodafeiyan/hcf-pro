@@ -1,10 +1,10 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
-import { bscTestnet } from 'wagmi/chains';
+import { bsc } from 'wagmi/chains';
 
 export const wagmiConfig = getDefaultConfig({
   appName: 'HCF DeFi Platform',
   projectId: '2c8e9d8b7a3f5e1d4b6c9a2f8e7d3c1b', // 临时测试用ID - 生产环境请替换
-  chains: [bscTestnet],
+  chains: [bsc],
   ssr: false,
   appDescription: 'HCF DeFi Platform - Staking, Referral & Node NFT System',
   appUrl: 'https://hcf-finance.xyz',

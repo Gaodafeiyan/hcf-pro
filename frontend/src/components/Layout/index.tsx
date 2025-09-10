@@ -17,6 +17,7 @@ import {
   BulbFilled,
   GlobalOutlined,
 } from '@ant-design/icons';
+import WalletConnection from '../WalletConnection';
 import { useAccount, useBalance } from 'wagmi';
 import { CONTRACT_ADDRESSES } from '../../config/contracts';
 import { useTheme } from '../../contexts/ThemeContext';
@@ -130,7 +131,7 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
           fontSize: 12,
           textAlign: 'center'
         }}>
-          <Text type="secondary">BSC Testnet</Text>
+          <Text type="secondary">BSC Mainnet</Text>
           <br />
           <Text type="secondary">v1.0.0</Text>
         </div>
@@ -218,7 +219,7 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
               onClick={toggleTheme}
               title={isDark ? t('common.switchToLight') : t('common.switchToDark')}
             />
-            <ConnectButton />
+            <WalletConnection size="small" showNetworkInfo={false} showBalance={false} />
           </Space>
         </Header>
 
@@ -250,7 +251,7 @@ const LayoutComponent: React.FC<{ children: React.ReactNode }> = ({ children }) 
               <Text type="secondary" style={{ marginBottom: 32 }}>
                 {t('common.pleaseConnectWallet')}
               </Text>
-              <ConnectButton />
+              <WalletConnection size="large" showNetworkInfo={true} showBalance={false} />
             </div>
           )}
         </Content>

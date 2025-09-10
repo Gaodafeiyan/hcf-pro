@@ -1,0 +1,70 @@
+/* 钱包连接组件样式 */
+.wallet-connection {
+  width: 100%;
+}
+
+.connect-button-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.connect-wallet-btn {
+  min-width: 120px;
+  height: 40px;
+  border-radius: 8px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.15);
+  transition: all 0.3s ease;
+}
+
+.connect-wallet-btn:hover {
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.25);
+  transform: translateY(-1px);
+}
+
+.network-status {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.wallet-info {
+  font-size: 14px;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.info-row:last-child {
+  margin-bottom: 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .connect-wallet-btn {
+    min-width: 100px;
+    height: 36px;
+    font-size: 14px;
+  }
+  
+  .network-status {
+    max-width: 100%;
+  }
+  
+  .wallet-info {
+    font-size: 13px;
+  }
+}
+
+/* 暗色主题适配 */
+.ant-theme-dark .connect-wallet-btn {
+  box-shadow: 0 2px 8px rgba(22, 119, 255, 0.2);
+}
+
+.ant-theme-dark .connect-wallet-btn:hover {
+  box-shadow: 0 4px 12px rgba(22, 119, 255, 0.3);
+}

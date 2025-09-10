@@ -1,31 +1,30 @@
-// 合约地址配置（BSC测试网 - 2025-09-04 最新部署）
+// 合约地址配置（BSC主网 - 2025-09-10 最新部署）
 export const CONTRACT_ADDRESSES = {
-  HCFToken: '0x09F320b75e6A74994713a0e4Be54eF8f09fbaEcc',  // 正确地址
-  BSDT: '0x91152b436A5b3535E01902Cf09a3c59Ab4c433BD',      // BSDT V2 (无DEX限制)
-  USDT: '0x337610d27c682E347C9cD60BD4b3b107C9d34dDd',      // BSC Testnet USDT
-  HCFStaking: '0x6E4e682Cc90124Ef66a8cfC8Fc875CF5Ee8E8a74', // 正确地址
-  HCFNode: '0x6fDB1B1F09665Ac00C26701F5E1F92F4652D6F85',   // 新部署
-  HCFReferral: '0x18A468b3dfC71C3bA9F5A801734B219d253C7F27', // 新部署
-  HCFRanking: '0x9A27E7f4139aD7a12591ce25e40c863f8A34e956',  // 新部署
-  HCFBurnMechanism: '0x693Ac6472a98BFDedfEE8B9892CAb1A00dc7FD24', // 新部署
-  HCFMarketControl: '0x532e69A732Ac9152CA2c1212eC55cD7d5c470730', // 新部署
-  HCFImpermanentLossProtection: '0x32De00900bD63e8899930778118365ef4556DB0D', // 新部署
-  USDTOracle: '0x74F6cFFa06f346b4DF40BF4121f4B27Ab4b22140',  // 新部署
-  HCFBSDTExchange: '0x6729c0977325772cF6750eD65f9e3E07f331E104', // 新部署
-  MultiSigWallet: '0x534C2c0DF7F06aB6e66E704D4aE809DDa6883737',  // 新部署
+  HCFToken: '0xc5c3f24a212838968759045d1654d3643016d585',
+  BSDT: '0x6f5DaF12BAe217aE14210D589719eccC0Cf908', 
+  USDT: '0x55d398326f99059fF775485246999027B3197955', // BSC主网USDT
+  HCFStaking: '0x42C343c61a630d0107B752001caCd50EfbDD13f6',
+  HCFNode: '0x10b4284eafdc92f448d29db58f1ccc784e8230ad',
+  HCFReferral: '0x7fBc3bB1e4943f44CF158703B045a1198c99C405',
+  HCFTeamRewards: '0x5E165C46B47eCA24c7B251910c95bD8f49A2F0c6',
+  HCFMultiLevelRewards: '0xA8eF43F26eda5736159efDBb8ccA26D4F6b473C6',
+  HCFRankingRewards: '0x212Ec53B84bb091E663dDf68306b00cbCE30c13C',
+  HCFAutoSwap: '0x83714243313D69AE9d21B09d2f336e9A2713B8A5',
+  HCFAntiDump: '0xff9d8c2f579cb2b6e663b05f2f0d1e19dcb3eb5a',
+  LiquidityPool: '0x53df45a3260af4b7590a53ce11e7a1f8df5a8048',
 } as const;
 
 // 网络配置
 export const NETWORK_CONFIG = {
-  chainId: 97, // BSC Testnet
-  chainName: 'BSC Testnet',
-  rpcUrls: ['https://data-seed-prebsc-1-s1.binance.org:8545/'],
+  chainId: 56, // BSC主网
+  chainName: 'BSC Mainnet',
+  rpcUrls: ['https://bsc-dataseed.binance.org/'],
   nativeCurrency: {
     name: 'BNB',
     symbol: 'BNB',
     decimals: 18,
   },
-  blockExplorerUrls: ['https://testnet.bscscan.com/'],
+  blockExplorerUrls: ['https://bscscan.com/'],
 };
 
 // 质押等级配置（自动等级，起步1000 HCF）
