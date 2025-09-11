@@ -7,9 +7,17 @@ import '../styles/theme.css';
 
 interface WalletConnectionProps {
   className?: string;
+  size?: 'large' | 'middle' | 'small';
+  showNetworkInfo?: boolean;
+  showBalance?: boolean;
 }
 
-const WalletConnection: React.FC<WalletConnectionProps> = ({ className = '' }) => {
+const WalletConnection: React.FC<WalletConnectionProps> = ({ 
+  className = '', 
+  size = 'middle',
+  showNetworkInfo = true,
+  showBalance = true 
+}) => {
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
@@ -66,38 +74,6 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ className = '' }) =
           )}
         </button>
         
-        <style jsx>{`
-          .wallet-connection {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          }
-          
-          .loading-spinner {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-          }
-          
-          .spinner {
-            width: 16px;
-            height: 16px;
-            border: 2px solid transparent;
-            border-top: 2px solid var(--neon-blue);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-          }
-          
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-          
-          .wallet-icon {
-            margin-right: 8px;
-            font-size: 18px;
-          }
-        `}</style>
       </div>
     );
   }
@@ -139,102 +115,6 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ className = '' }) =
         </div>
       )}
       
-      <style jsx>{`
-        .wallet-connection.connected {
-          min-width: 200px;
-        }
-        
-        .network-warning {
-          padding: 12px 16px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          border: 1px solid var(--neon-orange);
-        }
-        
-        .warning-content {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-        }
-        
-        .warning-icon {
-          font-size: 16px;
-          animation: pulse 2s infinite;
-        }
-        
-        .wallet-info {
-          padding: 12px 16px;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          min-width: 250px;
-        }
-        
-        .address-display {
-          display: flex;
-          flex-direction: column;
-          flex: 1;
-        }
-        
-        .address-label {
-          font-size: 11px;
-          color: var(--text-muted);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        
-        .address-value {
-          font-family: 'Monaco', 'Consolas', monospace;
-          font-size: 13px;
-          color: var(--neon-blue);
-          font-weight: 600;
-        }
-        
-        .network-display {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          font-size: 12px;
-          color: var(--text-secondary);
-        }
-        
-        .network-indicator {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: var(--neon-green);
-          box-shadow: 0 0 10px var(--neon-green);
-          animation: glow 2s ease-in-out infinite;
-        }
-        
-        .disconnect-btn {
-          background: transparent;
-          border: none;
-          font-size: 16px;
-          cursor: pointer;
-          padding: 4px;
-          border-radius: 4px;
-          transition: all 0.3s ease;
-        }
-        
-        .disconnect-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
-          transform: scale(1.1);
-        }
-        
-        @media (max-width: 768px) {
-          .wallet-info {
-            min-width: 200px;
-            padding: 10px 12px;
-          }
-          
-          .address-value {
-            font-size: 12px;
-          }
-        }
-      `}</style>
     </div>
   );
 };

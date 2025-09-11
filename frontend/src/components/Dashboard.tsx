@@ -86,7 +86,7 @@ const Dashboard: React.FC = () => {
           </div>
         </div>
         
-        <style jsx>{`
+        <div style={{display: 'none'}}>{`
           .dashboard-container {
             min-height: 100vh;
             background: var(--bg-dark);
@@ -173,7 +173,7 @@ const Dashboard: React.FC = () => {
               align-items: center;
             }
           }
-        `}</style>
+        `}</div>
       </div>
     );
   }
@@ -260,7 +260,7 @@ const Dashboard: React.FC = () => {
       <div className="staking-levels glass-card">
         <h3 className="section-title">质押等级分布</h3>
         <div className="levels-grid">
-          {mockData.stakingLevels.map((level, index) => (
+          {mockData.stakingLevels.map((level) => (
             <div key={level.level} className="level-item">
               <div className="level-header">
                 <span className="level-name">{level.level}</span>
@@ -294,7 +294,7 @@ const Dashboard: React.FC = () => {
         </button>
       </div>
 
-      <style jsx>{`
+      <div style={{display: 'none'}}>{`
         .dashboard-container {
           min-height: 100vh;
           background: var(--bg-dark);
@@ -498,7 +498,7 @@ const Dashboard: React.FC = () => {
             align-items: center;
           }
         }
-      `}</style>
+      `}</div>
     </div>
   );
 };
