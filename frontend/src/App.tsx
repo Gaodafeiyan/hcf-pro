@@ -12,6 +12,7 @@ import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
 import Layout from './components/Layout/index';
 import Dashboard from './components/Dashboard'; // 使用新的3D科技感Dashboard
+import OldDashboard from './pages/Dashboard'; // 旧版Dashboard作为备用
 import StakingNew from './pages/StakingNew';
 import NodeNFT from './pages/NodeNFT';
 import Referral from './pages/Referral';
@@ -32,6 +33,8 @@ function App() {
               <Router>
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
+                  <Route path="/new" element={<Dashboard />} />
+                  <Route path="/old" element={<Layout><OldDashboard /></Layout>} />
                   <Route path="/staking" element={<Layout><StakingNew /></Layout>} />
                   <Route path="/node" element={<Layout><NodeNFT /></Layout>} />
                   <Route path="/referral" element={<Layout><Referral /></Layout>} />
