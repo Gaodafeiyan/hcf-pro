@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount, useBalance } from 'wagmi';
+import { useNavigate } from 'react-router-dom';
 import WalletConnection from './WalletConnection';
 import '../styles/theme.css';
 
 const Dashboard: React.FC = () => {
   const { address, isConnected } = useAccount();
+  const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
 
   // 获取代币余额
@@ -288,7 +290,10 @@ const Dashboard: React.FC = () => {
           <span>💎</span>
           申请节点
         </button>
-        <button className="action-btn neon-button warning">
+        <button 
+          className="action-btn neon-button warning"
+          onClick={() => navigate('/swap')}
+        >
           <span>🔄</span>
           兑换代币
         </button>
