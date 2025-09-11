@@ -43,7 +43,7 @@ function App() {
                   <Route path="/ranking" element={<Layout><Ranking /></Layout>} />
                   <Route path="/exchange" element={<Layout><Exchange /></Layout>} />
                   <Route path="/governance" element={<Layout><Governance /></Layout>} />
-                  <Route path="/test" element={<Layout><Test /></Layout>} />
+                  <Route path="/oldtest" element={<Layout><Test /></Layout>} />
                   {/* 添加通配符路由，确保所有路径都能正确渲染 */}
                   <Route path="*" element={<Dashboard />} />
                 </Routes>
