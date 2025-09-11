@@ -13,10 +13,7 @@ interface WalletConnectionProps {
 }
 
 const WalletConnection: React.FC<WalletConnectionProps> = ({ 
-  className = '', 
-  size = 'middle',
-  showNetworkInfo = true,
-  showBalance = true 
+  className = ''
 }) => {
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
