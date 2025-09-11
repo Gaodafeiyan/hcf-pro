@@ -16,7 +16,7 @@ const Dashboard: React.FC = () => {
 
   const { data: bsdtBalance } = useBalance({
     address: address,
-    token: '0x6f5DaF12BAe217aE14210D589719eccC0Cf908' as `0x${string}`, // BSDT Token
+    token: '0x3932968a904Bf6773E8a13F1D2358331B9a1a530' as `0x${string}`, // BSDT Token
     query: { enabled: !!address }
   });
 
