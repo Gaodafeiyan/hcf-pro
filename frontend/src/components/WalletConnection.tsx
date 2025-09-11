@@ -1,6 +1,7 @@
 
+
 import React, { useState } from 'react';
-import { useAccount, useConnect, useDisconnect, useNetwork, useSwitchNetwork } from 'wagmi';
+import { useAccount, useConnect, useDisconnect, useChainId, useSwitchChain } from 'wagmi';
 import { injected } from 'wagmi/connectors';
 import '../styles/theme.css';
 
@@ -12,12 +13,12 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ className = '' }) =
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
   const { disconnect } = useDisconnect();
-  const { chain } = useNetwork();
-  const { switchNetwork } = useSwitchNetwork();
+  const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
   const [isLoading, setIsLoading] = useState(false);
 
   const BSC_MAINNET_ID = 56;
-  const isCorrectNetwork = chain?.id === BSC_MAINNET_ID;
+  const isCorrectNetwork = chainId === BSC_MAINNET_ID;
 
   const handleConnect = async () => {
     setIsLoading(true);
@@ -31,9 +32,9 @@ const WalletConnection: React.FC<WalletConnectionProps> = ({ className = '' }) =
   };
 
   const handleSwitchNetwork = async () => {
-    if (switchNetwork) {
+    if (switchChain) {
       try {
-        await switchNetwork(BSC_MAINNET_ID);
+        await switchChain({ chainId: BSC_MAINNET_ID });
       } catch (error) {
         console.error('切换网络失败:', error);
       }

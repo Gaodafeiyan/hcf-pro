@@ -3,6 +3,7 @@ import { WagmiProvider } from 'wagmi';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import '@rainbow-me/rainbowkit/styles.css';
+import './styles/theme.css'; // 3D科技感主题
 import './i18n'; // Initialize i18n
 
 import { wagmiConfig } from './config/wagmi';
@@ -10,7 +11,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { I18nextProvider } from 'react-i18next';
 import i18n from './i18n';
 import Layout from './components/Layout/index';
-import Dashboard from './pages/Dashboard';
+import Dashboard from './components/Dashboard'; // 使用新的3D科技感Dashboard
 import StakingNew from './pages/StakingNew';
 import NodeNFT from './pages/NodeNFT';
 import Referral from './pages/Referral';

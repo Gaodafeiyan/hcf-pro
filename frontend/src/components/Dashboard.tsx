@@ -11,15 +11,18 @@ const Dashboard: React.FC = () => {
   const { data: hcfBalance } = useBalance({
     address: address,
     token: '0xc5c3f24a212838968759045d1654d3643016d585' as `0x${string}`, // HCF Token
+    query: { enabled: !!address }
   });
 
   const { data: bsdtBalance } = useBalance({
     address: address,
     token: '0x6f5DaF12BAe217aE14210D589719eccC0Cf908' as `0x${string}`, // BSDT Token
+    query: { enabled: !!address }
   });
 
   const { data: bnbBalance } = useBalance({
     address: address,
+    query: { enabled: !!address }
   });
 
   // 更新时间
