@@ -13,6 +13,7 @@ import i18n from './i18n';
 import Layout from './components/Layout/index';
 import Dashboard from './components/Dashboard'; // 使用新的3D科技感Dashboard
 import OldDashboard from './pages/Dashboard'; // 旧版Dashboard作为备用
+import TestDashboard from './components/TestDashboard'; // 测试组件
 import StakingNew from './pages/StakingNew';
 import NodeNFT from './pages/NodeNFT';
 import Referral from './pages/Referral';
@@ -34,6 +35,7 @@ function App() {
                 <Routes>
                   <Route path="/" element={<Dashboard />} />
                   <Route path="/new" element={<Dashboard />} />
+                  <Route path="/test" element={<TestDashboard />} />
                   <Route path="/old" element={<Layout><OldDashboard /></Layout>} />
                   <Route path="/staking" element={<Layout><StakingNew /></Layout>} />
                   <Route path="/node" element={<Layout><NodeNFT /></Layout>} />
