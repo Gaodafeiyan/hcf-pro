@@ -30,20 +30,18 @@ function App() {
           <I18nextProvider i18n={i18n}>
             <ThemeProvider>
               <Router>
-                <Layout>
-                  <Routes>
-                    <Route path="/" element={<Dashboard />} />
-                    <Route path="/staking" element={<StakingNew />} />
-                    <Route path="/node" element={<NodeNFT />} />
-                    <Route path="/referral" element={<Referral />} />
-                    <Route path="/ranking" element={<Ranking />} />
-                    <Route path="/exchange" element={<Exchange />} />
-                    <Route path="/governance" element={<Governance />} />
-                    <Route path="/test" element={<Test />} />
-                    {/* 添加通配符路由，确保所有路径都能正确渲染 */}
-                    <Route path="*" element={<Dashboard />} />
-                  </Routes>
-                </Layout>
+                <Routes>
+                  <Route path="/" element={<Dashboard />} />
+                  <Route path="/staking" element={<Layout><StakingNew /></Layout>} />
+                  <Route path="/node" element={<Layout><NodeNFT /></Layout>} />
+                  <Route path="/referral" element={<Layout><Referral /></Layout>} />
+                  <Route path="/ranking" element={<Layout><Ranking /></Layout>} />
+                  <Route path="/exchange" element={<Layout><Exchange /></Layout>} />
+                  <Route path="/governance" element={<Layout><Governance /></Layout>} />
+                  <Route path="/test" element={<Layout><Test /></Layout>} />
+                  {/* 添加通配符路由，确保所有路径都能正确渲染 */}
+                  <Route path="*" element={<Dashboard />} />
+                </Routes>
               </Router>
             </ThemeProvider>
           </I18nextProvider>
