@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
-import { parseEther, formatEther, parseUnits, formatUnits } from 'viem';
-import { Card, Button, Input, Select, message, Spin, Tooltip } from 'antd';
-import { SwapOutlined, InfoCircleOutlined, ReloadOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { useAccount, useBalance } from 'wagmi';
+import { formatEther } from 'viem';
+import { Card, Button, Input, Select, message } from 'antd';
+import { SwapOutlined } from '@ant-design/icons';
 import '../styles/theme.css';
 import { CONTRACT_ADDRESSES } from '../config/contracts';
 
@@ -30,7 +30,7 @@ const SUPPORTED_TOKENS: Token[] = [
   },
   {
     symbol: 'HCF',
-    address: CONTRACT_ADDRESSES.HCF,
+    address: CONTRACT_ADDRESSES.HCFToken,
     decimals: 18,
     logo: '🚀'
   }
@@ -44,19 +44,17 @@ const SwapInterface: React.FC = () => {
   const [toAmount, setToAmount] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [exchangeRate, setExchangeRate] = useState<string>('1');
-  const [slippage, setSlippage] = useState<string>('0.5');
+  const [slippage] = useState<string>('0.5');
 
   // 获取代币余额
   const { data: fromBalance, refetch: refetchFromBalance } = useBalance({
     address: address,
-    token: fromToken.address as `0x${string}`,
-    enabled: isConnected && fromToken.address !== '0x0000000000000000000000000000000000000000'
+    token: fromToken.address as `0x${string}`
   });
 
   const { data: toBalance, refetch: refetchToBalance } = useBalance({
     address: address,
-    token: toToken.address as `0x${string}`,
-    enabled: isConnected && toToken.address !== '0x0000000000000000000000000000000000000000'
+    token: toToken.address as `0x${string}`
   });
 
   // 交换代币选择
