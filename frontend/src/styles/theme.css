@@ -1,0 +1,378 @@
+/* 3D科技感主题 - European/American Style */
+
+/* CSS变量定义 */
+:root {
+  /* 颜色系统 */
+  --bg-dark: linear-gradient(135deg, #0a0a23, #1a0033, #000000);
+  --bg-card: rgba(255, 255, 255, 0.08);
+  --bg-card-hover: rgba(255, 255, 255, 0.12);
+  
+  /* 霓虹色彩 */
+  --neon-blue: #00d4ff;
+  --neon-green: #00ff88;
+  --neon-purple: #8b5cf6;
+  --neon-orange: #ff6b35;
+  --neon-pink: #ff0080;
+  
+  /* 文字颜色 */
+  --text-primary: #ffffff;
+  --text-secondary: #b0b0b0;
+  --text-muted: #666666;
+  
+  /* 边框圆角 */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+  
+  /* 阴影 */
+  --shadow-neon: 0 0 20px rgba(0, 212, 255, 0.3);
+  --shadow-glass: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  --shadow-hover: 0 12px 48px 0 rgba(0, 0, 0, 0.5);
+}
+
+/* 全局样式重置 */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* 主体样式 */
+body {
+  background: var(--bg-dark);
+  color: var(--text-primary);
+  font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
+  overflow-x: hidden;
+  min-height: 100vh;
+}
+
+/* 字体导入 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* 玻璃质感卡片 */
+.glass-card {
+  background: var(--bg-card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-glass);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.glass-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transition: left 0.6s;
+}
+
+.glass-card:hover {
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: var(--shadow-hover);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.glass-card:hover::before {
+  left: 100%;
+}
+
+/* 渐变卡片 */
+.gradient-card {
+  background: linear-gradient(135deg, 
+    rgba(0, 212, 255, 0.1), 
+    rgba(139, 92, 246, 0.1)
+  );
+  border: 1px solid rgba(0, 212, 255, 0.2);
+}
+
+.gradient-card.success {
+  background: linear-gradient(135deg, 
+    rgba(0, 255, 136, 0.1), 
+    rgba(0, 212, 255, 0.1)
+  );
+  border-color: rgba(0, 255, 136, 0.2);
+}
+
+.gradient-card.warning {
+  background: linear-gradient(135deg, 
+    rgba(255, 193, 7, 0.1), 
+    rgba(255, 107, 53, 0.1)
+  );
+  border-color: rgba(255, 193, 7, 0.2);
+}
+
+.gradient-card.danger {
+  background: linear-gradient(135deg, 
+    rgba(255, 0, 128, 0.1), 
+    rgba(255, 107, 53, 0.1)
+  );
+  border-color: rgba(255, 0, 128, 0.2);
+}
+
+/* 霓虹发光按钮 */
+.neon-button {
+  background: linear-gradient(45deg, var(--neon-blue), var(--neon-green));
+  border: none;
+  border-radius: var(--radius-md);
+  color: #ffffff;
+  padding: 14px 28px;
+  font-size: 16px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 
+    0 0 20px rgba(0, 212, 255, 0.4),
+    0 4px 15px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(10px);
+}
+
+.neon-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.5s;
+}
+
+.neon-button:hover {
+  transform: translateY(-3px) scale(1.05);
+  box-shadow: 
+    0 0 30px rgba(0, 212, 255, 0.6),
+    0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.neon-button:hover::before {
+  left: 100%;
+}
+
+.neon-button:active {
+  transform: translateY(-1px) scale(1.02);
+}
+
+/* 按钮变体 */
+.neon-button.success {
+  background: linear-gradient(45deg, var(--neon-green), var(--neon-blue));
+  box-shadow: 
+    0 0 20px rgba(0, 255, 136, 0.4),
+    0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.neon-button.success:hover {
+  box-shadow: 
+    0 0 30px rgba(0, 255, 136, 0.6),
+    0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+.neon-button.warning {
+  background: linear-gradient(45deg, var(--neon-orange), #ffd700);
+  box-shadow: 
+    0 0 20px rgba(255, 107, 53, 0.4),
+    0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.neon-button.warning:hover {
+  box-shadow: 
+    0 0 30px rgba(255, 107, 53, 0.6),
+    0 8px 25px rgba(0, 0, 0, 0.3);
+}
+
+/* 进度条 */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--neon-blue), var(--neon-green));
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.3),
+    transparent
+  );
+  animation: shimmer 2s infinite;
+}
+
+/* 数字显示 */
+.stats-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-green));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
+}
+
+.stats-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* 动画效果 */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes glow {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 工具类 */
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+.glow-animation {
+  animation: glow 2s ease-in-out infinite;
+}
+
+.pulse-animation {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.slide-in-up {
+  animation: slideInUp 0.6s ease-out;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .neon-button {
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+  
+  .stats-number {
+    font-size: 2rem;
+  }
+  
+  .glass-card {
+    border-radius: var(--radius-sm);
+  }
+}
+
+@media (max-width: 480px) {
+  .neon-button {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+  
+  .stats-number {
+    font-size: 1.8rem;
+  }
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(var(--neon-blue), var(--neon-green));
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(var(--neon-green), var(--neon-blue));
+}
+
+/* 选择文本样式 */
+::selection {
+  background: rgba(0, 212, 255, 0.3);
+  color: white;
+}
+
+/* 焦点样式 */
+button:focus,
+input:focus,
+textarea:focus {
+  outline: 2px solid var(--neon-blue);
+  outline-offset: 2px;
+}
+
+/* 禁用状态 */
+.neon-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.neon-button:disabled:hover {
+  transform: none;
+  box-shadow: none;
+}
