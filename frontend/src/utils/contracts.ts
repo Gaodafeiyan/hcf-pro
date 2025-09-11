@@ -112,9 +112,9 @@ export const getReferralContract = (signer?: ethers.Signer) => {
   return getContract(CONTRACT_ADDRESSES.HCFReferral, REFERRAL_ABI, signer);
 };
 
-// 交易所合约
+// 交易所合约 (使用AutoSwap合约)
 export const getExchangeContract = (signer?: ethers.Signer) => {
-  return getContract(CONTRACT_ADDRESSES.HCFBSDTExchange, EXCHANGE_ABI, signer);
+  return getContract(CONTRACT_ADDRESSES.HCFAutoSwap, EXCHANGE_ABI, signer);
 };
 
 // 格式化数字

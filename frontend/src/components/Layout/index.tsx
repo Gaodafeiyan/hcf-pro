@@ -1,7 +1,7 @@
 import React from 'react';
 import { Layout, Menu, Space, Typography, Badge, Drawer, Button, Dropdown } from 'antd';
 import { Link, useLocation } from 'react-router-dom';
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+// import { ConnectButton } from '@rainbow-me/rainbowkit'; // 已被WalletConnection替代
 import { useState } from 'react';
 import {
   DashboardOutlined,
